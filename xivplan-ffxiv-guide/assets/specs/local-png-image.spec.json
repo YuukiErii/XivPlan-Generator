@@ -1,0 +1,32 @@
+{
+  "name": "Local PNG Image Smoke",
+  "arena": {
+    "shape": "circle",
+    "size": 600,
+    "backgroundImage": "/arena/e11.svg"
+  },
+  "steps": [
+    {
+      "title": "Embedded PNG object",
+      "purpose": "Observation-only image asset smoke test.",
+      "partial": true,
+      "objects": [
+        {
+          "kind": "boss",
+          "name": "Boss",
+          "pos": "center"
+        },
+        {
+          "kind": "image",
+          "name": "Embedded PNG",
+          "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+          "pos": "N",
+          "distance": 110,
+          "width": 64,
+          "height": 64,
+          "label": "本地 PNG"
+        }
+      ]
+    }
+  ]
+}

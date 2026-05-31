@@ -2,3 +2,14 @@ interface:
   display_name: "FFXIV XivPlan Guide"
   short_description: "用 XivPlan 制作国服 FF14 团本图文攻略、绘图指令与队内速记版"
   default_prompt: "Use $xivplan-ffxiv-guide to turn this FFXIV mechanic into XivPlan drawing instructions and a Chinese raid guide."
+defaults:
+  output_root: "artifacts/full-guide-pipeline"
+  ultimate_yokai_star_dance_root: "artifacts/ultimate-yokai-star-dance"
+  quality_gate_required: true
+  unknowns_required: true
+  preserve_version_outputs: true
+  bundled_python_hint: "C:\\Users\\Mahiru\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe"
+policies:
+  - "Every generated guide package must run the quality gate before final handoff."
+  - "Unknown or draft fight facts must be listed explicitly in unknowns/risk output and guide text."
+  - "Use versioned output folders for progression work; do not overwrite previous versions unless the user explicitly requests a rerun."

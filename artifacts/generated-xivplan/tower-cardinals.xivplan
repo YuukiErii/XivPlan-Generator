@@ -257,7 +257,10 @@
           "opacity": 100,
           "id": 20
         }
-      ]
+      ],
+      "title": "四塔：T/H 南北，DPS 东西",
+      "guide_text": "四塔：T/H 南北，DPS 东西"
     }
-  ]
+  ],
+  "name": "四塔分配"
 }

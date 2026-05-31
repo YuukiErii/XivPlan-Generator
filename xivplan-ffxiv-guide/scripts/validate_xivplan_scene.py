@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
 from collections import Counter
+from math import hypot
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +25,7 @@ KNOWN_TYPES = {
     "exaflare",
     "eye",
     "icon",
+    "image",
     "knockback",
     "line",
     "lineKnockAway",
@@ -46,18 +49,37 @@ KNOWN_TYPES = {
 
 REQUIRED_BY_TYPE = {
     "party": {"name", "image", "x", "y", "width", "height", "rotation", "opacity"},
+    "marker": {"name", "image", "x", "y", "width", "height", "rotation", "shape", "color", "opacity"},
+    "icon": {"name", "image", "x", "y", "width", "height", "rotation", "opacity"},
+    "image": {"name", "image", "x", "y", "width", "height", "rotation", "opacity"},
     "enemy": {"name", "icon", "x", "y", "radius", "rotation", "ring", "color", "opacity"},
     "tower": {"x", "y", "radius", "count", "color", "opacity"},
     "stack": {"x", "y", "radius", "count", "color", "opacity"},
     "circle": {"x", "y", "radius", "color", "opacity"},
     "knockback": {"x", "y", "radius", "color", "opacity"},
+    "eye": {"x", "y", "radius", "color", "opacity"},
     "donut": {"x", "y", "radius", "innerRadius", "color", "opacity"},
+    "arc": {"x", "y", "radius", "innerRadius", "coneAngle", "rotation", "color", "opacity"},
     "line": {"x", "y", "length", "width", "rotation", "color", "opacity"},
     "cone": {"x", "y", "radius", "coneAngle", "rotation", "color", "opacity"},
+    "rect": {"x", "y", "width", "height", "rotation", "color", "opacity"},
+    "lineStack": {"x", "y", "width", "height", "rotation", "color", "opacity"},
+    "lineKnockback": {"x", "y", "width", "height", "rotation", "color", "opacity"},
+    "lineKnockAway": {"x", "y", "width", "height", "rotation", "color", "opacity"},
+    "polygon": {"x", "y", "radius", "sides", "orient", "rotation", "color", "opacity"},
+    "starburst": {"x", "y", "radius", "spokes", "spokeWidth", "rotation", "color", "opacity"},
+    "exaflare": {"x", "y", "radius", "length", "spacing", "rotation", "color", "opacity"},
     "arrow": {"x", "y", "width", "height", "rotation", "color", "opacity"},
     "text": {"text", "x", "y", "rotation", "color", "stroke", "style", "fontSize", "align", "opacity"},
     "tether": {"startId", "endId", "tether", "width", "color", "opacity"},
 }
+
+IMAGE_TYPES = {"image", "icon", "party"}
+TEXT_FIELD_LIMIT = 80
+GUIDE_TEXT_LIMIT = 180
+OBJECT_BOUND_MARGIN = 40
+PARTY_OVERLAP_DISTANCE = 18
+PARTY_ROLE_NAMES = {"MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4"}
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -67,6 +89,77 @@ def fail(errors: list[str], message: str) -> None:
 def expect_number(errors: list[str], obj: dict[str, Any], key: str, where: str) -> None:
     if key in obj and not isinstance(obj[key], (int, float)):
         fail(errors, f"{where}: {key} must be a number")
+
+
+def looks_like_observation_step(step: dict[str, Any]) -> bool:
+    if step.get("partial") is True or step.get("local_view") is True:
+        return True
+    text = " ".join(str(step.get(field, "")) for field in ("title", "purpose", "guide_text")).lower()
+    return any(
+        token in text
+        for token in ("observe", "observation", "partial", "asset", "image2", "png", "smoke", "局部", "观察", "觀察", "素材", "预览")
+    )
+
+
+def validate_data_url(errors: list[str], value: Any, where: str) -> None:
+    if not isinstance(value, str):
+        fail(errors, f"{where}.image must be a string")
+        return
+    if not value.startswith("data:"):
+        return
+    header, sep, payload = value.partition(",")
+    if not sep or ";base64" not in header:
+        fail(errors, f"{where}.image data URL must include a base64 payload")
+        return
+    media_type = header[5:].split(";", 1)[0]
+    if media_type not in {"image/png", "image/jpeg", "image/webp", "image/svg+xml"}:
+        fail(errors, f"{where}.image data URL has unsupported media type {media_type!r}")
+    try:
+        decoded = base64.b64decode(payload, validate=True)
+    except Exception as exc:  # noqa: BLE001 - report malformed payloads in CLI output.
+        fail(errors, f"{where}.image data URL payload is not valid base64: {exc}")
+        return
+    if not decoded:
+        fail(errors, f"{where}.image data URL payload is empty")
+
+
+def object_extent(obj: dict[str, Any]) -> tuple[float, float, float, float]:
+    x = float(obj.get("x", 0) or 0)
+    y = float(obj.get("y", 0) or 0)
+    x_radius = 0.0
+    y_radius = 0.0
+    radius = obj.get("radius")
+    inner_radius = obj.get("innerRadius")
+    for value in (radius, inner_radius):
+        if isinstance(value, (int, float)):
+            x_radius = max(x_radius, abs(float(value)))
+            y_radius = max(y_radius, abs(float(value)))
+    width = obj.get("width")
+    height = obj.get("height")
+    if isinstance(width, (int, float)):
+        x_radius = max(x_radius, abs(float(width)) / 2)
+    if isinstance(height, (int, float)):
+        y_radius = max(y_radius, abs(float(height)) / 2)
+    return x, y, x_radius, y_radius
+
+
+def arena_bounds(scene: dict[str, Any]) -> tuple[float, float]:
+    arena = scene.get("arena") if isinstance(scene.get("arena"), dict) else {}
+    width = arena.get("width", 600)
+    height = arena.get("height", 600)
+    if not isinstance(width, (int, float)):
+        width = 600
+    if not isinstance(height, (int, float)):
+        height = 600
+    return float(width) / 2 + OBJECT_BOUND_MARGIN, float(height) / 2 + OBJECT_BOUND_MARGIN
+
+
+def object_role(obj: dict[str, Any]) -> str:
+    for key in ("role", "name", "label"):
+        value = obj.get(key)
+        if isinstance(value, str) and value.strip() in PARTY_ROLE_NAMES:
+            return value.strip()
+    return ""
 
 
 def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
@@ -87,16 +180,34 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
 
     ids: set[int] = set()
     all_objects: list[dict[str, Any]] = []
+    bound_x, bound_y = arena_bounds(scene)
 
     for step_index, step in enumerate(steps):
         where_step = f"steps[{step_index}]"
         if not isinstance(step, dict):
             fail(errors, f"{where_step} must be an object")
             continue
+        if not isinstance(step.get("title"), str) or not step.get("title", "").strip():
+            fail(errors, f"{where_step}.title must be a non-empty string")
+        elif len(step["title"]) > TEXT_FIELD_LIMIT:
+            fail(errors, f"{where_step}.title is too long for a diagram label")
+        if "title" in step and not isinstance(step["title"], str):
+            fail(errors, f"{where_step}.title must be a string")
+        if "purpose" in step and not isinstance(step["purpose"], str):
+            fail(errors, f"{where_step}.purpose must be a string")
+        if not isinstance(step.get("guide_text"), str) or not step.get("guide_text", "").strip():
+            fail(errors, f"{where_step}.guide_text must be a non-empty string")
+        elif len(step["guide_text"]) > GUIDE_TEXT_LIMIT:
+            fail(errors, f"{where_step}.guide_text is too long; split the step or shorten on-figure prose")
+        if "guide_text" in step and not isinstance(step["guide_text"], str):
+            fail(errors, f"{where_step}.guide_text must be a string")
+        if "checks" in step and not isinstance(step["checks"], list):
+            fail(errors, f"{where_step}.checks must be a list")
         objects = step.get("objects")
         if not isinstance(objects, list):
             fail(errors, f"{where_step}.objects must be a list")
             continue
+        party_objects: list[tuple[str, float, float, int]] = []
         for object_index, obj in enumerate(objects):
             where = f"{where_step}.objects[{object_index}]"
             if not isinstance(obj, dict):
@@ -121,8 +232,50 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
             if missing:
                 fail(errors, f"{where} ({obj_type}) missing required fields: {', '.join(sorted(missing))}")
 
-            for key in ("x", "y", "width", "height", "radius", "rotation", "opacity", "count"):
+            if obj_type in IMAGE_TYPES and "image" in obj:
+                validate_data_url(errors, obj.get("image"), where)
+            for text_key in ("text", "label", "name"):
+                text_value = obj.get(text_key)
+                if isinstance(text_value, str) and len(text_value) > TEXT_FIELD_LIMIT:
+                    fail(errors, f"{where}.{text_key} is too long for on-figure text")
+
+            for key in (
+                "x",
+                "y",
+                "width",
+                "height",
+                "radius",
+                "innerRadius",
+                "rotation",
+                "opacity",
+                "count",
+                "coneAngle",
+                "sides",
+                "spokes",
+                "spokeWidth",
+                "length",
+                "spacing",
+            ):
                 expect_number(errors, obj, key, where)
+            if obj_type == "marker" and obj.get("shape") not in {"circle", "square"}:
+                fail(errors, f"{where}.shape must be circle or square")
+            if obj_type == "polygon" and obj.get("orient") not in {"point", "side"}:
+                fail(errors, f"{where}.orient must be point or side")
+            if isinstance(obj.get("x"), (int, float)) and isinstance(obj.get("y"), (int, float)):
+                x, y, x_radius, y_radius = object_extent(obj)
+                if abs(x) + x_radius > bound_x or abs(y) + y_radius > bound_y:
+                    fail(errors, f"{where} ({obj_type}) is outside arena bounds")
+            if obj_type == "party" and isinstance(obj.get("x"), (int, float)) and isinstance(obj.get("y"), (int, float)):
+                party_objects.append((object_role(obj), float(obj["x"]), float(obj["y"]), int(obj_id) if isinstance(obj_id, int) else -1))
+
+        if len(party_objects) < 8 and not looks_like_observation_step(step):
+            fail(errors, f"{where_step} has {len(party_objects)} party objects; use 8 players or mark the step as partial/observation")
+        for left_index, left in enumerate(party_objects):
+            for right in party_objects[left_index + 1 :]:
+                if hypot(left[1] - right[1], left[2] - right[2]) < PARTY_OVERLAP_DISTANCE:
+                    left_name = left[0] or f"id {left[3]}"
+                    right_name = right[0] or f"id {right[3]}"
+                    fail(errors, f"{where_step}: party objects {left_name} and {right_name} overlap")
 
     for obj in all_objects:
         if obj.get("type") != "tether":

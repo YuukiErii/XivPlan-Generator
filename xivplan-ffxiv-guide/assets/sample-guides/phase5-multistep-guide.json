@@ -1,0 +1,72 @@
+{
+  "title": "四塔分摊散开",
+  "summary": "先按固定职责处理四塔，DPS 去斜角散开，最后全员回中吃八人分摊并复位。",
+  "recommended_solution": "采用固定八方和塔位分配：T/H 负责南北，DPS 负责东西，散开后统一回中。这个方案牺牲少量 DPS 外圈移动，换取低记忆成本、低换位风险和稳定可交流的野队表达。",
+  "scene": "../../../artifacts/generated-xivplan/phase5-multistep-style.xivplan",
+  "spec": "../specs/phase5-multistep-style.spec.json",
+  "figures": [
+    {
+      "step": 1,
+      "title": "初始站位",
+      "image": "images/step_01_initial.png",
+      "caption": "图 1：初始站位",
+      "guide_text": "Boss 中央固定。八人按 T/H 十字、DPS 斜角预站，A/B/C/D 与 1/2/3/4 标点后续保持不变。"
+    },
+    {
+      "step": 2,
+      "title": "四塔出现",
+      "image": "images/step_02_towers.png",
+      "caption": "图 2：四塔职责",
+      "guide_text": "四塔出现在正点。MT/H1 北塔，ST/H2 南塔，D2/D4 东塔，D1/D3 西塔。"
+    },
+    {
+      "step": 3,
+      "title": "点名散开",
+      "image": "images/step_03_spread.png",
+      "caption": "图 3：DPS 斜角散开",
+      "guide_text": "踩塔判定后，DPS 各自去斜角散开，T/H 留在内圈准备后续分摊。"
+    },
+    {
+      "step": 4,
+      "title": "回中分摊并复位",
+      "image": "images/step_04_stack.png",
+      "caption": "图 4：回中八人分摊",
+      "guide_text": "散开判定后全员回中吃八人分摊，分摊结束按初始八方复位。"
+    }
+  ],
+  "flow": [
+    "机制开始前，Boss 中央固定，全员按八方预站。",
+    "四塔出现后，按固定职责两人一塔处理。",
+    "塔判定结束后，DPS 去斜角散开，T/H 留内圈等待分摊。",
+    "散开判定后全员回中吃八人分摊。",
+    "分摊结束按初始站位复位，准备下一机制。"
+  ],
+  "role_assignments": [
+    { "role": "MT", "position": "北塔 / 北内圈", "task": "与 H1 踩北塔，散开时留内圈，最后回中分摊。" },
+    { "role": "ST", "position": "南塔 / 南内圈", "task": "与 H2 踩南塔，散开时留内圈，最后回中分摊。" },
+    { "role": "H1", "position": "北塔 / 西内圈", "task": "与 MT 踩北塔，散开时留内圈，最后回中分摊。" },
+    { "role": "H2", "position": "南塔 / 东内圈", "task": "与 ST 踩南塔，散开时留内圈，最后回中分摊。" },
+    { "role": "D1", "position": "西塔 / 西北散开", "task": "与 D3 踩西塔，随后去西北散开，判定后回中。" },
+    { "role": "D2", "position": "东塔 / 东北散开", "task": "与 D4 踩东塔，随后去东北散开，判定后回中。" },
+    { "role": "D3", "position": "西塔 / 西南散开", "task": "与 D1 踩西塔，随后去西南散开，判定后回中。" },
+    { "role": "D4", "position": "东塔 / 东南散开", "task": "与 D2 踩东塔，随后去东南散开，判定后回中。" }
+  ],
+  "common_mistakes": [
+    "踩塔后过早回中，导致散开圈在内圈重叠。",
+    "D1/D3 或 D2/D4 混淆东西塔，造成塔人数不足。",
+    "散开后没有及时回中，导致八人分摊缺人。"
+  ],
+  "short_callout": [
+    "四塔：MT/H1 北，ST/H2 南，D2/D4 东，D1/D3 西。",
+    "塔后：DPS 去斜角散开，T/H 留内圈。",
+    "散开炸完全员回中八人分摊，然后复位。"
+  ],
+  "mnemonic": "先塔，后散，最后回中。",
+  "consistency_checks": [
+    "四座塔均按 2 人塔处理。",
+    "8 人均有明确塔位、散开或分摊职责。",
+    "DPS 散开方向与图中斜角一致。",
+    "最后一步有回中分摊和复位说明。"
+  ],
+  "unknowns": []
+}

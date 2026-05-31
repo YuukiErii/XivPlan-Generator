@@ -1,0 +1,32 @@
+{
+  "name": "image2 动物素材闭环样例",
+  "style": "king-x-fru",
+  "arena": {
+    "preset": "fru-p2"
+  },
+  "markerPresets": "cardinals",
+  "steps": [
+    {
+      "title": "1 素材预览",
+      "purpose": "展示 image2 生成的透明 PNG 能作为 XivPlan image object 嵌入。",
+      "guide_text": "动物图标来自本地 PNG，注入脚本会把它转成 data URL，保存 `.xivplan` 后无需原始图片也能显示。",
+      "objects": [
+        { "kind": "boss", "key": "boss", "name": "Boss", "pos": "center", "rotation": 180 },
+        { "kind": "label", "key": "callout", "text": "本 step 会注入一个 image2 动物素材", "pos": "S", "distance": 285, "fontSize": 14 }
+      ]
+    },
+    {
+      "title": "2 机制中使用素材",
+      "purpose": "把同一 PNG 作为机制对象放到多个判定点。",
+      "guide_text": "南北出现动物点名标记，玩家按图示避让或处理。这个样例验证同一素材可重复注入多个 step/位置。",
+      "inherit": true,
+      "updates": {
+        "callout": { "text": "动物标记出现：南北各一处" }
+      },
+      "objects": [
+        { "kind": "safe_circle", "key": "center-safe", "pos": "center", "radius": 94, "label": "安全集合" },
+        { "kind": "arrow", "key": "move-out", "from": "center", "to": "E", "distance": 135, "height": 12 }
+      ]
+    }
+  ]
+}

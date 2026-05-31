@@ -1,0 +1,40 @@
+{
+  "assets": [
+    {
+      "asset_id": "m6s-animal",
+      "name": "M6S animal icon",
+      "path": "samples/m6s-animal-icon-256.png",
+      "width": 78,
+      "height": 78,
+      "placements": [
+        {
+          "step": 1,
+          "key": "animal-preview",
+          "pos": "N",
+          "distance": 145,
+          "label": "image2 动物素材",
+          "labelPos": "N",
+          "labelDistance": 224
+        },
+        {
+          "step": 2,
+          "key": "animal-north",
+          "pos": "N",
+          "distance": 170,
+          "label": "动物点名",
+          "labelPos": "N",
+          "labelDistance": 235
+        },
+        {
+          "step": 2,
+          "key": "animal-south",
+          "pos": "S",
+          "distance": 170,
+          "label": "动物点名",
+          "labelPos": "S",
+          "labelDistance": 235
+        }
+      ]
+    }
+  ]
+}

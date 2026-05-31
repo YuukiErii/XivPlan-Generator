@@ -1,0 +1,169 @@
+{
+  "mechanic": "随机四人散开，未点名四人中间分摊",
+  "description": "Phase 4 regression fixture: compare a stable clock strategy, a caster-anchor strategy, and an unsafe crossing shortcut.",
+  "boss": {
+    "pos": [0, 0],
+    "uptime_radius": 125,
+    "targetable_duration": 12
+  },
+  "party": {
+    "MT": { "job": "DRK", "tags": ["tank", "uptime"] },
+    "ST": { "job": "PLD", "tags": ["tank", "uptime"] },
+    "H1": { "job": "AST", "tags": ["healer", "caster"] },
+    "H2": { "job": "SCH", "tags": ["healer", "caster"] },
+    "D1": { "job": "SAM", "tags": ["melee", "uptime"] },
+    "D2": { "job": "RPR", "tags": ["melee", "uptime"] },
+    "D3": { "job": "BRD", "tags": ["mobile_ranged"] },
+    "D4": { "job": "BLM", "tags": ["caster"] }
+  },
+  "constraints": {
+    "forbid_route_crossing": true
+  },
+  "budgets": {
+    "movement": 32,
+    "caster_movement": 12
+  },
+  "candidates": [
+    {
+      "id": "fixed-clocks",
+      "name": "候选 A：固定八方",
+      "summary": "点名者沿最近方向进入固定 clock，未点名者中间分摊。规则稳定，适合野队和重复使用。",
+      "tradeoffs": ["D4 被点名时仍需提前移动到东南 clock"],
+      "safety_checks": [
+        { "name": "eight_roles_assigned", "passed": true, "details": "MT/ST/H1/H2/D1-D4 all have stable clocks" },
+        { "name": "spread_clearance", "passed": true, "details": "clock positions keep the requested spread radius" },
+        { "name": "stack_size", "passed": true, "details": "four unmarked players stack at center" }
+      ],
+      "movements": [
+        { "role": "MT", "from": [0, 65], "to": [0, 115], "timing": "preposition", "duration": 0.7, "beat": "spread" },
+        { "role": "ST", "from": [0, -65], "to": [0, -115], "timing": "preposition", "duration": 0.7, "beat": "spread" },
+        { "role": "H1", "from": [-65, 0], "to": [-150, 0], "timing": "preposition", "duration": 1.0, "beat": "spread" },
+        { "role": "H2", "from": [65, 0], "to": [150, 0], "timing": "preposition", "duration": 1.0, "beat": "spread" },
+        { "role": "D1", "from": [-45, 45], "to": [-82, 82], "timing": "preposition", "duration": 0.7, "beat": "spread" },
+        { "role": "D2", "from": [45, 45], "to": [82, 82], "timing": "preposition", "duration": 0.7, "beat": "spread" },
+        { "role": "D3", "from": [-55, -55], "to": [-125, -125], "timing": "preposition", "duration": 1.0, "beat": "spread" },
+        { "role": "D4", "from": [55, -55], "to": [125, -125], "timing": "preposition", "duration": 1.0, "beat": "spread" }
+      ],
+      "complexity": {
+        "live_sorts": 0,
+        "role_swaps": 0,
+        "exceptions": 0,
+        "simultaneous_attributes": 1,
+        "pattern_reuse": 3,
+        "fixed_assignments": 8,
+        "stable_meanings": 2
+      },
+      "tolerance": {
+        "min_margin": 34,
+        "simultaneous_swaps": 0,
+        "last_second_adjustments": 0
+      },
+      "communication": {
+        "callout_words": 10,
+        "priority_rules": 0,
+        "exception_rules": 0,
+        "macro_lines": 2
+      },
+      "diagram": {
+        "steps": 3,
+        "arrows": 8,
+        "crossing_arrows": 0,
+        "labels": 10,
+        "branches": 0,
+        "max_objects_per_step": 22
+      },
+      "fight_specific_fit": 5
+    },
+    {
+      "id": "caster-anchor",
+      "name": "候选 B：读条位锚定",
+      "summary": "H1/H2/D4 尽量不动，其他人根据点名临场补空位。读条职业舒服，但需要一次局部排序。",
+      "tradeoffs": ["D1/D2 可能短暂离开目标圈", "需要临场补位 callout"],
+      "safety_checks": [
+        { "name": "eight_roles_assigned", "passed": true, "details": "all roles have legal destinations after the local sort" },
+        { "name": "spread_clearance", "passed": true, "details": "outer destinations preserve spread clearance" },
+        { "name": "stack_size", "passed": true, "details": "four unmarked players stack at center" }
+      ],
+      "movements": [
+        { "role": "MT", "from": [0, 65], "to": [-135, 40], "timing": "resolution", "duration": 1.0, "beat": "spread", "hold": 0.6 },
+        { "role": "ST", "from": [0, -65], "to": [135, -40], "timing": "resolution", "duration": 1.0, "beat": "spread", "hold": 0.6 },
+        { "role": "D1", "from": [-45, 45], "to": [-175, -20], "timing": "resolution", "duration": 1.2, "beat": "spread", "hold": 1.4 },
+        { "role": "D2", "from": [45, 45], "to": [175, 20], "timing": "resolution", "duration": 1.2, "beat": "spread", "hold": 1.4 },
+        { "role": "D3", "from": [-55, -55], "to": [0, -165], "timing": "resolution", "duration": 1.0, "beat": "spread", "hold": 0.4 },
+        { "role": "D4", "from": [55, -55], "to": [70, -70], "timing": "free", "duration": 0.4, "beat": "spread" }
+      ],
+      "complexity": {
+        "live_sorts": 1,
+        "role_swaps": 2,
+        "exceptions": 1,
+        "simultaneous_attributes": 2,
+        "pattern_reuse": 1,
+        "fixed_assignments": 3,
+        "stable_meanings": 1
+      },
+      "tolerance": {
+        "min_margin": 24,
+        "simultaneous_swaps": 2,
+        "last_second_adjustments": 1
+      },
+      "communication": {
+        "callout_words": 22,
+        "priority_rules": 1,
+        "exception_rules": 1,
+        "macro_lines": 4
+      },
+      "diagram": {
+        "steps": 4,
+        "arrows": 10,
+        "crossing_arrows": 0,
+        "labels": 16,
+        "branches": 1,
+        "max_objects_per_step": 28
+      },
+      "fight_specific_fit": 4
+    },
+    {
+      "id": "crossing-shortcut",
+      "name": "候选 C：交叉捷径",
+      "summary": "表面上减少了移动距离，但两条路线在同一 beat 交叉，违反安全门槛。",
+      "tradeoffs": ["路线交叉"],
+      "safety_checks": [
+        { "name": "eight_roles_assigned", "passed": true, "details": "all roles assigned" },
+        { "name": "spread_clearance", "passed": true, "details": "destinations are separated" }
+      ],
+      "movements": [
+        { "role": "D1", "from": [-120, -120], "to": [120, 120], "timing": "resolution", "duration": 1.0, "beat": "shortcut" },
+        { "role": "D2", "from": [-120, 120], "to": [120, -120], "timing": "resolution", "duration": 1.0, "beat": "shortcut" }
+      ],
+      "complexity": {
+        "live_sorts": 0,
+        "role_swaps": 0,
+        "exceptions": 0,
+        "simultaneous_attributes": 1,
+        "pattern_reuse": 1,
+        "fixed_assignments": 8,
+        "stable_meanings": 1
+      },
+      "tolerance": {
+        "min_margin": 10,
+        "simultaneous_swaps": 2,
+        "last_second_adjustments": 1
+      },
+      "communication": {
+        "callout_words": 8,
+        "priority_rules": 0,
+        "exception_rules": 0,
+        "macro_lines": 1
+      },
+      "diagram": {
+        "steps": 2,
+        "arrows": 2,
+        "crossing_arrows": 2,
+        "labels": 4,
+        "branches": 0,
+        "max_objects_per_step": 14
+      },
+      "fight_specific_fit": 2
+    }
+  ]
+}

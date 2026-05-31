@@ -1,0 +1,111 @@
+{
+  "name": "Phase 5 多步样例：四塔分摊散开",
+  "style": "king-x-fru",
+  "arena": {
+    "preset": "fru-p2"
+  },
+  "markerPresets": "all-waymarks",
+  "steps": [
+    {
+      "title": "1 初始站位",
+      "purpose": "固定标点和八方预站，后续步骤继承这一层。",
+      "guide_text": "Boss 中央固定。八人先按常规八方预站，A/B/C/D 与 1/2/3/4 标点用于后续塔和散开方向。",
+      "checks": [
+        "8 人都有初始位置",
+        "所有标点位置稳定"
+      ],
+      "objects": [
+        { "kind": "boss", "key": "boss", "name": "Boss", "pos": "center", "rotation": 180 },
+        { "kind": "party", "role": "MT", "pos": "N", "distance": 105 },
+        { "kind": "party", "role": "ST", "pos": "S", "distance": 105 },
+        { "kind": "party", "role": "H1", "pos": "W", "distance": 105 },
+        { "kind": "party", "role": "H2", "pos": "E", "distance": 105 },
+        { "kind": "party", "role": "D1", "pos": "NW", "distance": 118 },
+        { "kind": "party", "role": "D2", "pos": "NE", "distance": 118 },
+        { "kind": "party", "role": "D3", "pos": "SW", "distance": 118 },
+        { "kind": "party", "role": "D4", "pos": "SE", "distance": 118 },
+        { "kind": "label", "key": "callout", "text": "预站：T/H 十字，DPS 斜角", "pos": "S", "distance": 285, "fontSize": 14 }
+      ]
+    },
+    {
+      "title": "2 四塔出现",
+      "purpose": "展示 cardinal 四塔与职责分配。",
+      "guide_text": "四塔出现在正点。MT/H1 北塔，H2/ST 南塔，D2/D4 东塔，D1/D3 西塔；踩塔前保持 Boss 可攻击距离。",
+      "inherit": true,
+      "updates": {
+        "callout": { "text": "四塔：T/H 南北，DPS 东西" }
+      },
+      "objects": [
+        { "kind": "tower", "key": "tower-n", "pos": "N", "distance": 205, "count": 2, "label": "MT/H1" },
+        { "kind": "tower", "key": "tower-e", "pos": "E", "distance": 205, "count": 2, "label": "D2/D4" },
+        { "kind": "tower", "key": "tower-s", "pos": "S", "distance": 205, "count": 2, "label": "ST/H2" },
+        { "kind": "tower", "key": "tower-w", "pos": "W", "distance": 205, "count": 2, "label": "D1/D3" },
+        { "kind": "polygon", "key": "safe-diamond", "pos": "center", "radius": 185, "sides": 4, "orient": "point", "rotation": 45, "color": "#8fd14f", "opacity": 24 }
+      ]
+    },
+    {
+      "title": "3 点名散开",
+      "purpose": "塔判定后，四名 DPS 去斜角散开，T/H 留内圈准备集合。",
+      "guide_text": "踩塔判定结束后，DPS 各自去斜角散开，T/H 留在内圈。散开圈只表达危险半径，不代表必须站在圈中心。",
+      "inherit": true,
+      "remove": [
+        "tower-n",
+        "tower-e",
+        "tower-s",
+        "tower-w",
+        "safe-diamond"
+      ],
+      "updates": {
+        "MT": { "pos": "N", "distance": 75 },
+        "ST": { "pos": "S", "distance": 75 },
+        "H1": { "pos": "W", "distance": 75 },
+        "H2": { "pos": "E", "distance": 75 },
+        "D1": { "pos": "NW", "distance": 215 },
+        "D2": { "pos": "NE", "distance": 215 },
+        "D3": { "pos": "SW", "distance": 215 },
+        "D4": { "pos": "SE", "distance": 215 },
+        "callout": { "text": "DPS 斜角散开，T/H 内圈等分摊" }
+      },
+      "objects": [
+        { "kind": "circle", "key": "spread-d1", "pos": "NW", "distance": 215, "radius": 50, "label": "D1" },
+        { "kind": "circle", "key": "spread-d2", "pos": "NE", "distance": 215, "radius": 50, "label": "D2" },
+        { "kind": "circle", "key": "spread-d3", "pos": "SW", "distance": 215, "radius": 50, "label": "D3" },
+        { "kind": "circle", "key": "spread-d4", "pos": "SE", "distance": 215, "radius": 50, "label": "D4" },
+        { "kind": "rect", "key": "danger-line", "pos": "center", "width": 80, "height": 560, "rotation": 90, "color": "#d13438", "opacity": 20 }
+      ]
+    },
+    {
+      "title": "4 回中分摊并复位",
+      "purpose": "展示移动箭头、分摊点与下一机制复位。",
+      "guide_text": "散开判定后全员回中吃八人分摊，随后按初始八方复位。读条职业可提前贴近内圈，减少回中距离。",
+      "inherit": true,
+      "remove": [
+        "spread-d1",
+        "spread-d2",
+        "spread-d3",
+        "spread-d4",
+        "danger-line"
+      ],
+      "updates": {
+        "MT": { "pos": "N", "distance": 52 },
+        "ST": { "pos": "S", "distance": 52 },
+        "H1": { "pos": "W", "distance": 52 },
+        "H2": { "pos": "E", "distance": 52 },
+        "D1": { "pos": "NW", "distance": 78 },
+        "D2": { "pos": "NE", "distance": 78 },
+        "D3": { "pos": "SW", "distance": 78 },
+        "D4": { "pos": "SE", "distance": 78 },
+        "callout": { "text": "散开后回中八人分摊，结束复位" }
+      },
+      "objects": [
+        { "kind": "stack", "key": "final-stack", "pos": "center", "radius": 76, "count": 8, "label": "八人分摊" },
+        { "kind": "arrow", "key": "d1-return", "from": "NW", "to": [-45, 45], "distance": 205, "height": 12 },
+        { "kind": "arrow", "key": "d2-return", "from": "NE", "to": [45, 45], "distance": 205, "height": 12 },
+        { "kind": "arrow", "key": "d3-return", "from": "SW", "to": [-45, -45], "distance": 205, "height": 12 },
+        { "kind": "arrow", "key": "d4-return", "from": "SE", "to": [45, -45], "distance": 205, "height": 12 },
+        { "kind": "donut", "key": "outer-danger", "pos": "center", "innerRadius": 115, "radius": 270, "color": "#d13438", "opacity": 16 },
+        { "kind": "starburst", "key": "resolve-flash", "pos": "center", "radius": 105, "spokes": 8, "spokeWidth": 16, "color": "#ffb900", "opacity": 24 }
+      ]
+    }
+  ]
+}

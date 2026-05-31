@@ -221,6 +221,12 @@ Spec root:
   "style": "king-x-fru",
   "arena": { "preset": "fru-p1" },
   "markerPresets": "cardinals",
+  "scene_contract": {
+    "require_full_party_each_step": true,
+    "require_enemy_each_step": true,
+    "require_waymarks_each_step": true,
+    "allow_partial_observation": false
+  },
   "steps": [
     {
       "title": "四塔：T/H 南北，DPS 东西",
@@ -242,6 +248,24 @@ Useful root presets:
 - `markerPresets: "cardinals"`: A/B/C/D at N/E/S/W.
 - `markerPresets: "intercards"`: 1/2/3/4 at NE/SE/SW/NW.
 - `markerPresets: "all-waymarks"`: both cardinal and intercardinal waymarks.
+- `scene_contract`: when present, tells the builder and validator that normal steps must preserve full visual context.
+
+Scene contract:
+
+```json
+{
+  "scene_contract": {
+    "require_full_party_each_step": true,
+    "require_enemy_each_step": true,
+    "require_waymarks_each_step": true,
+    "allow_partial_observation": false
+  }
+}
+```
+
+- If a normal step omits `inherit`, the builder still fills missing party roles, a Boss/enemy anchor, and waymarks required by the contract.
+- `focusRoles` may be set on a step to highlight active roles while leaving the other seven/eight party icons as `ghost` context.
+- `partial_observation: true` is reserved for local observation or asset-preview frames. If the contract allows it, `guide_text` must explain why the step can omit full context.
 
 Supported object `kind` values:
 
@@ -269,6 +293,7 @@ Supported object `kind` values:
 | `eye` | `eye` | Gaze marker; `invert` is supported |
 | `exaflare` | `exaflare` | Repeating explosion line with `length` and `spacing` |
 | `arrow` | `arrow` | Use `from` and `to` positions |
+| `path`, `polyline` | `arrow` segments | Use `points` or `waypoints` for bent routes |
 | `tether` | `tether` | Use `start` and `end` refs from same step |
 | `label`, `text` | `text` | Text label |
 
@@ -285,6 +310,17 @@ Optional fields:
 - `offset`: `[x, y]` added after resolving `pos`.
 - `label`: auto-create a text label for a non-text object.
 - `labelPos`, `labelDistance`, `labelOffset`: customize auto-label placement.
+- `labelPlacement: "auto"`: place the label outside the object in an outward direction.
+- `labelAvoid`: preferred collision-avoidance classes for the label audit, such as `["party", "enemy", "mechanic", "arrow", "text"]`.
+- `labelAnchor`: emitted on generated text labels so audits can reason about anchor distance.
+- `leaderLine: true`: draw a thin line from the object anchor to an auto-placed label.
+- `arrowStyle`: one of `movement`, `preposition`, `micro`, `knockback`, `bait`, `forbidden`, or `reset`.
+- `waypoints`: intermediate positions for a bent arrow route.
+- `points` / `path`: full route point list for `kind: "path"` or `kind: "polyline"`.
+- `curve`: simple curved-route shorthand; the builder approximates it as a two-segment bend.
+- `startGap` / `endGap`: shorten a rendered arrow so the tail/head does not sit directly on a player or marker.
+- `routeCheck: false`: exclude a route from crossing checks when it is intentionally not simultaneous.
+- `allowDangerCrossing: true`: mark movement through a danger zone as mechanic-required.
 - `key`: explicit reference name for tethers.
 
 Step inheritance:
@@ -307,7 +343,40 @@ Step inheritance:
 - `updates` patches inherited objects by `key`, `role`, or `name`.
 - `remove` removes inherited objects by `key`, `role`, or `name`.
 - `replace` removes the object with the same key and appends a replacement object.
-- `guide_text`, `purpose`, and `checks` are preserved on the output step for guide assembly and export manifests.
+- `guide_text`, `purpose`, `checks`, `visual_focus`, `required_roles`, `reset_state`, and `storyboard_phase` are preserved on the output step for guide assembly, export manifests, and storyboard audits.
+- Phase F generated steps should use `storyboard_phase` values such as `observe`, `preposition`, `move`, `resolve`, and `reset`; the final scene should contain at least observe / move / resolve / reset coverage and normally 6-14 steps.
+- Contracted scenes are validated for complete MT/ST/H1/H2/D1/D2/D3/D4 role coverage, at least one enemy anchor, and stable cardinal waymarks on every normal step.
+
+Label layout audit:
+
+```bash
+python xivplan-ffxiv-guide/scripts/audit_label_layout.py artifacts/generated-xivplan/my-scene.xivplan --markdown-out artifacts/label-layout-report.md
+python xivplan-ffxiv-guide/scripts/auto_place_labels.py artifacts/generated-xivplan/my-scene.xivplan -o artifacts/generated-xivplan/my-scene-labels.xivplan
+```
+
+- The audit estimates text, party, Boss, marker, mechanic, and arrow bounding boxes.
+- Severe text overlap fails the label gate; review-level items are reported for manual polish.
+
+Flow line audit:
+
+```bash
+python xivplan-ffxiv-guide/scripts/audit_flow_lines.py artifacts/generated-xivplan/my-scene.xivplan --markdown-out artifacts/flow-line-report.md
+```
+
+- The audit estimates arrow segments from `flowStart` / `flowEnd`, or from arrow center, width, and rotation.
+- Severe issues include arrow crossings above the allowed threshold and arrowheads covering players, Bosses, markers, or text.
+- Movement through high-opacity danger zones is reported as a review item unless the route sets `allowDangerCrossing: true`.
+
+Visual quality audit:
+
+```bash
+python xivplan-ffxiv-guide/scripts/audit_visual_quality.py artifacts/generated-xivplan/my-scene.xivplan --json-out artifacts/visual-quality-results.json --markdown-out artifacts/visual-quality-report.md
+python xivplan-ffxiv-guide/scripts/audit_visual_quality.py artifacts/phase8-e2e --json-out artifacts/phase-g/visual-quality-results.json --markdown-out artifacts/phase-g/visual-quality-report.md
+```
+
+- The audit combines context, density, label layout, flow lines, layer coverage, aesthetics, and step-story coverage into one report.
+- Severe issues fail the gate; review items remain visible for human polish without blocking generated packages.
+- Directory input prefers case-level `scene.xivplan` files before falling back to recursive `.xivplan` discovery.
 
 Phase 5 regression sample:
 

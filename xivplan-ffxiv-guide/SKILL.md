@@ -16,7 +16,12 @@ Use Simplified Chinese by default. Produce practical raid-guide output that a CN
    - EN/JP strategy text: localize into CN FF14 terms and mark uncertain translations or missing mechanics.
 2. Build a diagram plan before prose:
    - Name each figure by purpose, not only by order.
+   - Select the arena background before drafting coordinates. Use explicit user requests first, then encounter/phase/category inference, then `default-circle`.
    - Define arena, direction markers, boss/enemy placement, player positions, AoE objects, arrows/pathing, text labels, and layer order.
+   - For complex mechanics, draft a visual storyboard before writing concrete spec objects. Cover observe, preposition or movement, resolution, and reset/next-read setup; use `assets/templates/visual-storyboard-template.md` when a reusable artifact is useful.
+   - For normal multi-step scenes, add a `scene_contract` requiring full party, enemy anchor, and waymarks on every step. Use `partial_observation` only for true local observation/asset frames and explain why in `guide_text`.
+   - For long dense mechanics, use `P1/P1_thunder_fire_swords.xivplan` as the information-density reference: many steps are acceptable when each frame remains readable and focused.
+   - Treat long-flow density differently from single-step clutter: a semantic long-flow scene is acceptable only when it has 10-14 purposeful steps, observe/move/resolve/reset coverage, no severe label or arrow issues, and clear reset/next-read frames.
    - Use XivPlan scene coordinates when concrete files are needed: center is `(0,0)`, `x` positive east, `y` positive north.
 3. Write the guide:
    - Keep mechanics, role assignments, movement timing, and reset points separate.
@@ -103,7 +108,9 @@ Load only the reference needed for the task:
 - `references/encounters/index.md`: analogy lookup index for TEA, DSR, TOP, FRU, Omega, Eden, Pandaemonium, and Arcadion mechanic cards.
 - `references/encounters/coverage-audit.md`: floor-by-floor Savage coverage boundary and live-tier refresh notes.
 - `references/xivplan-scene-format.md`: local XivPlan JSON schema, object fields, coordinates, and file handling.
+- `references/arena-presets.md`: arena background selection rules, aliases, and source labels.
 - `references/xivplan-style-guide.md`: KING X golden-sample visual baseline, diagram sizes, colors, layering, and step decomposition.
+- `references/visual-flow-language.md`: arrow styles, path/polyline routing, reset arrows, forbidden routes, and flow-line audit rules.
 - `references/image-asset-workflow.md`: image2 / local PNG asset generation, validation, manifest placement, and data-URL injection workflow.
 - `references/solution-optimization.md`: candidate comparison rules for safety, movement, melee uptime, memory cost, and diagram clarity.
 - `references/solution-candidate-format.md`: executable candidate-bundle JSON format and Phase 4 scoring command.
@@ -115,6 +122,23 @@ Load only the reference needed for the task:
 Use `assets/templates/*.md` as copyable output templates when creating reusable artifacts for the user. Use `assets/examples/tower-four-card-example.xivplan` as a minimal valid scene example when a concrete `.xivplan` reference is useful.
 
 For concrete diagram files, create a compact mechanic spec JSON and run `scripts/build_xivplan_scene.py` to generate a `.xivplan` draft. Sample specs live in `assets/specs/`.
+
+For Phase H visual planning, prefer these templates:
+
+- `assets/templates/visual-storyboard-template.md`: step-by-step visual plan before writing a complex spec.
+- `assets/templates/arena-selection-template.md`: record arena preset, source, and fallback reasoning.
+- `assets/templates/visual-quality-checklist.md`: final pre-handoff checklist aligned with `audit_visual_quality.py`.
+
+## Arena Selection
+
+Before generating a concrete spec, choose the arena preset and record why:
+
+1. If the user says "FRU P1", "Fatebreaker", "e11", or thunder/fire swords, use `arena: {"preset": "fru-p1"}`.
+2. If the user says "Shiva", "Light Rampant", "e8", mirrors, or light-orb mechanics, use `arena: {"preset": "eden-light"}` unless they explicitly said `fru-p2`.
+3. If the user says square/grid/tile/platform arena, use `arena: {"preset": "tile-square"}`.
+4. If none applies, use `arena: {"preset": "default-circle"}` and mark it as a fallback.
+
+When parser or planning outputs are available, preserve `arena_selection.source` as `user-specified`, `mechanic-inferred`, or `default-fallback` so the quality report can explain the background source.
 
 ## Analogy Lookup
 
@@ -164,6 +188,18 @@ When generating object-level instructions:
 - In concrete `.xivplan` JSON, prefer these object types:
   - `party` for players, `enemy` for boss/adds, `marker` for A/B/C/D/1/2/3/4, `tower` for towers, `stack` for stacks, `circle`/`rect`/`line`/`cone`/`donut`/`arc`/`polygon`/`starburst` for AoEs and safe zones, `image`/`icon` for embedded assets, `arrow` for movement, `tether` for links, `text` for labels.
   - For multi-step specs, use `style: "king-x-fru"`, `arena.preset`, `markerPresets`, `guide_text`, and `inherit`/`updates`/`remove` to keep repeated objects stable while showing only the change in each figure.
+- Generated solution specs should use Phase F storyboard metadata on every step: `storyboard_phase`, `purpose`, `guide_text`, `checks`, `visual_focus`, `required_roles`, and `reset_state`. Normal generated mechanics should cover observe, move, resolve, and reset phases in 6-14 steps.
+- Complex mechanics must be storyboarded first, then converted into spec objects. Do not compress observation, assignment, movement, resolution, and reset into one overloaded frame.
+- Default full-scene contract for generated specs:
+  - `scene_contract.require_full_party_each_step: true`
+  - `scene_contract.require_enemy_each_step: true`
+  - `scene_contract.require_waymarks_each_step: true`
+  - `scene_contract.allow_partial_observation: false`
+  When this contract is present, the builder auto-fills missing party/Boss/waymarks for normal steps, and the validator rejects empty-context frames.
+- Use `focusRoles` on a step when only current actors should be highlighted. Non-focused party members stay visible with `ghost: true` / lower opacity instead of disappearing.
+- Text avoidance priority is: keep labels off players, Boss/enemy anchors, towers/stacks, dangerous AoE edges, arrowheads, waymarks, and other text. Put generated step titles outside the cardinal waymark collision band; for attached mechanic labels, prefer `labelPlacement: "auto"` with `labelAvoid: ["party", "enemy", "marker", "mechanic", "arrow", "text"]`. Use `leaderLine: true` when a label is moved outside the object it explains; if it still collides, shorten the label and move the explanation into `guide_text`.
+- For movement and route lines, use `arrowStyle` instead of hand-picked colors: `movement`, `preposition`, `micro`, `knockback`, `bait`, `forbidden`, or `reset`. Use `waypoints`, `curve`, `kind: "path"`, or `kind: "polyline"` when a route should bend around mechanics or avoid crossing another arrow. Any step marked as movement/reset must include an explicit arrow or tether layer.
+- Use `P1/P1_thunder_fire_swords.xivplan` as the long-flow density target: 10-14 steps and dense Chinese labels are acceptable only when each step has a distinct teaching purpose, context remains stable, labels and arrows pass severe gates, and the final frames state reset or next-read setup.
 - Keep scene-wide object IDs unique across all steps.
 - Validate generated or edited `.xivplan` JSON with:
 
@@ -215,7 +251,15 @@ For generated Phase 8-style guide packages, run the automated gate:
 python xivplan-ffxiv-guide/scripts/run_quality_gate.py artifacts/phase8-e2e
 ```
 
-For a single package, use `scripts/validate_guide_package.py` on the case directory and `scripts/audit_visual_density.py` on the `.xivplan` file.
+For a single package, use `scripts/validate_guide_package.py` on the case directory and `scripts/audit_visual_quality.py` on the `.xivplan` file. The visual quality gate fails severe issues such as missing party context, missing Boss/enemy, missing arena context, severe label collisions, severe arrow obstruction, or missing reset coverage; review items are reported for manual polish.
+
+```bash
+python xivplan-ffxiv-guide/scripts/audit_visual_quality.py artifacts/generated-xivplan/my-scene.xivplan --markdown-out artifacts/visual-quality-report.md --json-out artifacts/visual-quality-results.json
+```
+
+For targeted debugging, `scripts/audit_visual_density.py`, `scripts/audit_label_layout.py`, and `scripts/audit_flow_lines.py` remain available. If a draft has severe label collisions, run `scripts/auto_place_labels.py input.xivplan -o fixed.xivplan` and re-audit.
+
+Before final handoff, fill or mentally run `assets/templates/visual-quality-checklist.md`. For second-round release checks, run `scripts/run_visual_regression.py --force`, `scripts/summarize_visual_reviews.py`, and `scripts/build_contact_sheets.py`; hand off the visual-regression report, review burndown, contact sheets, and human-review notes together. If any severe checklist item is unresolved, keep the output draft-scoped instead of presenting it as release-ready.
 
 ## Mechanic IR Parsing
 

@@ -38,6 +38,16 @@ STYLE_PRESETS = {
     },
 }
 
+ARROW_STYLE_PRESETS = {
+    "movement": {"color": "#2aa7ff", "height": 18, "opacity": 100, "arrowEnd": True},
+    "preposition": {"color": "#36d7d9", "height": 12, "opacity": 88, "arrowEnd": True},
+    "micro": {"color": "#7fd8ff", "height": 10, "opacity": 82, "arrowEnd": True},
+    "knockback": {"color": "#f3fbff", "height": 26, "opacity": 96, "arrowEnd": True},
+    "bait": {"color": "#ffb900", "height": 14, "opacity": 92, "arrowEnd": True},
+    "forbidden": {"color": "#d13438", "height": 12, "opacity": 62, "arrowEnd": False},
+    "reset": {"color": "#8fd14f", "height": 12, "opacity": 86, "arrowEnd": True},
+}
+
 ARENA_PRESETS = {
     "default-circle": {
         "shape": "circle",
@@ -70,6 +80,33 @@ ARENA_PRESETS = {
         "grid": {"type": "radial", "angularDivs": 8, "radialDivs": 2},
         "backgroundImage": "/arena/e8.svg",
     },
+    "tile-square": {
+        "shape": "rectangle",
+        "width": 600,
+        "height": 600,
+        "padding": 120,
+        "grid": {"type": "rectangle", "rows": 4, "columns": 4},
+    },
+}
+
+ARENA_ALIASES = {
+    "circle": "default-circle",
+    "default": "default-circle",
+    "default_circle": "default-circle",
+    "e11": "fru-p1",
+    "eden-promise": "fru-p1",
+    "fatebreaker": "fru-p1",
+    "fru": "fru-p1",
+    "fru-p1": "fru-p1",
+    "p1": "fru-p1",
+    "e8": "eden-light",
+    "eden-light": "eden-light",
+    "fru-p2": "fru-p2",
+    "light-rampant": "eden-light",
+    "shiva": "eden-light",
+    "square": "tile-square",
+    "tile": "tile-square",
+    "tile-square": "tile-square",
 }
 
 MARKER_PRESETS = {
@@ -112,6 +149,16 @@ ROLE_IMAGES = {
     "T": "/actor/tank.png",
     "H": "/actor/healer.png",
     "DPS": "/actor/dps.png",
+}
+
+PARTY_ROLES = ("MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4")
+ROLE_DIR = {"MT": "N", "ST": "S", "H1": "W", "H2": "E", "D1": "NW", "D2": "NE", "D3": "SW", "D4": "SE"}
+
+DEFAULT_SCENE_CONTRACT = {
+    "require_full_party_each_step": False,
+    "require_enemy_each_step": False,
+    "require_waymarks_each_step": False,
+    "allow_partial_observation": True,
 }
 
 DIRECTION_DEGREES = {
@@ -195,10 +242,12 @@ def base_arena(spec: dict[str, Any]) -> dict[str, Any]:
         raise BuildError("arena must be an object")
     preset_name = arena.get("preset") or spec.get("arenaPreset")
     if preset_name:
+        preset_name = ARENA_ALIASES.get(str(preset_name).lower(), str(preset_name))
         if preset_name not in ARENA_PRESETS:
             raise BuildError(f"unknown arena preset: {preset_name!r}")
         merged = copy.deepcopy(ARENA_PRESETS[preset_name])
         merged.update({key: value for key, value in arena.items() if key != "preset"})
+        merged["preset"] = preset_name
         arena = merged
 
     shape = arena.get("shape", "circle")
@@ -220,7 +269,7 @@ def base_arena(spec: dict[str, Any]) -> dict[str, Any]:
         "padding": int(arena.get("padding", DEFAULT_PADDING)),
         "grid": grid,
     }
-    for optional_key in ("backgroundImage", "backgroundOpacity", "ticks"):
+    for optional_key in ("backgroundImage", "backgroundOpacity", "ticks", "preset", "source", "sourceReason"):
         if optional_key in arena:
             result[optional_key] = arena[optional_key]
     return result
@@ -228,7 +277,11 @@ def base_arena(spec: dict[str, Any]) -> dict[str, Any]:
 
 def add_common(obj: dict[str, Any], spec_obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
     obj["id"] = obj_id
+    if spec_obj.get("ghost") and "opacity" not in spec_obj:
+        obj["opacity"] = 35
     obj["opacity"] = int(spec_obj.get("opacity", obj.get("opacity", 100)))
+    if spec_obj.get("ghost"):
+        obj["ghost"] = True
     if spec_obj.get("hide"):
         obj["hide"] = True
     return obj
@@ -397,21 +450,49 @@ def make_stack(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
 
 def make_text(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
     x, y = pos_from_obj(obj)
+    result = {
+        "type": "text",
+        "text": obj.get("text", obj.get("label", "")),
+        "x": x,
+        "y": y,
+        "rotation": int(obj.get("rotation", 0)),
+        "color": obj.get("color", "#ffffff"),
+        "stroke": obj.get("stroke", style_value("text_stroke", "#000000")),
+        "style": obj.get("style", "outline"),
+        "fontSize": int(obj.get("fontSize", style_value("label_font_size", 18))),
+        "align": obj.get("align", "center"),
+        "opacity": 100,
+    }
+    if "labelAnchor" in obj:
+        result["labelAnchor"] = obj["labelAnchor"]
+    if "labelAnchorId" in obj:
+        result["labelAnchorId"] = obj["labelAnchorId"]
+    if "leaderLine" in obj:
+        result["leaderLine"] = bool(obj["leaderLine"])
+    if "labelAvoid" in obj:
+        result["labelAvoid"] = obj["labelAvoid"]
+    return add_common(
+        result,
+        obj,
+        obj_id,
+    )
+
+
+def make_leader_line(start: tuple[float, float], end: tuple[float, float], obj_id: int) -> dict[str, Any]:
+    mid = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+    length = max(math.dist(start, end), 1)
     return add_common(
         {
-            "type": "text",
-            "text": obj.get("text", obj.get("label", "")),
-            "x": x,
-            "y": y,
-            "rotation": int(obj.get("rotation", 0)),
-            "color": obj.get("color", "#ffffff"),
-            "stroke": obj.get("stroke", style_value("text_stroke", "#000000")),
-            "style": obj.get("style", "outline"),
-            "fontSize": int(obj.get("fontSize", style_value("label_font_size", 18))),
-            "align": obj.get("align", "center"),
-            "opacity": 100,
+            "type": "line",
+            "x": round(mid[0], 3),
+            "y": round(mid[1], 3),
+            "length": int(round(length)),
+            "width": 3,
+            "rotation": rotation_from_vector(start, end),
+            "color": "#ffffff",
+            "opacity": 65,
         },
-        obj,
+        {},
         obj_id,
     )
 
@@ -579,27 +660,194 @@ def make_cone(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
 
 
 def make_arrow(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
-    start = resolve_pos(obj.get("from", obj.get("start", "center")), as_number(obj.get("distance", DEFAULT_OBJECT_DISTANCE), "distance"))
-    end = resolve_pos(obj.get("to", obj.get("end", "N")), as_number(obj.get("distance", DEFAULT_OBJECT_DISTANCE), "distance"))
+    style_name = str(obj.get("arrowStyle", obj.get("style", "movement")))
+    style = ARROW_STYLE_PRESETS.get(style_name, ARROW_STYLE_PRESETS["movement"])
+    start = obj.get("_segmentStart")
+    end = obj.get("_segmentEnd")
+    if start is None:
+        start = resolve_pos(obj.get("from", obj.get("start", "center")), as_number(obj.get("distance", DEFAULT_OBJECT_DISTANCE), "distance"))
+    if end is None:
+        end = resolve_pos(obj.get("to", obj.get("end", "N")), as_number(obj.get("distance", DEFAULT_OBJECT_DISTANCE), "distance"))
     start = with_offset(start, obj.get("startOffset"))
     end = with_offset(end, obj.get("endOffset"))
+    start, end = trim_arrow_segment(start, end, obj.get("startGap", 0), obj.get("endGap", 0))
     mid = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
     length = math.dist(start, end)
-    return add_common(
-        {
-            "type": "arrow",
-            "x": round(mid[0], 3),
-            "y": round(mid[1], 3),
-            "width": int(obj.get("width", max(length, 1))),
-            "height": int(obj.get("height", 20)),
-            "rotation": float(obj.get("rotation", rotation_from_vector(start, end))),
-            "color": obj.get("color", style_value("movement_color", "#0078d4")),
-            "opacity": 100,
-            "arrowEnd": obj.get("arrowEnd", True),
-        },
-        obj,
-        obj_id,
-    )
+    result = {
+        "type": "arrow",
+        "x": round(mid[0], 3),
+        "y": round(mid[1], 3),
+        "width": int(obj.get("width", max(length, 1))),
+        "height": int(obj.get("height", style["height"])),
+        "rotation": float(obj.get("rotation", rotation_from_vector(start, end))),
+        "color": obj.get("color", style["color"]),
+        "opacity": int(obj.get("opacity", style["opacity"])),
+        "arrowEnd": obj.get("arrowEnd", style["arrowEnd"]),
+        "arrowStyle": style_name,
+        "flowStart": [round(start[0], 3), round(start[1], 3)],
+        "flowEnd": [round(end[0], 3), round(end[1], 3)],
+    }
+    for optional_key in ("pathKey", "flowSegment", "routeCheck", "allowDangerCrossing", "flowLabel"):
+        if optional_key in obj:
+            result[optional_key] = obj[optional_key]
+    return add_common(result, obj, obj_id)
+
+
+def trim_arrow_segment(start: tuple[float, float], end: tuple[float, float], start_gap: Any, end_gap: Any) -> tuple[tuple[float, float], tuple[float, float]]:
+    sx, sy = start
+    ex, ey = end
+    length = math.dist(start, end)
+    if length <= 1:
+        return start, end
+    dx = (ex - sx) / length
+    dy = (ey - sy) / length
+    max_gap = max(length / 2 - 1, 0)
+    if isinstance(start_gap, (int, float)) and start_gap > 0 and max_gap > 0:
+        gap = min(float(start_gap), max_gap)
+        sx += dx * gap
+        sy += dy * gap
+    if isinstance(end_gap, (int, float)) and end_gap > 0 and max_gap > 0:
+        gap = min(float(end_gap), max_gap)
+        ex -= dx * gap
+        ey -= dy * gap
+    return (sx, sy), (ex, ey)
+
+
+def resolve_flow_point(value: Any, distance: float) -> tuple[float, float]:
+    return resolve_pos(value, distance)
+
+
+def curved_midpoint(start: tuple[float, float], end: tuple[float, float], curve: Any) -> tuple[float, float]:
+    amount = 52.0
+    if isinstance(curve, (int, float)):
+        amount = float(curve)
+    elif isinstance(curve, str):
+        lowered = curve.lower()
+        if lowered in {"left", "ccw"}:
+            amount = 52.0
+        elif lowered in {"right", "cw"}:
+            amount = -52.0
+    dx = end[0] - start[0]
+    dy = end[1] - start[1]
+    length = max(math.hypot(dx, dy), 1.0)
+    normal = (-dy / length, dx / length)
+    return (start[0] + dx / 2 + normal[0] * amount, start[1] + dy / 2 + normal[1] * amount)
+
+
+def arrow_points(obj: dict[str, Any]) -> list[tuple[float, float]]:
+    distance = as_number(obj.get("distance", DEFAULT_OBJECT_DISTANCE), "distance")
+    raw_points = obj.get("points", obj.get("path"))
+    if raw_points is not None:
+        if not isinstance(raw_points, list) or len(raw_points) < 2:
+            raise BuildError("arrow path/points must contain at least two positions")
+        return [resolve_flow_point(point, distance) for point in raw_points]
+
+    start = resolve_flow_point(obj.get("from", obj.get("start", "center")), distance)
+    end = resolve_flow_point(obj.get("to", obj.get("end", "N")), distance)
+    waypoints = obj.get("waypoints", [])
+    if waypoints is None:
+        waypoints = []
+    if not isinstance(waypoints, list):
+        raise BuildError("arrow.waypoints must be a list")
+    points = [start] + [resolve_flow_point(point, distance) for point in waypoints] + [end]
+    if obj.get("curve") and not waypoints:
+        points = [start, curved_midpoint(start, end, obj.get("curve")), end]
+    return points
+
+
+def make_arrow_objects(obj: dict[str, Any], obj_id: int) -> list[dict[str, Any]]:
+    points = arrow_points(obj)
+    path_key = object_key(obj) or f"arrow-{obj_id}"
+    objects: list[dict[str, Any]] = []
+    for index, (start, end) in enumerate(zip(points, points[1:]), start=1):
+        if math.dist(start, end) < 1:
+            continue
+        segment_spec = copy.deepcopy(obj)
+        segment_spec["_segmentStart"] = start
+        segment_spec["_segmentEnd"] = end
+        segment_spec["pathKey"] = path_key
+        segment_spec["flowSegment"] = index
+        if index < len(points) - 1 and "arrowEnd" not in segment_spec:
+            segment_spec["arrowEnd"] = False
+        objects.append(make_arrow(segment_spec, obj_id + len(objects)))
+    if not objects:
+        raise BuildError("arrow path must include at least one non-zero segment")
+    return objects
+
+
+def label_clearance(spec_obj: dict[str, Any]) -> float:
+    radius = spec_obj.get("radius")
+    if isinstance(radius, (int, float)):
+        return float(radius) + 58
+    kind = spec_obj.get("kind")
+    if kind == "tower":
+        return 100
+    if kind in {"stack", "spread_stack"}:
+        return float(spec_obj.get("radius", 70)) + 58
+    if kind in {"circle", "danger", "danger_circle", "safe", "safe_circle", "knockback"}:
+        return float(spec_obj.get("radius", 60)) + 58
+    width = spec_obj.get("width")
+    height = spec_obj.get("height")
+    if isinstance(width, (int, float)) or isinstance(height, (int, float)):
+        return max(float(width if isinstance(width, (int, float)) else 0), float(height if isinstance(height, (int, float)) else 0)) / 2 + 42
+    return 64
+
+
+def auto_label_position(anchor: tuple[float, float], spec_obj: dict[str, Any]) -> tuple[float, float]:
+    x, y = anchor
+    radius = max(1.0, math.hypot(x, y))
+    outward = (x / radius, y / radius) if radius > 24 else (0.0, 1.0)
+    distance = float(spec_obj.get("labelDistance", label_clearance(spec_obj)))
+    if radius <= 24 and "labelDistance" not in spec_obj:
+        obj_radius = spec_obj.get("radius")
+        if isinstance(obj_radius, (int, float)) and obj_radius >= 100:
+            return with_offset((170.0, 0.0), spec_obj.get("labelOffset"))
+        distance += 36
+    candidate = (x + outward[0] * distance, y + outward[1] * distance)
+    if max(abs(candidate[0]), abs(candidate[1])) > 210:
+        if abs(x) >= abs(y):
+            outward = (0.0, 1.0 if y >= 0 else -1.0)
+        else:
+            outward = (1.0 if x >= 0 else -1.0, 0.0)
+        candidate = (x + outward[0] * distance, y + outward[1] * distance)
+    offset = spec_obj.get("labelOffset")
+    return with_offset(candidate, offset)
+
+
+def build_attached_label_objects(spec_obj: dict[str, Any], next_id: int, anchor_id: int) -> tuple[list[dict[str, Any]], int]:
+    if not spec_obj.get("label"):
+        return [], next_id
+
+    anchor = pos_from_obj(spec_obj)
+    placement = str(spec_obj.get("labelPlacement", "")).lower()
+    if placement == "auto" or "labelPos" not in spec_obj:
+        label_pos = auto_label_position(anchor, spec_obj)
+        leader_line = bool(spec_obj.get("leaderLine", True))
+    else:
+        label_pos = resolve_pos(
+            spec_obj.get("labelPos", spec_obj.get("pos", "center")),
+            as_number(spec_obj.get("labelDistance", spec_obj.get("distance", DEFAULT_OBJECT_DISTANCE + 48)), "labelDistance"),
+        )
+        label_pos = with_offset(label_pos, spec_obj.get("labelOffset"))
+        leader_line = False
+
+    label_obj = {
+        "kind": "text",
+        "text": spec_obj["label"],
+        "pos": [round(label_pos[0], 3), round(label_pos[1], 3)],
+        "fontSize": spec_obj.get("labelFontSize", 16),
+        "labelAnchor": object_key(spec_obj),
+        "labelAnchorId": anchor_id,
+        "leaderLine": leader_line,
+        "labelAvoid": spec_obj.get("labelAvoid", ["party", "enemy", "mechanic", "arrow", "text"]),
+    }
+    built_objects: list[dict[str, Any]] = []
+    if leader_line and math.dist(anchor, label_pos) >= 24:
+        built_objects.append(make_leader_line(anchor, label_pos, next_id))
+        next_id += 1
+    built_objects.append(make_text(label_obj, next_id))
+    next_id += 1
+    return built_objects, next_id
 
 
 def object_key(spec_obj: dict[str, Any]) -> str | None:
@@ -673,8 +921,14 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
             built = make_exaflare(spec_obj, next_id)
         elif kind == "cone":
             built = make_cone(spec_obj, next_id)
-        elif kind == "arrow":
-            built = make_arrow(spec_obj, next_id)
+        elif kind in {"arrow", "path", "polyline"}:
+            built_arrows = make_arrow_objects(spec_obj, next_id)
+            objects.extend(built_arrows)
+            ref = object_key(spec_obj)
+            if ref:
+                refs[ref] = built_arrows[0]["id"]
+            next_id += len(built_arrows)
+            continue
         else:
             raise BuildError(f"unsupported object kind: {kind!r}")
 
@@ -682,17 +936,11 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
         ref = object_key(spec_obj)
         if ref:
             refs[ref] = next_id
-        if spec_obj.get("label") and kind not in {"text", "label"}:
-            label_obj = {
-                "kind": "text",
-                "text": spec_obj["label"],
-                "pos": spec_obj.get("labelPos", spec_obj.get("pos", "center")),
-                "distance": spec_obj.get("labelDistance", spec_obj.get("distance", DEFAULT_OBJECT_DISTANCE + 48)),
-                "offset": spec_obj.get("labelOffset"),
-                "fontSize": spec_obj.get("labelFontSize", 16),
-            }
-            objects.append(make_text(label_obj, next_id + 1))
-            next_id += 1
+        if kind not in {"text", "label"}:
+            label_objects, next_id = build_attached_label_objects(spec_obj, next_id + 1, next_id)
+            objects.extend(label_objects)
+            if label_objects:
+                next_id -= 1
         next_id += 1
 
     for spec_obj in deferred_tethers:
@@ -725,7 +973,7 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
                 {
                     "text": step["title"],
                     "pos": step.get("titlePos", "N"),
-                    "distance": step.get("titleDistance", 285),
+                    "distance": step.get("titleDistance", 322),
                     "fontSize": step.get("titleFontSize", style_value("title_font_size", 18)),
                 },
                 next_id,
@@ -734,7 +982,21 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
         next_id += 1
 
     built_step = {"objects": objects}
-    for key in ("title", "purpose", "guide_text", "checks"):
+    for key in (
+        "title",
+        "purpose",
+        "guide_text",
+        "checks",
+        "visual_focus",
+        "required_roles",
+        "reset_state",
+        "storyboard_phase",
+        "movement_required",
+        "flow_kind",
+        "partial_observation",
+        "partial",
+        "local_view",
+    ):
         if key in step:
             built_step[key] = step[key]
     if "guide_text" not in built_step:
@@ -753,6 +1015,126 @@ def step_object_key(spec_obj: dict[str, Any]) -> str | None:
     return object_key(spec_obj)
 
 
+def normalize_scene_contract(spec: dict[str, Any]) -> tuple[dict[str, bool], bool]:
+    raw_contract = spec.get("scene_contract")
+    if raw_contract is None:
+        return copy.deepcopy(DEFAULT_SCENE_CONTRACT), False
+    if not isinstance(raw_contract, dict):
+        raise BuildError("scene_contract must be an object")
+    contract = copy.deepcopy(DEFAULT_SCENE_CONTRACT)
+    for key in contract:
+        if key in raw_contract:
+            contract[key] = bool(raw_contract[key])
+    return contract, True
+
+
+def is_partial_observation_step(step: dict[str, Any]) -> bool:
+    return bool(step.get("partial_observation") or step.get("partial") or step.get("local_view"))
+
+
+def default_party_objects(distance: int = 108) -> list[dict[str, Any]]:
+    return [{"kind": "party", "key": role, "role": role, "pos": ROLE_DIR[role], "distance": distance} for role in PARTY_ROLES]
+
+
+def default_enemy_object() -> dict[str, Any]:
+    return {"kind": "boss", "key": "boss", "name": "Boss", "pos": "center"}
+
+
+def default_waymark_objects(root_marker_presets: list[str]) -> list[dict[str, Any]]:
+    presets = root_marker_presets or ["all-waymarks"]
+    objects: list[dict[str, Any]] = []
+    for preset_name in presets:
+        objects.extend(expand_marker_preset(str(preset_name)))
+    return objects
+
+
+def spec_object_kind(spec_obj: dict[str, Any]) -> str:
+    kind = spec_obj.get("kind", spec_obj.get("type", ""))
+    return str(kind)
+
+
+def party_role_from_spec(spec_obj: dict[str, Any]) -> str:
+    if spec_object_kind(spec_obj) != "party":
+        return ""
+    for key in ("role", "name", "key"):
+        value = spec_obj.get(key)
+        if isinstance(value, str) and value.upper() in PARTY_ROLES:
+            return value.upper()
+    return ""
+
+
+def marker_name_from_spec(spec_obj: dict[str, Any]) -> str:
+    if spec_object_kind(spec_obj) != "marker":
+        return ""
+    for key in ("marker", "name", "key"):
+        value = spec_obj.get(key)
+        if isinstance(value, str) and value.upper() in MARKER_ICONS:
+            return value.upper()
+    return ""
+
+
+def has_enemy_anchor(objects: list[dict[str, Any]]) -> bool:
+    return any(spec_object_kind(obj) in {"boss", "enemy"} for obj in objects)
+
+
+def apply_scene_contract(
+    step: dict[str, Any],
+    objects: list[dict[str, Any]],
+    contract: dict[str, bool],
+    contract_active: bool,
+    root_marker_presets: list[str],
+) -> list[dict[str, Any]]:
+    if not contract_active:
+        return objects
+    if is_partial_observation_step(step) and contract["allow_partial_observation"]:
+        return objects
+
+    completed = list(objects)
+    if contract["require_enemy_each_step"] and not has_enemy_anchor(completed):
+        completed.insert(0, default_enemy_object())
+
+    if contract["require_full_party_each_step"]:
+        present_roles = {party_role_from_spec(obj) for obj in completed}
+        for party_obj in default_party_objects():
+            role = party_obj["role"]
+            if role not in present_roles:
+                completed.append(party_obj)
+
+    if contract["require_waymarks_each_step"]:
+        present_markers = {marker_name_from_spec(obj) for obj in completed}
+        for marker_obj in default_waymark_objects(root_marker_presets):
+            marker = marker_name_from_spec(marker_obj)
+            if marker and marker not in present_markers:
+                completed.insert(0, marker_obj)
+
+    return completed
+
+
+def apply_focus_roles(step: dict[str, Any], objects: list[dict[str, Any]]) -> None:
+    raw_roles = step.get("focusRoles")
+    if raw_roles is None:
+        raw_roles = step.get("focus_roles")
+    if raw_roles is None:
+        return
+    if isinstance(raw_roles, str):
+        focus_roles = {raw_roles.upper()}
+    elif isinstance(raw_roles, list):
+        focus_roles = {str(role).upper() for role in raw_roles}
+    else:
+        raise BuildError("step.focusRoles must be a string or list")
+
+    for obj in objects:
+        role = party_role_from_spec(obj)
+        if not role:
+            continue
+        if role in focus_roles:
+            obj.setdefault("opacity", 100)
+            continue
+        if "opacity" not in obj:
+            obj["opacity"] = 35
+        obj["ghost"] = True
+
+
 def expand_step_specs(spec: dict[str, Any]) -> list[dict[str, Any]]:
     expanded_steps: list[dict[str, Any]] = []
     previous_objects: list[dict[str, Any]] = []
@@ -761,6 +1143,7 @@ def expand_step_specs(spec: dict[str, Any]) -> list[dict[str, Any]]:
         root_marker_presets = [root_marker_presets]
     if not isinstance(root_marker_presets, list):
         raise BuildError("markerPresets must be a string or list")
+    contract, contract_active = normalize_scene_contract(spec)
 
     for raw_step in spec["steps"]:
         step = copy.deepcopy(raw_step)
@@ -817,8 +1200,10 @@ def expand_step_specs(spec: dict[str, Any]) -> list[dict[str, Any]]:
         if not isinstance(own_objects, list):
             raise BuildError("step.objects must be a list")
         objects.extend(own_objects)
+        objects = apply_scene_contract(step, objects, contract, contract_active, root_marker_presets)
+        apply_focus_roles(step, objects)
         step["objects"] = objects
-        for transient_key in ("inherit", "remove", "updates", "replace", "markerPresets"):
+        for transient_key in ("inherit", "remove", "updates", "replace", "markerPresets", "focusRoles", "focus_roles"):
             step.pop(transient_key, None)
         expanded_steps.append(step)
         previous_objects = copy.deepcopy(objects)
@@ -855,6 +1240,10 @@ def build_scene(spec: dict[str, Any]) -> dict[str, Any]:
         scene["name"] = spec["name"]
     if spec.get("style"):
         scene["style"] = spec["style"]
+    if isinstance(spec.get("scene_contract"), dict):
+        scene["scene_contract"] = copy.deepcopy(spec["scene_contract"])
+    if isinstance(spec.get("metadata"), dict):
+        scene["metadata"] = copy.deepcopy(spec["metadata"])
     return scene
 
 

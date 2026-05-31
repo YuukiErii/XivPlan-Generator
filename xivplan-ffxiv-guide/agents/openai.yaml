@@ -6,10 +6,21 @@ defaults:
   output_root: "artifacts/full-guide-pipeline"
   ultimate_yokai_star_dance_root: "artifacts/ultimate-yokai-star-dance"
   quality_gate_required: true
+  visual_quality_gate_required: true
+  visual_regression_required_for_release: true
+  release_visual_severe_allowed: 0
+  release_visual_fixture_pass_target: 5
+  full_party_each_step_required: true
+  semantic_long_flow_density_policy: "accept only phase-l-semantic-long-flow scenes with 10-14 steps, golden-band density, storyboard coverage, and zero severe visual issues"
   unknowns_required: true
   preserve_version_outputs: true
   bundled_python_hint: "C:\\Users\\Mahiru\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe"
 policies:
   - "Every generated guide package must run the quality gate before final handoff."
+  - "Every normal generated XivPlan step must preserve the full party, Boss/enemy anchor, stable waymarks, and arena context unless explicitly marked as a partial observation."
+  - "Complex mechanics must be storyboarded before concrete spec generation and must include observe, movement, resolution, and reset coverage."
+  - "Visual quality gate severe items block release-ready handoff; review items must be reported with step/object pointers."
+  - "Second-round release handoff must include visual regression results, review burndown, contact sheets, and human-review notes."
+  - "Semantic long-flow dense-step review is accepted only for the explicit phase-l-semantic-long-flow profile; ordinary scenes still use the single-step focus threshold."
   - "Unknown or draft fight facts must be listed explicitly in unknowns/risk output and guide text."
   - "Use versioned output folders for progression work; do not overwrite previous versions unless the user explicitly requests a rerun."

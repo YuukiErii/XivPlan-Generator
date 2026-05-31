@@ -209,6 +209,7 @@ def plan_bundle(mechanic_ir: dict[str, Any], timeline_ir: dict[str, Any], knowle
             "categories": sorted(categories),
             "unknowns": unknowns,
             "timeline_events": timeline_ir.get("events", []),
+            "arena_selection": mechanic_ir.get("arena_selection") or timeline_ir.get("arena_selection"),
         },
         "boss": {"pos": [0, 0], "uptime_radius": 125, "targetable_duration": 12},
         "party": default_party(),

@@ -1,0 +1,53 @@
+{
+  "name": "Phase D：标签自动外移样例",
+  "style": "king-x-fru",
+  "arena": {
+    "preset": "fru-p1"
+  },
+  "markerPresets": "cardinals",
+  "scene_contract": {
+    "require_full_party_each_step": true,
+    "require_enemy_each_step": true,
+    "require_waymarks_each_step": true,
+    "allow_partial_observation": false
+  },
+  "steps": [
+    {
+      "title": "1 标签避让",
+      "purpose": "验证对象标签会外移并保留 leader line。",
+      "guide_text": "塔和分摊标签放到对象外侧，避免直接盖住玩家图标和判定圈。",
+      "objects": [
+        {
+          "kind": "tower",
+          "key": "tower-n",
+          "pos": "N",
+          "distance": 175,
+          "count": 2,
+          "label": "MT/H1 北塔",
+          "labelPlacement": "auto",
+          "leaderLine": true
+        },
+        {
+          "kind": "stack",
+          "key": "stack-s",
+          "pos": "S",
+          "distance": 92,
+          "radius": 58,
+          "count": 4,
+          "label": "南侧四人分摊",
+          "labelPlacement": "auto",
+          "leaderLine": true
+        },
+        {
+          "key": "safe-east",
+          "kind": "safe_circle",
+          "pos": "E",
+          "distance": 120,
+          "radius": 55,
+          "label": "安全边缘",
+          "labelPlacement": "auto"
+        }
+      ]
+    }
+  ]
+}

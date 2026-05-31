@@ -20,6 +20,8 @@ KEY_LAYER_GROUPS = {
     "arrow": {"arrow", "tether"},
 }
 REQUIRED_LAYERS = {"marker", "party", "enemy", "text", "mechanic_zone"}
+LONG_FLOW_GENERATORS = {"phase-l-semantic-long-flow"}
+LONG_FLOW_REQUIRED_PHASES = {"observe", "move", "resolve", "reset"}
 
 
 def read_scene(path: Path) -> dict[str, Any]:
@@ -44,6 +46,33 @@ def covered_layers(type_counts: Counter[str]) -> dict[str, bool]:
 def primary_mechanic_count(type_counts: Counter[str]) -> int:
     baseline = {"marker", "party", "enemy", "text"}
     return sum(count for obj_type, count in type_counts.items() if obj_type not in baseline)
+
+
+def is_semantic_long_flow(scene: dict[str, Any]) -> bool:
+    metadata = scene.get("metadata")
+    if not isinstance(metadata, dict):
+        return False
+    return str(metadata.get("storyboard_generator", "")) in LONG_FLOW_GENERATORS
+
+
+def step_phase(step: dict[str, Any]) -> str:
+    phase = step.get("storyboard_phase")
+    return str(phase) if isinstance(phase, str) and phase else "unknown"
+
+
+def long_flow_density_accepted(scene: dict[str, Any], per_step: list[dict[str, Any]], missing_required_layers: list[str]) -> bool:
+    if not is_semantic_long_flow(scene) or missing_required_layers or not per_step:
+        return False
+    step_count = len(per_step)
+    total_objects = sum(int(item["objects"]) for item in per_step)
+    avg_objects = total_objects / step_count
+    phases = {step_phase(step) for step in scene.get("steps", []) if isinstance(step, dict)}
+    return (
+        10 <= step_count <= 14
+        and 35 <= avg_objects <= 65
+        and total_objects >= 450
+        and LONG_FLOW_REQUIRED_PHASES <= phases
+    )
 
 
 def audit_scene(path: Path) -> dict[str, Any]:
@@ -76,8 +105,10 @@ def audit_scene(path: Path) -> dict[str, Any]:
     layers = covered_layers(total_counts)
     missing_layers = [layer for layer, present in layers.items() if not present]
     missing_required_layers = [layer for layer in missing_layers if layer in REQUIRED_LAYERS]
-    dense_steps = [item["step"] for item in per_step if not item["single_step_focus"]]
-    summary = (
+    raw_dense_steps = [item["step"] for item in per_step if not item["single_step_focus"]]
+    long_flow_accepted = long_flow_density_accepted(scene, per_step, missing_required_layers)
+    dense_steps = [] if long_flow_accepted else raw_dense_steps
+    summary = "semantic long-flow density: accepted" if long_flow_accepted else (
         "KING X-like density: good"
         if not missing_required_layers and avg_objects >= 12 and not dense_steps
         else "KING X-like density: review recommended"
@@ -92,6 +123,10 @@ def audit_scene(path: Path) -> dict[str, Any]:
         "missing_layers": missing_layers,
         "missing_required_layers": missing_required_layers,
         "dense_steps": dense_steps,
+        "raw_dense_steps": raw_dense_steps,
+        "accepted_dense_steps": raw_dense_steps if long_flow_accepted else [],
+        "density_profile": "semantic_long_flow" if long_flow_accepted else "single_step_focus",
+        "long_flow_density_accepted": long_flow_accepted,
         "per_step": per_step,
         "summary": summary,
         "ok": not missing_required_layers and not dense_steps and len(per_step) > 0,

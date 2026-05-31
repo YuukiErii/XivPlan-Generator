@@ -80,6 +80,14 @@ GUIDE_TEXT_LIMIT = 180
 OBJECT_BOUND_MARGIN = 40
 PARTY_OVERLAP_DISTANCE = 18
 PARTY_ROLE_NAMES = {"MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4"}
+WAYMARK_NAMES = {"A", "B", "C", "D", "1", "2", "3", "4"}
+
+DEFAULT_SCENE_CONTRACT = {
+    "require_full_party_each_step": False,
+    "require_enemy_each_step": False,
+    "require_waymarks_each_step": False,
+    "allow_partial_observation": True,
+}
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -92,13 +100,17 @@ def expect_number(errors: list[str], obj: dict[str, Any], key: str, where: str) 
 
 
 def looks_like_observation_step(step: dict[str, Any]) -> bool:
-    if step.get("partial") is True or step.get("local_view") is True:
+    if step.get("partial_observation") is True or step.get("partial") is True or step.get("local_view") is True:
         return True
     text = " ".join(str(step.get(field, "")) for field in ("title", "purpose", "guide_text")).lower()
     return any(
         token in text
         for token in ("observe", "observation", "partial", "asset", "image2", "png", "smoke", "局部", "观察", "觀察", "素材", "预览")
     )
+
+
+def explicitly_partial_observation(step: dict[str, Any]) -> bool:
+    return bool(step.get("partial_observation") is True or step.get("partial") is True or step.get("local_view") is True)
 
 
 def validate_data_url(errors: list[str], value: Any, where: str) -> None:
@@ -162,6 +174,37 @@ def object_role(obj: dict[str, Any]) -> str:
     return ""
 
 
+def object_waymark(obj: dict[str, Any]) -> str:
+    if obj.get("type") != "marker":
+        return ""
+    for key in ("marker", "name", "label"):
+        value = obj.get(key)
+        if isinstance(value, str) and value.strip().upper() in WAYMARK_NAMES:
+            return value.strip().upper()
+    return ""
+
+
+def normalize_scene_contract(scene: dict[str, Any]) -> tuple[dict[str, bool], bool]:
+    raw_contract = scene.get("scene_contract")
+    if raw_contract is None:
+        return dict(DEFAULT_SCENE_CONTRACT), False
+    if not isinstance(raw_contract, dict):
+        return dict(DEFAULT_SCENE_CONTRACT), True
+    contract = dict(DEFAULT_SCENE_CONTRACT)
+    for key in contract:
+        if key in raw_contract:
+            contract[key] = bool(raw_contract[key])
+    return contract, True
+
+
+def partial_observation_has_reason(step: dict[str, Any]) -> bool:
+    text = str(step.get("guide_text", "")).strip()
+    if len(text) < 12:
+        return False
+    reason_tokens = ("because", "why", "partial", "observation", "局部", "观察", "觀察", "只展示", "用于", "因为", "原因", "素材")
+    return any(token in text.lower() for token in reason_tokens)
+
+
 def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
     errors: list[str] = []
     counts: Counter[str] = Counter()
@@ -181,6 +224,9 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
     ids: set[int] = set()
     all_objects: list[dict[str, Any]] = []
     bound_x, bound_y = arena_bounds(scene)
+    contract, contract_active = normalize_scene_contract(scene)
+    if contract_active and not isinstance(scene.get("scene_contract"), dict):
+        fail(errors, "root.scene_contract must be an object")
 
     for step_index, step in enumerate(steps):
         where_step = f"steps[{step_index}]"
@@ -208,6 +254,8 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
             fail(errors, f"{where_step}.objects must be a list")
             continue
         party_objects: list[tuple[str, float, float, int]] = []
+        step_type_counts: Counter[str] = Counter()
+        step_waymarks: set[str] = set()
         for object_index, obj in enumerate(objects):
             where = f"{where_step}.objects[{object_index}]"
             if not isinstance(obj, dict):
@@ -227,6 +275,7 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
                 fail(errors, f"{where}.type is unknown: {obj_type!r}")
                 continue
             counts[obj_type] += 1
+            step_type_counts[obj_type] += 1
 
             missing = REQUIRED_BY_TYPE.get(obj_type, set()) - obj.keys()
             if missing:
@@ -267,9 +316,30 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
                     fail(errors, f"{where} ({obj_type}) is outside arena bounds")
             if obj_type == "party" and isinstance(obj.get("x"), (int, float)) and isinstance(obj.get("y"), (int, float)):
                 party_objects.append((object_role(obj), float(obj["x"]), float(obj["y"]), int(obj_id) if isinstance(obj_id, int) else -1))
+            waymark = object_waymark(obj)
+            if waymark:
+                step_waymarks.add(waymark)
 
-        if len(party_objects) < 8 and not looks_like_observation_step(step):
+        partial_observation = explicitly_partial_observation(step) if contract_active else looks_like_observation_step(step)
+        if contract_active and partial_observation:
+            if not contract["allow_partial_observation"]:
+                fail(errors, f"{where_step} uses partial observation but scene_contract.allow_partial_observation is false")
+            elif not partial_observation_has_reason(step):
+                fail(errors, f"{where_step} partial_observation requires guide_text explaining why the step can omit full context")
+
+        if len(party_objects) < 8 and not partial_observation:
             fail(errors, f"{where_step} has {len(party_objects)} party objects; use 8 players or mark the step as partial/observation")
+        if contract_active and contract["require_full_party_each_step"] and not partial_observation:
+            present_roles = {role for role, *_ in party_objects if role}
+            missing_roles = sorted(PARTY_ROLE_NAMES - present_roles)
+            if missing_roles:
+                fail(errors, f"{where_step} missing required party roles: {', '.join(missing_roles)}")
+        if contract_active and contract["require_enemy_each_step"] and not partial_observation and step_type_counts["enemy"] < 1:
+            fail(errors, f"{where_step} is missing a Boss/enemy anchor")
+        if contract_active and contract["require_waymarks_each_step"] and not partial_observation:
+            missing_waymarks = sorted({"A", "B", "C", "D"} - step_waymarks)
+            if missing_waymarks:
+                fail(errors, f"{where_step} missing required waymarks: {', '.join(missing_waymarks)}")
         for left_index, left in enumerate(party_objects):
             for right in party_objects[left_index + 1 :]:
                 if hypot(left[1] - right[1], left[2] - right[2]) < PARTY_OVERLAP_DISTANCE:

@@ -41,6 +41,33 @@ CATEGORY_RULES: list[dict[str, Any]] = [
     {"category": "sequence", "terms": ["运动会", "多轮", "依次", "按顺序", "流程"], "confidence": 0.7},
 ]
 
+ARENA_PRESET_RULES = [
+    {
+        "preset": "fru-p1",
+        "source": "user-specified",
+        "terms": ["fru p1", "fru-p1", "fatebreaker", "e11", "/arena/e11.svg", "雷火剑", "雷火", "死刑", "cyclonic break"],
+        "reason": "FRU P1 / Fatebreaker context uses the Eden Promise background.",
+    },
+    {
+        "preset": "eden-light",
+        "source": "user-specified",
+        "terms": ["light rampant", "light-rampant", "shiva", "e8", "/arena/e8.svg", "光之暴走", "光暴", "冰镜"],
+        "reason": "Shiva / Light Rampant-like context uses the Eden Shiva-style background.",
+    },
+    {
+        "preset": "tile-square",
+        "source": "user-specified",
+        "terms": ["tile square", "tile-square", "square arena", "grid arena", "方形场地", "格子场地", "平台场地", "地板"],
+        "reason": "Tile or platform mechanics need a square grid background.",
+    },
+    {
+        "preset": "default-circle",
+        "source": "user-specified",
+        "terms": ["default circle", "default-circle", "圆形场地", "普通圆形"],
+        "reason": "User requested the default circular arena.",
+    },
+]
+
 CORE_REQUIRED_INPUTS = {
     "tower": [("target_count", "请确认塔数量、每塔人数、可踩塔角色。")],
     "stack": [("target_count", "请确认分摊人数、分摊目标和易伤规则。")],
@@ -167,6 +194,50 @@ def matched_categories(text: str) -> list[dict[str, Any]]:
         else:
             dedup[match["category"]] = match
     return sorted(dedup.values(), key=lambda item: item["confidence"], reverse=True)
+
+
+def choose_arena_preset(
+    text: str,
+    encounter_name: str,
+    phase: str,
+    candidate_categories: list[dict[str, Any]],
+) -> dict[str, str]:
+    haystack = text.lower()
+    for rule in ARENA_PRESET_RULES:
+        if any(term.lower() in haystack for term in rule["terms"]):
+            return {
+                "preset": rule["preset"],
+                "source": rule["source"],
+                "reason": rule["reason"],
+            }
+
+    encounter_phase = f"{encounter_name} {phase}".lower()
+    if "fru" in encounter_phase and ("p1" in encounter_phase or "phase 1" in encounter_phase):
+        return {
+            "preset": "fru-p1",
+            "source": "mechanic-inferred",
+            "reason": "Encounter and phase indicate FRU P1.",
+        }
+
+    categories = {item["category"] for item in candidate_categories}
+    if "light-rampant-like" in categories:
+        return {
+            "preset": "eden-light",
+            "source": "mechanic-inferred",
+            "reason": "Detected a Light Rampant-like mechanic.",
+        }
+    if "tile-platform" in categories:
+        return {
+            "preset": "tile-square",
+            "source": "mechanic-inferred",
+            "reason": "Detected tile or platform arena mechanics.",
+        }
+
+    return {
+        "preset": "default-circle",
+        "source": "default-fallback",
+        "reason": "No explicit arena instruction or strong encounter/category signal was found.",
+    }
 
 
 def extract_participants(text: str) -> list[str]:
@@ -393,6 +464,7 @@ def parse_text(
     candidate_categories.sort(key=lambda item: item["confidence"], reverse=True)
 
     context_phase = phase if phase != "unknown" else (timeline_events[0]["phase"] if timeline_events else "unknown")
+    arena_selection = choose_arena_preset(text, encounter_name, context_phase, candidate_categories)
     mechanic_ir = {
         "schema_version": "mechanic-ir/v0.1",
         "encounter_context": {
@@ -402,6 +474,7 @@ def parse_text(
             "source": source,
             "confidence": "draft" if unknowns else "medium",
         },
+        "arena_selection": arena_selection,
         "party_constraints": party_constraints(text),
         "mechanics": mechanics,
         "candidate_categories": candidate_categories,
@@ -410,6 +483,7 @@ def parse_text(
     timeline_ir = {
         "schema_version": "timeline-ir/v0.1",
         "encounter_context": mechanic_ir["encounter_context"],
+        "arena_selection": arena_selection,
         "events": timeline_events,
     }
     return {
@@ -471,6 +545,7 @@ def render_report(parsed: dict[str, Any], input_path: Path | None) -> str:
         f"- mechanics: {len(mechanic_ir['mechanics'])}",
         f"- timeline events: {len(timeline_ir['events'])}",
         f"- unknowns: {len(mechanic_ir['unknowns'])}",
+        f"- arena: {mechanic_ir.get('arena_selection', {}).get('preset', 'unknown')} ({mechanic_ir.get('arena_selection', {}).get('source', 'unknown')})",
         "",
         "## Timeline",
         "",

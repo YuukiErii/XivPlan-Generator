@@ -1,5 +1,5 @@
 {
-  "nextId": 21,
+  "nextId": 30,
   "arena": {
     "shape": "circle",
     "width": 600,
@@ -35,13 +35,13 @@
           "count": 1,
           "color": "#bae3ff",
           "opacity": 70,
-          "id": 2
+          "id": 3
         },
         {
           "type": "text",
           "text": "MT/H1 北塔",
-          "x": 0.0,
-          "y": 268.0,
+          "x": 100.0,
+          "y": 220.0,
           "rotation": 0,
           "color": "#ffffff",
           "stroke": "#000000",
@@ -49,7 +49,16 @@
           "fontSize": 16,
           "align": "center",
           "opacity": 100,
-          "id": 3
+          "labelAnchor": "北塔",
+          "leaderLine": false,
+          "labelAvoid": [
+            "party",
+            "enemy",
+            "mechanic",
+            "arrow",
+            "text"
+          ],
+          "id": 4
         },
         {
           "type": "tower",
@@ -59,13 +68,13 @@
           "count": 1,
           "color": "#bae3ff",
           "opacity": 70,
-          "id": 4
+          "id": 5
         },
         {
           "type": "text",
           "text": "D2/D4 东塔",
-          "x": 268.0,
-          "y": 0.0,
+          "x": 220.0,
+          "y": 100.0,
           "rotation": 0,
           "color": "#ffffff",
           "stroke": "#000000",
@@ -73,7 +82,16 @@
           "fontSize": 16,
           "align": "center",
           "opacity": 100,
-          "id": 5
+          "labelAnchor": "东塔",
+          "leaderLine": false,
+          "labelAvoid": [
+            "party",
+            "enemy",
+            "mechanic",
+            "arrow",
+            "text"
+          ],
+          "id": 6
         },
         {
           "type": "tower",
@@ -83,13 +101,13 @@
           "count": 1,
           "color": "#bae3ff",
           "opacity": 70,
-          "id": 6
+          "id": 7
         },
         {
           "type": "text",
           "text": "ST/H2 南塔",
-          "x": -0.0,
-          "y": -268.0,
+          "x": 100.0,
+          "y": -220.0,
           "rotation": 0,
           "color": "#ffffff",
           "stroke": "#000000",
@@ -97,7 +115,16 @@
           "fontSize": 16,
           "align": "center",
           "opacity": 100,
-          "id": 7
+          "labelAnchor": "南塔",
+          "leaderLine": false,
+          "labelAvoid": [
+            "party",
+            "enemy",
+            "mechanic",
+            "arrow",
+            "text"
+          ],
+          "id": 8
         },
         {
           "type": "tower",
@@ -107,13 +134,13 @@
           "count": 1,
           "color": "#bae3ff",
           "opacity": 70,
-          "id": 8
+          "id": 9
         },
         {
           "type": "text",
           "text": "D1/D3 西塔",
-          "x": -268.0,
-          "y": 0.0,
+          "x": -220.0,
+          "y": 100.0,
           "rotation": 0,
           "color": "#ffffff",
           "stroke": "#000000",
@@ -121,7 +148,16 @@
           "fontSize": 16,
           "align": "center",
           "opacity": 100,
-          "id": 9
+          "labelAnchor": "西塔",
+          "leaderLine": false,
+          "labelAvoid": [
+            "party",
+            "enemy",
+            "mechanic",
+            "arrow",
+            "text"
+          ],
+          "id": 10
         },
         {
           "type": "party",
@@ -133,7 +169,7 @@
           "height": 32,
           "rotation": 0,
           "opacity": 100,
-          "id": 10
+          "id": 11
         },
         {
           "type": "party",
@@ -145,7 +181,7 @@
           "height": 32,
           "rotation": 0,
           "opacity": 100,
-          "id": 11
+          "id": 13
         },
         {
           "type": "party",
@@ -157,7 +193,7 @@
           "height": 32,
           "rotation": 0,
           "opacity": 100,
-          "id": 12
+          "id": 15
         },
         {
           "type": "party",
@@ -169,7 +205,7 @@
           "height": 32,
           "rotation": 0,
           "opacity": 100,
-          "id": 13
+          "id": 17
         },
         {
           "type": "party",
@@ -181,7 +217,7 @@
           "height": 32,
           "rotation": 0,
           "opacity": 100,
-          "id": 14
+          "id": 19
         },
         {
           "type": "party",
@@ -193,7 +229,7 @@
           "height": 32,
           "rotation": 0,
           "opacity": 100,
-          "id": 15
+          "id": 21
         },
         {
           "type": "party",
@@ -205,7 +241,7 @@
           "height": 32,
           "rotation": 0,
           "opacity": 100,
-          "id": 16
+          "id": 23
         },
         {
           "type": "party",
@@ -217,7 +253,7 @@
           "height": 32,
           "rotation": 0,
           "opacity": 100,
-          "id": 17
+          "id": 25
         },
         {
           "type": "stack",
@@ -227,13 +263,13 @@
           "count": 8,
           "color": "#8fd14f",
           "opacity": 30,
-          "id": 18
+          "id": 27
         },
         {
           "type": "text",
           "text": "踩完回中",
           "x": 0.0,
-          "y": 0.0,
+          "y": 116.0,
           "rotation": 0,
           "color": "#ffffff",
           "stroke": "#000000",
@@ -241,7 +277,16 @@
           "fontSize": 16,
           "align": "center",
           "opacity": 100,
-          "id": 19
+          "labelAnchor": "回中集合",
+          "leaderLine": false,
+          "labelAvoid": [
+            "party",
+            "enemy",
+            "mechanic",
+            "arrow",
+            "text"
+          ],
+          "id": 28
         },
         {
           "type": "text",
@@ -255,7 +300,7 @@
           "fontSize": 18,
           "align": "center",
           "opacity": 100,
-          "id": 20
+          "id": 29
         }
       ],
       "title": "四塔：T/H 南北，DPS 东西",

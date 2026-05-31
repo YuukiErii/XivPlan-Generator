@@ -1,0 +1,31 @@
+{
+  "name": "Phase E：箭头线条语言样例",
+  "style": "king-x-fru",
+  "arena": {
+    "preset": "fru-p1"
+  },
+  "markerPresets": "cardinals",
+  "scene_contract": {
+    "require_full_party_each_step": true,
+    "require_enemy_each_step": true,
+    "require_waymarks_each_step": true,
+    "allow_partial_observation": false
+  },
+  "steps": [
+    {
+      "title": "1 分段路线",
+      "purpose": "展示主移动、预站、击退、复位和禁止路线的不同视觉语言。",
+      "guide_text": "D3 用分段路线绕开中央危险区，MT 微调预站；击退与复位使用不同箭头颜色，红线只表示禁止路线。",
+      "focusRoles": ["MT", "D3"],
+      "objects": [
+        { "kind": "circle", "key": "danger-center", "pos": "center", "radius": 72, "color": "#d13438", "opacity": 34, "label": "禁入", "labelPlacement": "auto" },
+        { "kind": "polyline", "key": "d3-route", "from": "SW", "waypoints": [[-188, -20], [-120, 112]], "to": [-42, 128], "distance": 170, "arrowStyle": "movement" },
+        { "kind": "arrow", "key": "mt-preposition", "from": "N", "to": [42, 142], "distance": 112, "arrowStyle": "preposition" },
+        { "kind": "arrow", "key": "knockback-east", "from": "center", "to": [92, 188], "arrowStyle": "knockback", "allowDangerCrossing": true },
+        { "kind": "arrow", "key": "reset-inner", "from": "E", "to": [132, 118], "distance": 178, "arrowStyle": "reset" },
+        { "kind": "arrow", "key": "bad-cross", "from": "W", "to": "E", "distance": 220, "arrowStyle": "forbidden", "routeCheck": false },
+        { "kind": "label", "text": "红线不是移动路线", "pos": [0, -205], "fontSize": 14 }
+      ]
+    }
+  ]
+}

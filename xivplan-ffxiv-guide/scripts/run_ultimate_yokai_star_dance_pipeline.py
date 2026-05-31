@@ -13,6 +13,8 @@ from typing import Any
 
 from assemble_guide import assemble_guide
 from audit_visual_density import audit_scene
+from audit_visual_quality import audit_scene as audit_visual_quality_scene
+from audit_visual_quality import render_markdown as render_visual_quality_markdown
 from build_spec_from_solution import build_spec
 from build_xivplan_scene import build_scene, write_json
 from export_xivplan_steps import export_steps
@@ -156,8 +158,8 @@ def run_quality(case_dir: Path, quality_dir: Path) -> dict[str, Any]:
     scene_errors, type_counts, object_count = validate_scene(scene)
     package_errors, package_stats = validate_package(case_dir)
     density = audit_scene(scene_path)
-    density_errors = [] if density["ok"] else ["visual density audit recommends review"]
-    errors = scene_errors + package_errors + density_errors
+    visual_quality = audit_visual_quality_scene(scene_path)
+    errors = scene_errors + package_errors + ([] if visual_quality["ok"] else ["visual quality audit found severe issues"])
     result = {
         "ok": not errors,
         "errors": errors,
@@ -169,8 +171,11 @@ def run_quality(case_dir: Path, quality_dir: Path) -> dict[str, Any]:
         },
         "package": package_stats,
         "density": density,
+        "visual_quality": visual_quality,
     }
     json_write(quality_dir / "quality-results.json", result)
+    json_write(quality_dir / "visual-quality-results.json", [visual_quality])
+    write_text(quality_dir / "visual-quality-report.md", render_visual_quality_markdown([visual_quality]))
     lines = [
         f"# Ultimate Yokai Star Dance Quality Report",
         "",
@@ -178,7 +183,9 @@ def run_quality(case_dir: Path, quality_dir: Path) -> dict[str, Any]:
         f"- steps: {result['scene']['steps']}",
         f"- objects: {result['scene']['objects']}",
         f"- avg objects / step: {density.get('avg_objects_per_step')}",
-        f"- notes: {density.get('summary', '')}",
+        f"- visual quality: {visual_quality.get('status')} score={visual_quality.get('overall_score')}",
+        f"- severe visual issues: {visual_quality.get('severe_items')}",
+        f"- review visual issues: {visual_quality.get('review_items')}",
     ]
     if errors:
         lines.extend(["", "## Errors", ""])

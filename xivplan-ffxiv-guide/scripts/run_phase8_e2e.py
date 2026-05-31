@@ -125,10 +125,10 @@ def case_light_rampant() -> dict[str, Any]:
                         {"kind": "circle", "key": "orb2", "pos": "NE", "distance": 230, "radius": 32, "color": "#d7f8ff", "label": "光"},
                         {"kind": "circle", "key": "orb3", "pos": "SW", "distance": 230, "radius": 32, "color": "#d7f8ff", "label": "光"},
                         {"kind": "circle", "key": "orb4", "pos": "SE", "distance": 230, "radius": 32, "color": "#d7f8ff", "label": "光"},
-                        {"kind": "arrow", "from": "NW", "to": "N", "distance": 220, "height": 12},
-                        {"kind": "arrow", "from": "NE", "to": "E", "distance": 220, "height": 12},
-                        {"kind": "arrow", "from": "SE", "to": "S", "distance": 220, "height": 12},
-                        {"kind": "arrow", "from": "SW", "to": "W", "distance": 220, "height": 12},
+                        {"kind": "arrow", "key": "orb-route-n", "from": "NW", "to": "N", "distance": 220, "arrowStyle": "movement", "endGap": 44},
+                        {"kind": "arrow", "key": "orb-route-e", "from": "NE", "to": "E", "distance": 220, "arrowStyle": "movement", "endGap": 44},
+                        {"kind": "arrow", "key": "orb-route-s", "from": "SE", "to": "S", "distance": 220, "arrowStyle": "movement", "endGap": 44},
+                        {"kind": "arrow", "key": "orb-route-w", "from": "SW", "to": "W", "distance": 220, "arrowStyle": "movement", "endGap": 44},
                     ],
                 },
                 {
@@ -136,6 +136,7 @@ def case_light_rampant() -> dict[str, Any]:
                     "purpose": "塔组就近踩塔。",
                     "guide_text": "T/H 处理正点塔，DPS 外圈等待光球判定。",
                     "inherit": True,
+                    "remove": ["orb-route-n", "orb-route-e", "orb-route-s", "orb-route-w"],
                     "objects": [
                         {"kind": "tower", "key": "tower-n", "pos": "N", "distance": 175, "count": 1, "label": "MT"},
                         {"kind": "tower", "key": "tower-e", "pos": "E", "distance": 175, "count": 1, "label": "H2"},
@@ -168,7 +169,7 @@ def case_limit_cut() -> dict[str, Any]:
             "arena": {"preset": "default-circle"},
             "markerPresets": "all-waymarks",
             "steps": [
-                {"title": "1 编号观察", "purpose": "八人按编号分奇偶。", "guide_text": "奇数北半场，偶数南半场，先确认自己编号。", "objects": [{"kind": "boss", "key": "boss", "name": "Boss", "pos": "center"}] + party_ring(130) + [{"kind": "label", "text": "奇数北 / 偶数南", "pos": "N", "distance": 280}]},
+                {"title": "1 编号观察", "purpose": "八人按编号分奇偶。", "guide_text": "奇数北半场，偶数南半场，先确认自己编号。", "objects": [{"kind": "boss", "key": "boss", "name": "Boss", "pos": "center"}] + party_ring(130) + [{"kind": "label", "key": "odd-even-callout", "text": "奇数北 / 偶数南", "pos": [0, 205]}]},
                 {
                     "title": "2 1-2 号处理",
                     "purpose": "第一组出列诱导。",
@@ -190,11 +191,11 @@ def case_limit_cut() -> dict[str, Any]:
                     "objects": [
                         {"kind": "line", "key": "line3", "pos": "NE", "distance": 120, "length": 500, "width": 58, "rotation": 45, "opacity": 35},
                         {"kind": "line", "key": "line4", "pos": "SW", "distance": 120, "length": 500, "width": 58, "rotation": 45, "opacity": 35},
-                        {"kind": "arrow", "from": "N", "to": "NE", "distance": 170, "height": 12},
-                        {"kind": "arrow", "from": "S", "to": "SW", "distance": 170, "height": 12},
+                        {"kind": "arrow", "key": "handoff-north", "from": "N", "to": "NE", "distance": 170, "arrowStyle": "movement", "endGap": 48},
+                        {"kind": "arrow", "key": "handoff-south", "from": "S", "to": "SW", "distance": 170, "arrowStyle": "movement", "endGap": 48},
                     ],
                 },
-                {"title": "4 结束复位", "purpose": "顺序处理完成后回到八方。", "guide_text": "后续 5-8 号照同样节奏处理，全部结束后回八方。", "inherit": True, "remove": ["line3", "line4"], "objects": [{"kind": "stack", "pos": "center", "radius": 70, "count": 8, "label": "复位"}]},
+                {"title": "4 结束复位", "purpose": "顺序处理完成后回到八方。", "guide_text": "后续 5-8 号照同样节奏处理，全部结束后回八方。", "inherit": True, "remove": ["line3", "line4", "handoff-north", "handoff-south"], "objects": [{"kind": "stack", "pos": "center", "radius": 70, "count": 8, "label": "复位"}]},
             ],
         },
     }
@@ -211,10 +212,10 @@ def case_fru_rewrite() -> dict[str, Any]:
             "arena": {"preset": "fru-p1"},
             "markerPresets": "all-waymarks",
             "steps": [
-                {"title": "1 观察东西安全", "purpose": "观察分身朝向和安全半场。", "guide_text": "看东西两侧分身，危险半场标红，安全半场提前预站。", "objects": [{"kind": "boss", "key": "boss", "name": "Fatebreaker", "pos": "center"}] + party_ring(110) + [{"kind": "rect", "key": "danger-east", "pos": "E", "distance": 150, "width": 220, "height": 560, "opacity": 28}, {"kind": "polygon", "key": "safe-west", "pos": "W", "distance": 120, "radius": 115, "sides": 4, "color": "#8fd14f", "opacity": 28, "label": "安全"}]},
-                {"title": "2 近远散开", "purpose": "近战内圈、远程外圈。", "guide_text": "近战留 Boss 圈内侧，远程和治疗去外圈，避免穿越危险半场。", "inherit": True, "updates": {"D1": {"pos": "NW", "distance": 85}, "D2": {"pos": "NE", "distance": 85}, "D3": {"pos": "SW", "distance": 210}, "D4": {"pos": "SE", "distance": 210}, "H1": {"pos": "W", "distance": 205}, "H2": {"pos": "E", "distance": 205}}, "objects": [{"kind": "circle", "pos": "NW", "distance": 85, "radius": 42, "label": "近"}, {"kind": "circle", "pos": "SE", "distance": 210, "radius": 48, "label": "远"}]},
-                {"title": "3 双坦死刑外拉", "purpose": "坦克离队处理死刑。", "guide_text": "MT/ST 向南北外拉死刑，其余人保持安全半场，治疗注意覆盖。", "inherit": True, "updates": {"MT": {"pos": "N", "distance": 230}, "ST": {"pos": "S", "distance": 230}}, "objects": [{"kind": "circle", "key": "tb1", "pos": "N", "distance": 230, "radius": 58, "color": "#d13438", "label": "MT"}, {"kind": "circle", "key": "tb2", "pos": "S", "distance": 230, "radius": 58, "color": "#d13438", "label": "ST"}]},
-                {"title": "4 回中接下一读条", "purpose": "死刑后复位。", "guide_text": "死刑判定后坦克回中，其余人按原八方复位，准备下一段。", "inherit": True, "remove": ["tb1", "tb2", "danger-east", "safe-west"], "objects": [{"kind": "stack", "pos": "center", "radius": 72, "count": 8, "label": "回中"}]},
+                {"title": "1 观察东西安全", "purpose": "观察分身朝向和安全半场。", "guide_text": "看东西两侧分身，危险半场标红，安全半场提前预站。", "objects": [{"kind": "boss", "key": "boss", "name": "Fatebreaker", "pos": "center"}] + party_ring(110) + [{"kind": "rect", "key": "danger-east", "pos": "E", "distance": 150, "width": 220, "height": 560, "opacity": 28}, {"kind": "polygon", "key": "safe-west", "pos": "W", "distance": 120, "radius": 115, "sides": 4, "color": "#8fd14f", "opacity": 28, "label": "安全", "labelPos": [-212, 88]}]},
+                {"title": "2 近远散开", "purpose": "近战内圈、远程外圈。", "guide_text": "近战留 Boss 圈内侧，远程和治疗去外圈，避免穿越危险半场。", "inherit": True, "updates": {"D1": {"pos": "NW", "distance": 85}, "D2": {"pos": "NE", "distance": 85}, "D3": {"pos": "SW", "distance": 210}, "D4": {"pos": "SE", "distance": 210}, "H1": {"pos": "W", "distance": 205}, "H2": {"pos": "E", "distance": 205}}, "objects": [{"kind": "circle", "key": "near-zone", "pos": "NW", "distance": 85, "radius": 42, "label": "近", "labelPos": [-78, 128]}, {"kind": "circle", "key": "far-zone", "pos": "SE", "distance": 210, "radius": 48, "label": "远"}]},
+                {"title": "3 双坦死刑外拉", "purpose": "坦克离队处理死刑。", "guide_text": "MT/ST 向南北外拉死刑，其余人保持安全半场，治疗注意覆盖。", "inherit": True, "updates": {"MT": {"pos": "N", "distance": 215}, "ST": {"pos": "S", "distance": 215}}, "objects": [{"kind": "circle", "key": "tb1", "pos": "N", "distance": 205, "radius": 48, "color": "#d13438", "label": "MT", "labelPos": [88, 214]}, {"kind": "circle", "key": "tb2", "pos": "S", "distance": 205, "radius": 48, "color": "#d13438", "label": "ST", "labelPos": [88, -214]}]},
+                {"title": "4 回中接下一读条", "purpose": "死刑后复位。", "guide_text": "死刑判定后坦克回中，其余人按原八方复位，准备下一段。", "inherit": True, "remove": ["tb1", "tb2", "danger-east", "safe-west", "near-zone", "far-zone"], "objects": [{"kind": "stack", "pos": "center", "radius": 72, "count": 8, "label": "回中"}]},
             ],
         },
     }

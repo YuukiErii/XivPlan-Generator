@@ -99,10 +99,10 @@
       },
       "objects": [
         { "kind": "stack", "key": "final-stack", "pos": "center", "radius": 76, "count": 8, "label": "八人分摊" },
-        { "kind": "arrow", "key": "d1-return", "from": "NW", "to": [-45, 45], "distance": 205, "height": 12 },
-        { "kind": "arrow", "key": "d2-return", "from": "NE", "to": [45, 45], "distance": 205, "height": 12 },
-        { "kind": "arrow", "key": "d3-return", "from": "SW", "to": [-45, -45], "distance": 205, "height": 12 },
-        { "kind": "arrow", "key": "d4-return", "from": "SE", "to": [45, -45], "distance": 205, "height": 12 },
+        { "kind": "arrow", "key": "d1-return", "from": "NW", "to": [-45, 45], "distance": 205, "arrowStyle": "reset", "endGap": 64 },
+        { "kind": "arrow", "key": "d2-return", "from": "NE", "to": [45, 45], "distance": 205, "arrowStyle": "reset", "endGap": 64 },
+        { "kind": "arrow", "key": "d3-return", "from": "SW", "to": [-45, -45], "distance": 205, "arrowStyle": "reset", "endGap": 64 },
+        { "kind": "arrow", "key": "d4-return", "from": "SE", "to": [45, -45], "distance": 205, "arrowStyle": "reset", "endGap": 64 },
         { "kind": "donut", "key": "outer-danger", "pos": "center", "innerRadius": 115, "radius": 270, "color": "#d13438", "opacity": 16 },
         { "kind": "starburst", "key": "resolve-flash", "pos": "center", "radius": 105, "spokes": 8, "spokeWidth": 16, "color": "#ffb900", "opacity": 24 }
       ]

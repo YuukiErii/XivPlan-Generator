@@ -1,0 +1,194 @@
+{
+  "nextId": 16,
+  "arena": {
+    "shape": "circle",
+    "width": 600,
+    "height": 600,
+    "padding": 120,
+    "grid": {
+      "type": "radial",
+      "angularDivs": 8,
+      "radialDivs": 2
+    }
+  },
+  "steps": [
+    {
+      "objects": [
+        {
+          "id": 1,
+          "type": "enemy",
+          "name": "Boss",
+          "icon": "/actor/enemy.png",
+          "x": 0,
+          "y": 0,
+          "radius": 52,
+          "rotation": 180,
+          "ring": "dir",
+          "color": "#d13438",
+          "opacity": 100
+        },
+        {
+          "id": 2,
+          "type": "tower",
+          "x": 0,
+          "y": 220,
+          "radius": 42,
+          "count": 1,
+          "color": "#bae3ff",
+          "opacity": 70
+        },
+        {
+          "id": 3,
+          "type": "tower",
+          "x": 220,
+          "y": 0,
+          "radius": 42,
+          "count": 1,
+          "color": "#bae3ff",
+          "opacity": 70
+        },
+        {
+          "id": 4,
+          "type": "tower",
+          "x": 0,
+          "y": -220,
+          "radius": 42,
+          "count": 1,
+          "color": "#bae3ff",
+          "opacity": 70
+        },
+        {
+          "id": 5,
+          "type": "tower",
+          "x": -220,
+          "y": 0,
+          "radius": 42,
+          "count": 1,
+          "color": "#bae3ff",
+          "opacity": 70
+        },
+        {
+          "id": 6,
+          "type": "party",
+          "name": "MT",
+          "image": "/actor/tank.png",
+          "x": -20,
+          "y": 220,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100
+        },
+        {
+          "id": 7,
+          "type": "party",
+          "name": "H1",
+          "image": "/actor/healer.png",
+          "x": 20,
+          "y": 220,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100
+        },
+        {
+          "id": 8,
+          "type": "party",
+          "name": "D2",
+          "image": "/actor/dps.png",
+          "x": 220,
+          "y": 20,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100
+        },
+        {
+          "id": 9,
+          "type": "party",
+          "name": "D4",
+          "image": "/actor/dps.png",
+          "x": 220,
+          "y": -20,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100
+        },
+        {
+          "id": 10,
+          "type": "party",
+          "name": "ST",
+          "image": "/actor/tank.png",
+          "x": -20,
+          "y": -220,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100
+        },
+        {
+          "id": 11,
+          "type": "party",
+          "name": "H2",
+          "image": "/actor/healer.png",
+          "x": 20,
+          "y": -220,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100
+        },
+        {
+          "id": 12,
+          "type": "party",
+          "name": "D1",
+          "image": "/actor/dps.png",
+          "x": -220,
+          "y": 20,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100
+        },
+        {
+          "id": 13,
+          "type": "party",
+          "name": "D3",
+          "image": "/actor/dps.png",
+          "x": -220,
+          "y": -20,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100
+        },
+        {
+          "id": 14,
+          "type": "text",
+          "text": "四塔：T/H 南北，DPS 东西",
+          "x": 0,
+          "y": 285,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 18,
+          "align": "center",
+          "opacity": 100
+        },
+        {
+          "id": 15,
+          "type": "stack",
+          "x": 0,
+          "y": 0,
+          "radius": 58,
+          "count": 8,
+          "color": "#8fd14f",
+          "opacity": 35,
+          "hide": true
+        }
+      ]
+    }
+  ]
+}

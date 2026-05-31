@@ -1,0 +1,263 @@
+{
+  "nextId": 21,
+  "arena": {
+    "shape": "circle",
+    "width": 600,
+    "height": 600,
+    "padding": 120,
+    "grid": {
+      "type": "radial",
+      "angularDivs": 8,
+      "radialDivs": 2
+    }
+  },
+  "steps": [
+    {
+      "objects": [
+        {
+          "type": "enemy",
+          "name": "Boss",
+          "icon": "/actor/enemy.png",
+          "x": 0.0,
+          "y": 0.0,
+          "radius": 52,
+          "rotation": 180,
+          "ring": "dir",
+          "color": "#d13438",
+          "opacity": 100,
+          "id": 1
+        },
+        {
+          "type": "tower",
+          "x": 0.0,
+          "y": 220.0,
+          "radius": 42,
+          "count": 1,
+          "color": "#bae3ff",
+          "opacity": 70,
+          "id": 2
+        },
+        {
+          "type": "text",
+          "text": "MT/H1 北塔",
+          "x": 0.0,
+          "y": 268.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 16,
+          "align": "center",
+          "opacity": 100,
+          "id": 3
+        },
+        {
+          "type": "tower",
+          "x": 220.0,
+          "y": 0.0,
+          "radius": 42,
+          "count": 1,
+          "color": "#bae3ff",
+          "opacity": 70,
+          "id": 4
+        },
+        {
+          "type": "text",
+          "text": "D2/D4 东塔",
+          "x": 268.0,
+          "y": 0.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 16,
+          "align": "center",
+          "opacity": 100,
+          "id": 5
+        },
+        {
+          "type": "tower",
+          "x": -0.0,
+          "y": -220.0,
+          "radius": 42,
+          "count": 1,
+          "color": "#bae3ff",
+          "opacity": 70,
+          "id": 6
+        },
+        {
+          "type": "text",
+          "text": "ST/H2 南塔",
+          "x": -0.0,
+          "y": -268.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 16,
+          "align": "center",
+          "opacity": 100,
+          "id": 7
+        },
+        {
+          "type": "tower",
+          "x": -220.0,
+          "y": 0.0,
+          "radius": 42,
+          "count": 1,
+          "color": "#bae3ff",
+          "opacity": 70,
+          "id": 8
+        },
+        {
+          "type": "text",
+          "text": "D1/D3 西塔",
+          "x": -268.0,
+          "y": 0.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 16,
+          "align": "center",
+          "opacity": 100,
+          "id": 9
+        },
+        {
+          "type": "party",
+          "name": "MT",
+          "image": "/actor/tank.png",
+          "x": -24.0,
+          "y": 220.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 10
+        },
+        {
+          "type": "party",
+          "name": "H1",
+          "image": "/actor/healer.png",
+          "x": 24.0,
+          "y": 220.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 11
+        },
+        {
+          "type": "party",
+          "name": "D2",
+          "image": "/actor/dps.png",
+          "x": 220.0,
+          "y": 24.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 12
+        },
+        {
+          "type": "party",
+          "name": "D4",
+          "image": "/actor/dps.png",
+          "x": 220.0,
+          "y": -24.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 13
+        },
+        {
+          "type": "party",
+          "name": "ST",
+          "image": "/actor/tank.png",
+          "x": -24.0,
+          "y": -220.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 14
+        },
+        {
+          "type": "party",
+          "name": "H2",
+          "image": "/actor/healer.png",
+          "x": 24.0,
+          "y": -220.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 15
+        },
+        {
+          "type": "party",
+          "name": "D1",
+          "image": "/actor/dps.png",
+          "x": -220.0,
+          "y": 24.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 16
+        },
+        {
+          "type": "party",
+          "name": "D3",
+          "image": "/actor/dps.png",
+          "x": -220.0,
+          "y": -24.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 17
+        },
+        {
+          "type": "stack",
+          "x": 0.0,
+          "y": 0.0,
+          "radius": 58,
+          "count": 8,
+          "color": "#8fd14f",
+          "opacity": 30,
+          "id": 18
+        },
+        {
+          "type": "text",
+          "text": "踩完回中",
+          "x": 0.0,
+          "y": 0.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 16,
+          "align": "center",
+          "opacity": 100,
+          "id": 19
+        },
+        {
+          "type": "text",
+          "text": "四塔：T/H 南北，DPS 东西",
+          "x": 0.0,
+          "y": 285.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 18,
+          "align": "center",
+          "opacity": 100,
+          "id": 20
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "四人散开四人分摊",
+  "arena": {
+    "shape": "circle",
+    "size": 600
+  },
+  "steps": [
+    {
+      "title": "点名者八方散开，未点名者中间分摊",
+      "objects": [
+        { "kind": "boss", "name": "Boss", "pos": "center", "rotation": 180 },
+        { "kind": "stack", "name": "未点名分摊", "pos": "center", "radius": 72, "count": 4, "label": "未点名四人分摊" },
+        { "kind": "party", "role": "MT", "pos": "N", "distance": 120 },
+        { "kind": "party", "role": "ST", "pos": "S", "distance": 120 },
+        { "kind": "party", "role": "H1", "pos": "W", "distance": 120 },
+        { "kind": "party", "role": "H2", "pos": "E", "distance": 120 },
+        { "kind": "party", "role": "D1", "pos": "NW", "distance": 230 },
+        { "kind": "circle", "name": "D1 散开圈", "pos": "NW", "radius": 48, "color": "#ff8c00", "label": "D1" },
+        { "kind": "party", "role": "D2", "pos": "NE", "distance": 230 },
+        { "kind": "circle", "name": "D2 散开圈", "pos": "NE", "radius": 48, "color": "#ff8c00", "label": "D2" },
+        { "kind": "party", "role": "D3", "pos": "SW", "distance": 230 },
+        { "kind": "circle", "name": "D3 散开圈", "pos": "SW", "radius": 48, "color": "#ff8c00", "label": "D3" },
+        { "kind": "party", "role": "D4", "pos": "SE", "distance": 230 },
+        { "kind": "circle", "name": "D4 散开圈", "pos": "SE", "radius": 48, "color": "#ff8c00", "label": "D4" }
+      ]
+    }
+  ]
+}

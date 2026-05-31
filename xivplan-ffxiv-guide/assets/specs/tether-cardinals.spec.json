@@ -1,0 +1,28 @@
+{
+  "name": "四连线拉四方",
+  "arena": {
+    "shape": "circle",
+    "size": 600
+  },
+  "steps": [
+    {
+      "title": "四名连线玩家拉到东西南北，判定前不要回中",
+      "objects": [
+        { "kind": "boss", "name": "Boss", "pos": "center", "rotation": 180 },
+        { "kind": "party", "role": "MT", "pos": "N", "key": "MT" },
+        { "kind": "party", "role": "ST", "pos": "S", "key": "ST" },
+        { "kind": "party", "role": "H1", "pos": "W", "key": "H1" },
+        { "kind": "party", "role": "H2", "pos": "E", "key": "H2" },
+        { "kind": "party", "role": "D1", "pos": "NW", "distance": 90, "key": "D1" },
+        { "kind": "party", "role": "D2", "pos": "NE", "distance": 90, "key": "D2" },
+        { "kind": "party", "role": "D3", "pos": "SW", "distance": 90, "key": "D3" },
+        { "kind": "party", "role": "D4", "pos": "SE", "distance": 90, "key": "D4" },
+        { "kind": "tether", "start": "D1", "end": "MT", "color": "#ffb900" },
+        { "kind": "tether", "start": "D2", "end": "H2", "color": "#ffb900" },
+        { "kind": "tether", "start": "D3", "end": "H1", "color": "#ffb900" },
+        { "kind": "tether", "start": "D4", "end": "ST", "color": "#ffb900" },
+        { "kind": "label", "text": "连线不交叉，判定后再回中", "pos": "S", "distance": 285, "fontSize": 16 }
+      ]
+    }
+  ]
+}

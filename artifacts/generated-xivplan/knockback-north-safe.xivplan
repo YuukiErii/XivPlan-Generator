@@ -1,0 +1,217 @@
+{
+  "nextId": 17,
+  "arena": {
+    "shape": "circle",
+    "width": 600,
+    "height": 600,
+    "padding": 120,
+    "grid": {
+      "type": "radial",
+      "angularDivs": 8,
+      "radialDivs": 2
+    }
+  },
+  "steps": [
+    {
+      "objects": [
+        {
+          "type": "enemy",
+          "name": "Boss",
+          "icon": "/actor/enemy.png",
+          "x": 0.0,
+          "y": 0.0,
+          "radius": 52,
+          "rotation": 180,
+          "ring": "dir",
+          "color": "#d13438",
+          "opacity": 100,
+          "id": 1
+        },
+        {
+          "type": "knockback",
+          "x": 0.0,
+          "y": 0.0,
+          "radius": 90,
+          "color": "#d13438",
+          "opacity": 45,
+          "hollow": true,
+          "id": 2
+        },
+        {
+          "type": "text",
+          "text": "击退源",
+          "x": 0.0,
+          "y": 0.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 16,
+          "align": "center",
+          "opacity": 100,
+          "id": 3
+        },
+        {
+          "type": "circle",
+          "x": 0.0,
+          "y": 220.0,
+          "radius": 82,
+          "color": "#8fd14f",
+          "opacity": 35,
+          "hollow": true,
+          "id": 4
+        },
+        {
+          "type": "text",
+          "text": "北侧安全区",
+          "x": 0.0,
+          "y": 220.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 16,
+          "align": "center",
+          "opacity": 100,
+          "id": 5
+        },
+        {
+          "type": "party",
+          "name": "MT",
+          "image": "/actor/tank.png",
+          "x": -48.0,
+          "y": -90.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 6
+        },
+        {
+          "type": "party",
+          "name": "ST",
+          "image": "/actor/tank.png",
+          "x": -16.0,
+          "y": -90.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 7
+        },
+        {
+          "type": "party",
+          "name": "H1",
+          "image": "/actor/healer.png",
+          "x": 16.0,
+          "y": -90.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 8
+        },
+        {
+          "type": "party",
+          "name": "H2",
+          "image": "/actor/healer.png",
+          "x": 48.0,
+          "y": -90.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 9
+        },
+        {
+          "type": "party",
+          "name": "D1",
+          "image": "/actor/dps.png",
+          "x": -48.0,
+          "y": -130.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 10
+        },
+        {
+          "type": "party",
+          "name": "D2",
+          "image": "/actor/dps.png",
+          "x": -16.0,
+          "y": -130.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 11
+        },
+        {
+          "type": "party",
+          "name": "D3",
+          "image": "/actor/dps.png",
+          "x": 16.0,
+          "y": -130.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 12
+        },
+        {
+          "type": "party",
+          "name": "D4",
+          "image": "/actor/dps.png",
+          "x": 48.0,
+          "y": -130.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 13
+        },
+        {
+          "type": "arrow",
+          "x": 0.0,
+          "y": 47.5,
+          "width": 335,
+          "height": 24,
+          "rotation": -90.0,
+          "color": "#0078d4",
+          "opacity": 100,
+          "arrowEnd": true,
+          "id": 14
+        },
+        {
+          "type": "text",
+          "text": "不开防击退：从南侧预站，落到北侧安全区",
+          "x": -0.0,
+          "y": -285.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 16,
+          "align": "center",
+          "opacity": 100,
+          "id": 15
+        },
+        {
+          "type": "text",
+          "text": "中心击退：可防击退，或从南侧被推到北侧",
+          "x": 0.0,
+          "y": 285.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 18,
+          "align": "center",
+          "opacity": 100,
+          "id": 16
+        }
+      ]
+    }
+  ]
+}

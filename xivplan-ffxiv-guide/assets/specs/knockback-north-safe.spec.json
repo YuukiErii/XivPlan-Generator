@@ -1,0 +1,27 @@
+{
+  "name": "中心击退到北侧安全区",
+  "arena": {
+    "shape": "circle",
+    "size": 600
+  },
+  "steps": [
+    {
+      "title": "中心击退：可防击退，或从南侧被推到北侧",
+      "objects": [
+        { "kind": "boss", "name": "Boss", "pos": "center", "rotation": 180 },
+        { "kind": "knockback", "name": "击退源", "pos": "center", "radius": 90, "color": "#d13438", "opacity": 45, "label": "击退源" },
+        { "kind": "safe_circle", "name": "北侧安全区", "pos": "N", "distance": 220, "radius": 82, "color": "#8fd14f", "opacity": 35, "label": "北侧安全区" },
+        { "kind": "party", "role": "MT", "pos": [0, -90], "offset": [-48, 0] },
+        { "kind": "party", "role": "ST", "pos": [0, -90], "offset": [-16, 0] },
+        { "kind": "party", "role": "H1", "pos": [0, -90], "offset": [16, 0] },
+        { "kind": "party", "role": "H2", "pos": [0, -90], "offset": [48, 0] },
+        { "kind": "party", "role": "D1", "pos": [0, -130], "offset": [-48, 0] },
+        { "kind": "party", "role": "D2", "pos": [0, -130], "offset": [-16, 0] },
+        { "kind": "party", "role": "D3", "pos": [0, -130], "offset": [16, 0] },
+        { "kind": "party", "role": "D4", "pos": [0, -130], "offset": [48, 0] },
+        { "kind": "arrow", "name": "击退方向", "from": [0, -120], "to": [0, 215], "color": "#0078d4", "height": 24 },
+        { "kind": "label", "text": "不开防击退：从南侧预站，落到北侧安全区", "pos": "S", "distance": 285, "fontSize": 16 }
+      ]
+    }
+  ]
+}

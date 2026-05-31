@@ -1,0 +1,28 @@
+{
+  "name": "四塔分配",
+  "arena": {
+    "shape": "circle",
+    "size": 600
+  },
+  "steps": [
+    {
+      "title": "四塔：T/H 南北，DPS 东西",
+      "objects": [
+        { "kind": "boss", "name": "Boss", "pos": "center", "rotation": 180 },
+        { "kind": "tower", "name": "北塔", "pos": "N", "label": "MT/H1 北塔" },
+        { "kind": "tower", "name": "东塔", "pos": "E", "label": "D2/D4 东塔" },
+        { "kind": "tower", "name": "南塔", "pos": "S", "label": "ST/H2 南塔" },
+        { "kind": "tower", "name": "西塔", "pos": "W", "label": "D1/D3 西塔" },
+        { "kind": "party", "role": "MT", "pos": "N", "offset": [-24, 0] },
+        { "kind": "party", "role": "H1", "pos": "N", "offset": [24, 0] },
+        { "kind": "party", "role": "D2", "pos": "E", "offset": [0, 24] },
+        { "kind": "party", "role": "D4", "pos": "E", "offset": [0, -24] },
+        { "kind": "party", "role": "ST", "pos": "S", "offset": [-24, 0] },
+        { "kind": "party", "role": "H2", "pos": "S", "offset": [24, 0] },
+        { "kind": "party", "role": "D1", "pos": "W", "offset": [0, 24] },
+        { "kind": "party", "role": "D3", "pos": "W", "offset": [0, -24] },
+        { "kind": "stack", "name": "回中集合", "pos": "center", "radius": 58, "count": 8, "opacity": 30, "label": "踩完回中" }
+      ]
+    }
+  ]
+}

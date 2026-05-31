@@ -1,0 +1,33 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local virtual environments and package caches
+.venv/
+venv/
+env/
+.mypy_cache/
+.pytest_cache/
+
+# Node / frontend build outputs if local XivPlan tooling is staged here later
+node_modules/
+dist/
+release/
+*.zip
+
+# Generated guide exports and bulky local outputs
+outputs/
+exports/
+*.docx
+*.pdf
+*.pptx
+
+# Local secrets and machine-specific config
+.env
+.env.*
+*.local
+
+# Keep curated lightweight generated examples, but ignore ad-hoc build folders
+build/
+tmp/
+temp/

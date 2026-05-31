@@ -1,0 +1,197 @@
+{
+  "nextId": 16,
+  "arena": {
+    "shape": "circle",
+    "width": 600,
+    "height": 600,
+    "padding": 120,
+    "grid": {
+      "type": "radial",
+      "angularDivs": 8,
+      "radialDivs": 2
+    }
+  },
+  "steps": [
+    {
+      "objects": [
+        {
+          "type": "enemy",
+          "name": "Boss",
+          "icon": "/actor/enemy.png",
+          "x": 0.0,
+          "y": 0.0,
+          "radius": 52,
+          "rotation": 180,
+          "ring": "dir",
+          "color": "#d13438",
+          "opacity": 100,
+          "id": 1
+        },
+        {
+          "type": "party",
+          "name": "MT",
+          "image": "/actor/tank.png",
+          "x": 0.0,
+          "y": 220.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 2
+        },
+        {
+          "type": "party",
+          "name": "ST",
+          "image": "/actor/tank.png",
+          "x": -0.0,
+          "y": -220.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 3
+        },
+        {
+          "type": "party",
+          "name": "H1",
+          "image": "/actor/healer.png",
+          "x": -220.0,
+          "y": 0.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 4
+        },
+        {
+          "type": "party",
+          "name": "H2",
+          "image": "/actor/healer.png",
+          "x": 220.0,
+          "y": 0.0,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 5
+        },
+        {
+          "type": "party",
+          "name": "D1",
+          "image": "/actor/dps.png",
+          "x": -63.64,
+          "y": 63.64,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 6
+        },
+        {
+          "type": "party",
+          "name": "D2",
+          "image": "/actor/dps.png",
+          "x": 63.64,
+          "y": 63.64,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 7
+        },
+        {
+          "type": "party",
+          "name": "D3",
+          "image": "/actor/dps.png",
+          "x": -63.64,
+          "y": -63.64,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 8
+        },
+        {
+          "type": "party",
+          "name": "D4",
+          "image": "/actor/dps.png",
+          "x": 63.64,
+          "y": -63.64,
+          "width": 32,
+          "height": 32,
+          "rotation": 0,
+          "opacity": 100,
+          "id": 9
+        },
+        {
+          "type": "text",
+          "text": "连线不交叉，判定后再回中",
+          "x": -0.0,
+          "y": -285.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 16,
+          "align": "center",
+          "opacity": 100,
+          "id": 10
+        },
+        {
+          "type": "tether",
+          "startId": 6,
+          "endId": 2,
+          "tether": "line",
+          "width": 4,
+          "color": "#ffb900",
+          "opacity": 100,
+          "id": 11
+        },
+        {
+          "type": "tether",
+          "startId": 7,
+          "endId": 5,
+          "tether": "line",
+          "width": 4,
+          "color": "#ffb900",
+          "opacity": 100,
+          "id": 12
+        },
+        {
+          "type": "tether",
+          "startId": 8,
+          "endId": 4,
+          "tether": "line",
+          "width": 4,
+          "color": "#ffb900",
+          "opacity": 100,
+          "id": 13
+        },
+        {
+          "type": "tether",
+          "startId": 9,
+          "endId": 3,
+          "tether": "line",
+          "width": 4,
+          "color": "#ffb900",
+          "opacity": 100,
+          "id": 14
+        },
+        {
+          "type": "text",
+          "text": "四名连线玩家拉到东西南北，判定前不要回中",
+          "x": 0.0,
+          "y": 285.0,
+          "rotation": 0,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "style": "outline",
+          "fontSize": 18,
+          "align": "center",
+          "opacity": 100,
+          "id": 15
+        }
+      ]
+    }
+  ]
+}

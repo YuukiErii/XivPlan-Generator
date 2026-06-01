@@ -79,8 +79,29 @@ TEXT_FIELD_LIMIT = 80
 GUIDE_TEXT_LIMIT = 180
 OBJECT_BOUND_MARGIN = 40
 PARTY_OVERLAP_DISTANCE = 18
+PARTY_CLUSTER_DISTANCE = 42
 PARTY_ROLE_NAMES = {"MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4"}
 WAYMARK_NAMES = {"A", "B", "C", "D", "1", "2", "3", "4"}
+DEFAULT_PARTY_JOBS = {
+    "MT": {"DRK", "DK", "DARK KNIGHT"},
+    "ST": {"PLD", "PALADIN"},
+    "H1": {"AST", "ASTROLOGIAN"},
+    "H2": {"SCH", "SCHOLAR"},
+    "D1": {"SAM", "SAMURAI"},
+    "D2": {"DRG", "DRAGOON"},
+    "D3": {"BRD", "BARD"},
+    "D4": {"PCT", "PICTOMANCER"},
+}
+DEFAULT_PARTY_ICONS = {
+    "MT": "/actor/DRK.png",
+    "ST": "/actor/PLD.png",
+    "H1": "/actor/AST.png",
+    "H2": "/actor/SCH.png",
+    "D1": "/actor/SAM.png",
+    "D2": "/actor/DRG.png",
+    "D3": "/actor/BRD.png",
+    "D4": "/actor/PCT.png",
+}
 
 DEFAULT_SCENE_CONTRACT = {
     "require_full_party_each_step": False,
@@ -113,26 +134,26 @@ def explicitly_partial_observation(step: dict[str, Any]) -> bool:
     return bool(step.get("partial_observation") is True or step.get("partial") is True or step.get("local_view") is True)
 
 
-def validate_data_url(errors: list[str], value: Any, where: str) -> None:
+def validate_data_url(errors: list[str], value: Any, where: str, field: str = "image") -> None:
     if not isinstance(value, str):
-        fail(errors, f"{where}.image must be a string")
+        fail(errors, f"{where}.{field} must be a string")
         return
     if not value.startswith("data:"):
         return
     header, sep, payload = value.partition(",")
     if not sep or ";base64" not in header:
-        fail(errors, f"{where}.image data URL must include a base64 payload")
+        fail(errors, f"{where}.{field} data URL must include a base64 payload")
         return
     media_type = header[5:].split(";", 1)[0]
     if media_type not in {"image/png", "image/jpeg", "image/webp", "image/svg+xml"}:
-        fail(errors, f"{where}.image data URL has unsupported media type {media_type!r}")
+        fail(errors, f"{where}.{field} data URL has unsupported media type {media_type!r}")
     try:
         decoded = base64.b64decode(payload, validate=True)
     except Exception as exc:  # noqa: BLE001 - report malformed payloads in CLI output.
-        fail(errors, f"{where}.image data URL payload is not valid base64: {exc}")
+        fail(errors, f"{where}.{field} data URL payload is not valid base64: {exc}")
         return
     if not decoded:
-        fail(errors, f"{where}.image data URL payload is empty")
+        fail(errors, f"{where}.{field} data URL payload is empty")
 
 
 def object_extent(obj: dict[str, Any]) -> tuple[float, float, float, float]:
@@ -174,6 +195,29 @@ def object_role(obj: dict[str, Any]) -> str:
     return ""
 
 
+def party_job(obj: dict[str, Any]) -> str:
+    value = obj.get("job") or obj.get("jobName") or obj.get("job_name")
+    return str(value).strip() if isinstance(value, str) and value.strip() else ""
+
+
+def party_icon(obj: dict[str, Any]) -> str:
+    value = obj.get("icon") or obj.get("image")
+    return str(value).strip() if isinstance(value, str) and value.strip() else ""
+
+
+def normalized_icon(value: str) -> str:
+    return value.replace("\\", "/")
+
+
+def party_role_label(obj: dict[str, Any]) -> str:
+    value = obj.get("roleLabel") or obj.get("role_label")
+    return str(value).strip() if isinstance(value, str) and value.strip() else ""
+
+
+def role_label_visible(obj: dict[str, Any]) -> bool:
+    return obj.get("roleLabelVisible", obj.get("role_label_visible", True)) is not False
+
+
 def object_waymark(obj: dict[str, Any]) -> str:
     if obj.get("type") != "marker":
         return ""
@@ -182,6 +226,37 @@ def object_waymark(obj: dict[str, Any]) -> str:
         if isinstance(value, str) and value.strip().upper() in WAYMARK_NAMES:
             return value.strip().upper()
     return ""
+
+
+def enemy_display_name(obj: dict[str, Any]) -> str:
+    for key in ("displayName", "name"):
+        value = obj.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def enemy_ring_visible(obj: dict[str, Any]) -> bool:
+    ring = obj.get("targetRing", obj.get("ring"))
+    if isinstance(ring, dict):
+        return ring.get("visible", True) is not False and isinstance(ring.get("radius", obj.get("radius")), (int, float))
+    if isinstance(ring, str):
+        return ring.strip().lower() not in {"", "none", "hidden", "false"}
+    return bool(ring)
+
+
+def party_cluster_step(step: dict[str, Any], party_objects: list[dict[str, Any]]) -> bool:
+    if step.get("party_cluster") or step.get("stack_group"):
+        return True
+    for left_index, left in enumerate(party_objects):
+        if not isinstance(left.get("x"), (int, float)) or not isinstance(left.get("y"), (int, float)):
+            continue
+        for right in party_objects[left_index + 1 :]:
+            if not isinstance(right.get("x"), (int, float)) or not isinstance(right.get("y"), (int, float)):
+                continue
+            if hypot(float(left["x"]) - float(right["x"]), float(left["y"]) - float(right["y"])) < PARTY_CLUSTER_DISTANCE:
+                return True
+    return False
 
 
 def normalize_scene_contract(scene: dict[str, Any]) -> tuple[dict[str, bool], bool]:
@@ -254,6 +329,9 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
             fail(errors, f"{where_step}.objects must be a list")
             continue
         party_objects: list[tuple[str, float, float, int]] = []
+        party_full_objects: list[dict[str, Any]] = []
+        enemy_objects: list[dict[str, Any]] = []
+        text_labels: list[str] = []
         step_type_counts: Counter[str] = Counter()
         step_waymarks: set[str] = set()
         for object_index, obj in enumerate(objects):
@@ -283,6 +361,8 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
 
             if obj_type in IMAGE_TYPES and "image" in obj:
                 validate_data_url(errors, obj.get("image"), where)
+            if obj_type == "enemy" and "icon" in obj:
+                validate_data_url(errors, obj.get("icon"), where, "icon")
             for text_key in ("text", "label", "name"):
                 text_value = obj.get(text_key)
                 if isinstance(text_value, str) and len(text_value) > TEXT_FIELD_LIMIT:
@@ -316,6 +396,11 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
                     fail(errors, f"{where} ({obj_type}) is outside arena bounds")
             if obj_type == "party" and isinstance(obj.get("x"), (int, float)) and isinstance(obj.get("y"), (int, float)):
                 party_objects.append((object_role(obj), float(obj["x"]), float(obj["y"]), int(obj_id) if isinstance(obj_id, int) else -1))
+                party_full_objects.append(obj)
+            if obj_type == "enemy":
+                enemy_objects.append(obj)
+            if obj_type == "text" and isinstance(obj.get("text"), str):
+                text_labels.append(obj["text"].strip())
             waymark = object_waymark(obj)
             if waymark:
                 step_waymarks.add(waymark)
@@ -334,8 +419,56 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
             missing_roles = sorted(PARTY_ROLE_NAMES - present_roles)
             if missing_roles:
                 fail(errors, f"{where_step} missing required party roles: {', '.join(missing_roles)}")
+            duplicate_roles = sorted(role for role, count in Counter(role for role, *_ in party_objects if role).items() if count > 1)
+            if duplicate_roles:
+                fail(errors, f"{where_step} has duplicate party roles: {', '.join(duplicate_roles)}")
+            cluster_step = party_cluster_step(step, party_full_objects)
+            for party_index, party in enumerate(party_full_objects):
+                role = object_role(party)
+                where_party = f"{where_step}.party[{party_index}]"
+                if not role:
+                    fail(errors, f"{where_party} must have one MT/ST/H1/H2/D1/D2/D3/D4 role")
+                    continue
+                job = party_job(party)
+                icon = party_icon(party)
+                if not job:
+                    fail(errors, f"{where_party} ({role}) must have a job for Phase R identity")
+                if not icon:
+                    fail(errors, f"{where_party} ({role}) must have a job icon or fallback image")
+                if party.get("jobDefault") is True and job.upper() not in DEFAULT_PARTY_JOBS.get(role, set()):
+                    fail(errors, f"{where_party} ({role}) default job mismatch: {job}")
+                if party.get("jobDefault") is True and normalized_icon(icon) != DEFAULT_PARTY_ICONS.get(role):
+                    fail(errors, f"{where_party} ({role}) must use official XivPlan job icon {DEFAULT_PARTY_ICONS.get(role)}, got {icon}")
+                if normalized_icon(icon).startswith("job:"):
+                    fail(errors, f"{where_party} ({role}) uses abstract job token {icon}; use a XivPlan /actor/<JOB>.png icon")
+                if not cluster_step and not role_label_visible(party):
+                    fail(errors, f"{where_party} ({role}) hides roleLabel outside a cluster/stack frame")
+                if not cluster_step and not party_role_label(party):
+                    fail(errors, f"{where_party} ({role}) must have roleLabel near the job icon")
         if contract_active and contract["require_enemy_each_step"] and not partial_observation and step_type_counts["enemy"] < 1:
             fail(errors, f"{where_step} is missing a Boss/enemy anchor")
+        if not partial_observation:
+            enemy_names = [enemy_display_name(obj) for obj in enemy_objects]
+            for enemy_index, enemy in enumerate(enemy_objects):
+                where_enemy = f"{where_step}.enemy[{enemy_index}]"
+                name = enemy_display_name(enemy)
+                if not name:
+                    fail(errors, f"{where_enemy} must have a non-empty name/displayName")
+                if not isinstance(enemy.get("radius"), (int, float)):
+                    target_ring = enemy.get("targetRing")
+                    ring_radius = target_ring.get("radius") if isinstance(target_ring, dict) else None
+                    if not isinstance(ring_radius, (int, float)):
+                        fail(errors, f"{where_enemy} must have radius or targetRing.radius")
+                if not enemy_ring_visible(enemy):
+                    fail(errors, f"{where_enemy} target ring must be visible")
+                icon = enemy.get("icon") or enemy.get("image")
+                if not isinstance(icon, str) or not icon.strip():
+                    fail(errors, f"{where_enemy} must have an icon or fallback icon")
+                if name and name not in text_labels:
+                    fail(errors, f"{where_enemy} name label is missing from text layer: {name}")
+            duplicate_enemy_names = sorted(name for name, count in Counter(enemy_names).items() if name and count > 1)
+            if duplicate_enemy_names:
+                fail(errors, f"{where_step} has indistinguishable duplicate enemy names: {', '.join(duplicate_enemy_names)}")
         if contract_active and contract["require_waymarks_each_step"] and not partial_observation:
             missing_waymarks = sorted({"A", "B", "C", "D"} - step_waymarks)
             if missing_waymarks:

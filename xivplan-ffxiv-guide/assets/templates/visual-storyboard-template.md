@@ -34,15 +34,17 @@ Use `partial_observation: true` only for a local evidence frame, asset preview, 
 
 ## Step Plan
 
-| Step | `storyboard_phase` | Purpose | What changed from previous step | Visual focus | Required roles | Mechanic objects | Movement / flow | Reset state | Checks |
-|---:|---|---|---|---|---|---|---|---|---|
-| 1 | observe |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
-| 2 | preposition |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
-| 3 | move |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
-| 4 | resolve |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
-| 5 | reset |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
+| Step | `storyboard_phase` | `teaching_question` | Purpose | `why_this_frame_exists` | `changed_objects_only` | Visual focus | Required roles | Mechanic objects | Movement / flow | Reset state | Checks |
+|---:|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | observe_signal |  |  |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
+| 2 | assign_roles |  |  |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
+| 3 | preposition |  |  |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
+| 4 | first_move |  |  |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
+| 5 | first_resolve |  |  |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
+| 6 | reset |  |  |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
+| 7 | next_read_setup |  |  |  |  |  | MT/ST/H1/H2/D1/D2/D3/D4 |  |  |  |  |
 
-Add rows until the mechanic has enough frames. Long flow mechanics may use 10-14 steps when each frame remains readable.
+Add rows until the mechanic has enough frames. Simple mechanics usually use 3-5 steps, medium mechanics 6-10, complex mechanics 10-16, and long teaching flows 12-20 when each frame answers a distinct teaching question.
 
 ## Label Plan
 
@@ -59,5 +61,5 @@ Add rows until the mechanic has enough frames. Long flow mechanics may use 10-14
 ## Acceptance Notes
 
 - Every normal step keeps 8 players, Boss/enemy anchor, arena context, and stable waymarks.
-- Each step has `purpose`, `guide_text`, `checks`, `visual_focus`, `required_roles`, `storyboard_phase`, and `reset_state`.
+- Each step has exactly one primary `teaching_question`, plus `purpose`, `guide_text`, `checks`, `visual_focus`, `required_roles`, `storyboard_phase`, `reset_state`, `why_this_frame_exists`, and `changed_objects_only`.
 - Severe label collisions, severe arrow obstruction, missing reset coverage, missing party context, missing Boss, or missing arena context must be fixed before handoff.

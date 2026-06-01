@@ -18,6 +18,16 @@ from audit_visual_density import audit_scene as audit_density_scene
 
 
 PARTY_ROLES = {"MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4"}
+DEFAULT_PARTY_ICONS = {
+    "MT": "/actor/DRK.png",
+    "ST": "/actor/PLD.png",
+    "H1": "/actor/AST.png",
+    "H2": "/actor/SCH.png",
+    "D1": "/actor/SAM.png",
+    "D2": "/actor/DRG.png",
+    "D3": "/actor/BRD.png",
+    "D4": "/actor/PCT.png",
+}
 WAYMARKS = {"A", "B", "C", "D"}
 MECHANIC_TYPES = {
     "arc",
@@ -44,7 +54,18 @@ TEXT_PHASE_HINTS = {
     "resolve": ("resolve", "判定", "结算", "分摊", "塔", "安全"),
     "reset": ("reset", "复位", "回中", "下一", "起手"),
 }
-SCORE_DIMENSIONS = ("context", "density", "label", "flow", "layer", "aesthetic", "step_story")
+SCORE_DIMENSIONS = ("context", "density", "label", "flow", "layer", "aesthetic", "step_story", "enemy_identity", "party_identity")
+PHASE_BUCKETS = {
+    "observe_signal": "observe",
+    "assign_roles": "observe",
+    "preposition": "move",
+    "first_move": "move",
+    "second_move": "move",
+    "between_resolves": "move",
+    "first_resolve": "resolve",
+    "second_resolve": "resolve",
+    "next_read_setup": "reset",
+}
 
 
 def read_scene(path: Path) -> dict[str, Any]:
@@ -58,7 +79,7 @@ def text_for_step(step: dict[str, Any]) -> str:
 def step_phase(step: dict[str, Any]) -> str:
     explicit = step.get("storyboard_phase")
     if isinstance(explicit, str) and explicit:
-        return explicit
+        return PHASE_BUCKETS.get(explicit, explicit)
     text = text_for_step(step)
     if any(hint in text for hint in TEXT_PHASE_HINTS["reset"]):
         return "reset"
@@ -96,6 +117,47 @@ def object_role(obj: dict[str, Any]) -> str:
     return ""
 
 
+def party_job(obj: dict[str, Any]) -> str:
+    if obj.get("type") != "party":
+        return ""
+    value = obj.get("job") or obj.get("jobName") or obj.get("job_name")
+    return str(value).strip() if isinstance(value, str) and value.strip() else ""
+
+
+def party_icon(obj: dict[str, Any]) -> str:
+    if obj.get("type") != "party":
+        return ""
+    value = obj.get("icon") or obj.get("image")
+    return str(value).strip() if isinstance(value, str) and value.strip() else ""
+
+
+def normalized_icon(value: str) -> str:
+    return value.replace("\\", "/")
+
+
+def party_role_label(obj: dict[str, Any]) -> str:
+    if obj.get("type") != "party":
+        return ""
+    value = obj.get("roleLabel") or obj.get("role_label")
+    return str(value).strip() if isinstance(value, str) and value.strip() else ""
+
+
+def role_label_visible(obj: dict[str, Any]) -> bool:
+    return obj.get("roleLabelVisible", obj.get("role_label_visible", True)) is not False
+
+
+def is_cluster_step(step: dict[str, Any], party: list[dict[str, Any]]) -> bool:
+    if step.get("party_cluster") or step.get("stack_group"):
+        return True
+    for left_index, left in enumerate(party):
+        for right in party[left_index + 1 :]:
+            if not all(isinstance(item.get(key), (int, float)) for item in (left, right) for key in ("x", "y")):
+                continue
+            if ((float(left["x"]) - float(right["x"])) ** 2 + (float(left["y"]) - float(right["y"])) ** 2) ** 0.5 < 42:
+                return True
+    return False
+
+
 def object_waymark(obj: dict[str, Any]) -> str:
     if obj.get("type") != "marker":
         return ""
@@ -104,6 +166,52 @@ def object_waymark(obj: dict[str, Any]) -> str:
         if isinstance(value, str) and value.upper() in WAYMARKS:
             return value.upper()
     return ""
+
+
+def enemy_name(obj: dict[str, Any]) -> str:
+    if obj.get("type") != "enemy":
+        return ""
+    for key in ("displayName", "name"):
+        value = obj.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def enemy_ring_visible(obj: dict[str, Any]) -> bool:
+    ring = obj.get("targetRing", obj.get("ring"))
+    if isinstance(ring, dict):
+        return ring.get("visible", True) is not False and isinstance(ring.get("radius", obj.get("radius")), (int, float))
+    if isinstance(ring, str):
+        return ring.strip().lower() not in {"", "none", "hidden", "false"}
+    return bool(ring)
+
+
+def object_box(obj: dict[str, Any], fallback_radius: float = 0.0) -> tuple[float, float, float, float]:
+    x = float(obj.get("x", 0) or 0)
+    y = float(obj.get("y", 0) or 0)
+    half_w = fallback_radius
+    half_h = fallback_radius
+    radius = obj.get("radius")
+    if isinstance(radius, (int, float)):
+        half_w = max(half_w, abs(float(radius)))
+        half_h = max(half_h, abs(float(radius)))
+    width = obj.get("width")
+    height = obj.get("height")
+    if isinstance(width, (int, float)):
+        half_w = max(half_w, abs(float(width)) / 2)
+    if isinstance(height, (int, float)):
+        half_h = max(half_h, abs(float(height)) / 2)
+    if obj.get("type") == "text":
+        text = str(obj.get("text", ""))
+        font_size = float(obj.get("fontSize", 16) or 16)
+        half_w = max(half_w, max(18.0, len(text) * font_size * 0.28))
+        half_h = max(half_h, font_size * 0.7)
+    return x - half_w, y - half_h, x + half_w, y + half_h
+
+
+def boxes_overlap(a: tuple[float, float, float, float], b: tuple[float, float, float, float], padding: float = 0.0) -> bool:
+    return not (a[2] + padding < b[0] or b[2] + padding < a[0] or a[3] + padding < b[1] or b[3] + padding < a[1])
 
 
 def has_arena_context(scene: dict[str, Any]) -> bool:
@@ -380,6 +488,251 @@ def layer_and_aesthetic_issues(scene: dict[str, Any], issues: list[dict[str, Any
             )
 
 
+def enemy_identity_issues(scene: dict[str, Any], issues: list[dict[str, Any]]) -> None:
+    for step_index, step in enumerate(scene.get("steps", []), start=1):
+        if not isinstance(step, dict) or is_partial_step(step):
+            continue
+        objects = [obj for obj in step.get("objects", []) if isinstance(obj, dict)]
+        enemies = [obj for obj in objects if obj.get("type") == "enemy"]
+        labels = [obj for obj in objects if obj.get("type") == "text"]
+        enemy_names = [enemy_name(enemy) for enemy in enemies]
+        duplicates = sorted(name for name, count in Counter(enemy_names).items() if name and count > 1)
+        for duplicate in duplicates:
+            add_issue(
+                issues,
+                dimension="enemy_identity",
+                severity="severe",
+                kind="duplicate_enemy_name",
+                step=step_index,
+                title=step.get("title"),
+                message=f"Multiple enemies share the indistinguishable name `{duplicate}`.",
+                suggestion="Append a direction or index, such as Add N / Add E / Add 1.",
+            )
+        for enemy in enemies:
+            name = enemy_name(enemy)
+            enemy_id = enemy.get("id")
+            if not name:
+                add_issue(
+                    issues,
+                    dimension="enemy_identity",
+                    severity="severe",
+                    kind="enemy_missing_name",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=enemy_id,
+                    message="Enemy has no readable name/displayName.",
+                    suggestion="Set `name` or `displayName` for every Boss, add, clone, or source.",
+                )
+                continue
+            if not enemy_ring_visible(enemy):
+                add_issue(
+                    issues,
+                    dimension="enemy_identity",
+                    severity="severe",
+                    kind="enemy_missing_target_ring",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=enemy_id,
+                    message=f"Enemy `{name}` has no visible target ring.",
+                    suggestion="Set `ring.visible: true` or use the default target-ring contract.",
+                )
+            icon = enemy.get("icon") or enemy.get("image")
+            if not isinstance(icon, str) or not icon.strip():
+                add_issue(
+                    issues,
+                    dimension="enemy_identity",
+                    severity="severe",
+                    kind="enemy_missing_icon",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=enemy_id,
+                    message=f"Enemy `{name}` has no dedicated or fallback icon.",
+                    suggestion="Run `inject_enemy_assets.py` or let the builder attach the generic Boss/add fallback icon.",
+                )
+            if not isinstance(enemy.get("radius"), (int, float)):
+                add_issue(
+                    issues,
+                    dimension="enemy_identity",
+                    severity="severe",
+                    kind="enemy_missing_radius",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=enemy_id,
+                    message=f"Enemy `{name}` has no radius.",
+                    suggestion="Set `radius` or `ring.radius` so the target ring is auditable.",
+                )
+            matching_labels = [label for label in labels if str(label.get("text", "")).strip() == name]
+            if not matching_labels:
+                add_issue(
+                    issues,
+                    dimension="enemy_identity",
+                    severity="severe",
+                    kind="enemy_missing_name_label",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=enemy_id,
+                    message=f"Enemy `{name}` has no matching text label.",
+                    suggestion="Let the builder create an attached auto label or add a short label outside the target ring.",
+                )
+            enemy_box = object_box(enemy, float(enemy.get("radius", 36) or 36))
+            for label in labels:
+                if label in matching_labels:
+                    continue
+                if label.get("labelKind") == "party_role":
+                    continue
+                if boxes_overlap(enemy_box, object_box(label), padding=4):
+                    add_issue(
+                        issues,
+                        dimension="enemy_identity",
+                        severity="severe",
+                        kind="enemy_ring_text_obstruction",
+                        step=step_index,
+                        title=step.get("title"),
+                        object_id=enemy_id,
+                        other_id=label.get("id"),
+                        message=f"Enemy `{name}` target ring is obstructed by a text label.",
+                        suggestion="Move the label outward or add a leader line.",
+                    )
+            for mechanic in objects:
+                if mechanic.get("type") not in MECHANIC_TYPES:
+                    continue
+                opacity = mechanic.get("opacity")
+                if isinstance(opacity, (int, float)) and opacity >= 70 and boxes_overlap(enemy_box, object_box(mechanic), padding=0):
+                    add_issue(
+                        issues,
+                        dimension="enemy_identity",
+                        severity="review",
+                        kind="enemy_ring_high_opacity_overlap",
+                        step=step_index,
+                        title=step.get("title"),
+                        object_id=enemy_id,
+                        other_id=mechanic.get("id"),
+                        message=f"Enemy `{name}` target ring overlaps a high-opacity mechanic layer.",
+                        suggestion="Lower mechanic opacity or split the mechanic source and damage layer into separate frames.",
+                    )
+
+
+def party_identity_issues(scene: dict[str, Any], issues: list[dict[str, Any]]) -> None:
+    for step_index, step in enumerate(scene.get("steps", []), start=1):
+        if not isinstance(step, dict) or is_partial_step(step):
+            continue
+        party = [obj for obj in step.get("objects", []) if isinstance(obj, dict) and obj.get("type") == "party"]
+        roles = [object_role(obj) for obj in party]
+        missing = sorted(PARTY_ROLES - set(role for role in roles if role))
+        duplicates = sorted(role for role, count in Counter(role for role in roles if role).items() if count > 1)
+        if missing:
+            add_issue(
+                issues,
+                dimension="party_identity",
+                severity="severe",
+                kind="party_missing_roles",
+                step=step_index,
+                title=step.get("title"),
+                message=f"Step is missing role identities: {', '.join(missing)}.",
+                suggestion="Keep all MT/ST/H1/H2/D1/D2/D3/D4 party objects through movement and reset frames.",
+            )
+        if duplicates:
+            add_issue(
+                issues,
+                dimension="party_identity",
+                severity="severe",
+                kind="party_duplicate_roles",
+                step=step_index,
+                title=step.get("title"),
+                message=f"Step repeats role identities: {', '.join(duplicates)}.",
+                suggestion="Each normal frame should contain each role exactly once.",
+            )
+        cluster_step = is_cluster_step(step, party)
+        for obj in party:
+            role = object_role(obj) or str(obj.get("name", "party"))
+            if not party_job(obj):
+                add_issue(
+                    issues,
+                    dimension="party_identity",
+                    severity="severe",
+                    kind="party_missing_job",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=obj.get("id"),
+                    message=f"Party role `{role}` has no job identity.",
+                    suggestion="Set `job` and `icon` using the Phase R default party configuration or a user override.",
+                )
+            if not party_icon(obj):
+                add_issue(
+                    issues,
+                    dimension="party_identity",
+                    severity="severe",
+                    kind="party_missing_job_icon",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=obj.get("id"),
+                    message=f"Party role `{role}` has no job icon or fallback image.",
+                    suggestion="Keep a job icon on every party object, even when role labels are hidden in a cluster frame.",
+                )
+            elif normalized_icon(party_icon(obj)).startswith("job:"):
+                add_issue(
+                    issues,
+                    dimension="party_identity",
+                    severity="severe",
+                    kind="party_abstract_job_icon",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=obj.get("id"),
+                    message=f"Party role `{role}` uses abstract icon token `{party_icon(obj)}` instead of a XivPlan job PNG.",
+                    suggestion="Use the built-in XivPlan official job icon path, for example `/actor/DRK.png`.",
+                )
+            elif obj.get("jobDefault") is True and normalized_icon(party_icon(obj)) != DEFAULT_PARTY_ICONS.get(role):
+                add_issue(
+                    issues,
+                    dimension="party_identity",
+                    severity="severe",
+                    kind="party_default_job_icon_mismatch",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=obj.get("id"),
+                    message=f"Party role `{role}` default icon should be `{DEFAULT_PARTY_ICONS.get(role)}`, got `{party_icon(obj)}`.",
+                    suggestion="Keep default comp icons aligned with XivPlan `public/actor/<JOB>.png` assets.",
+                )
+            if not cluster_step and not party_role_label(obj):
+                add_issue(
+                    issues,
+                    dimension="party_identity",
+                    severity="severe",
+                    kind="party_missing_role_label",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=obj.get("id"),
+                    message=f"Party role `{role}` has no readable roleLabel.",
+                    suggestion="Place `MT/ST/H1/H2/D1/D2/D3/D4` near the job icon outside cluster/stack frames.",
+                )
+            if not cluster_step and not role_label_visible(obj):
+                add_issue(
+                    issues,
+                    dimension="party_identity",
+                    severity="severe",
+                    kind="party_role_label_hidden",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=obj.get("id"),
+                    message=f"Party role `{role}` hides its role label outside a stack/cluster frame.",
+                    suggestion="Only hide role labels when icons overlap heavily; keep the job icon visible.",
+                )
+            width = obj.get("width")
+            height = obj.get("height")
+            if isinstance(width, (int, float)) and isinstance(height, (int, float)) and min(width, height) < 24:
+                add_issue(
+                    issues,
+                    dimension="party_identity",
+                    severity="severe",
+                    kind="party_icon_too_small",
+                    step=step_index,
+                    title=step.get("title"),
+                    object_id=obj.get("id"),
+                    message=f"Party role `{role}` job icon is below the 24 px readability floor.",
+                    suggestion="Use `iconScale >= 0.72` or a larger base player icon size.",
+                )
+
+
 def story_issues(scene: dict[str, Any], storyboard: dict[str, Any], issues: list[dict[str, Any]]) -> None:
     if storyboard.get("applicable"):
         for item in storyboard.get("issues", []):
@@ -401,7 +754,7 @@ def story_issues(scene: dict[str, Any], storyboard: dict[str, Any], issues: list
                     step=int(step.get("step", 0) or 0),
                     title=step.get("title"),
                     message=f"Storyboard metadata issue on field `{item.get('field', '')}`.",
-                    suggestion="Populate `purpose`, `guide_text`, `checks`, `visual_focus`, `required_roles`, `reset_state`, and `storyboard_phase`.",
+                    suggestion="Populate storyboard metadata including `teaching_question`, `purpose`, `guide_text`, `checks`, `visual_focus`, `required_roles`, `reset_state`, and `storyboard_phase`.",
                 )
         return
 
@@ -445,6 +798,8 @@ def audit_scene(path: Path) -> dict[str, Any]:
     flow_issues(flow_lines, issues)
     layer_and_aesthetic_issues(scene, issues)
     story_issues(scene, storyboard, issues)
+    enemy_identity_issues(scene, issues)
+    party_identity_issues(scene, issues)
 
     scores = {f"{dimension}_score": score_dimension(issues, dimension) for dimension in SCORE_DIMENSIONS}
     overall_score = round(sum(scores.values()) / len(scores), 2)
@@ -474,14 +829,14 @@ def render_markdown(results: list[dict[str, Any]]) -> str:
     lines = [
         "# Visual Quality Audit",
         "",
-        "| Scene | Status | Score | Context | Density | Label | Flow | Layer | Aesthetic | Story | Severe | Review |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Scene | Status | Score | Context | Density | Label | Flow | Layer | Aesthetic | Story | Enemy | Party | Severe | Review |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for result in results:
         scores = result["scores"]
         scene = scene_label(result["path"])
         lines.append(
-            "| {scene} | {status} | {overall} | {context} | {density} | {label} | {flow} | {layer} | {aesthetic} | {story} | {severe} | {review} |".format(
+            "| {scene} | {status} | {overall} | {context} | {density} | {label} | {flow} | {layer} | {aesthetic} | {story} | {enemy} | {party} | {severe} | {review} |".format(
                 scene=scene,
                 status=result["status"],
                 overall=result["overall_score"],
@@ -492,6 +847,8 @@ def render_markdown(results: list[dict[str, Any]]) -> str:
                 layer=scores["layer_score"],
                 aesthetic=scores["aesthetic_score"],
                 story=scores["step_story_score"],
+                enemy=scores["enemy_identity_score"],
+                party=scores["party_identity_score"],
                 severe=result["severe_items"],
                 review=result["review_items"],
             )

@@ -145,6 +145,8 @@ def audit_step(step: dict[str, Any], step_index: int, max_crossings_per_step: in
         for obj in objects:
             if obj is arrow or obj.get("type") not in HEAD_BLOCKING_TYPES:
                 continue
+            if obj.get("labelKind") == "party_role":
+                continue
             box = bbox_for_object(obj)
             if box and overlap_area(head_box, box) > 0:
                 issues.append(

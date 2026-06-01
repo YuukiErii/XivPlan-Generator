@@ -129,6 +129,8 @@ def audit_step(step: dict[str, Any], step_index: int) -> dict[str, Any]:
             right_type = str(right_obj.get("type", "unknown"))
             if right_type == "text" and right_i < left_i:
                 continue
+            if left_obj.get("labelKind") == "party_role" or right_obj.get("labelKind") == "party_role":
+                continue
             severity = issue_severity(left_box, right_box, right_obj)
             if severity == "none":
                 continue

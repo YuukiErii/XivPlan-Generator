@@ -18,8 +18,10 @@ Use Simplified Chinese by default. Produce practical raid-guide output that a CN
    - Name each figure by purpose, not only by order.
    - Select the arena background before drafting coordinates. Use explicit user requests first, then encounter/phase/category inference, then `default-circle`.
    - Define arena, direction markers, boss/enemy placement, player positions, AoE objects, arrows/pathing, text labels, and layer order.
-   - For complex mechanics, draft a visual storyboard before writing concrete spec objects. Cover observe, preposition or movement, resolution, and reset/next-read setup; use `assets/templates/visual-storyboard-template.md` when a reusable artifact is useful.
+   - For complex mechanics, draft a visual storyboard before writing concrete spec objects. Cover observe signal, assignment, preposition, movement, resolution, reset, and next-read setup; use `assets/templates/visual-storyboard-template.md` when a reusable artifact is useful.
+   - Each teaching storyboard step should have one `teaching_question`, plus `why_this_frame_exists` and `changed_objects_only`; split the frame when one step tries to teach multiple questions.
    - For normal multi-step scenes, add a `scene_contract` requiring full party, enemy anchor, and waymarks on every step. Use `partial_observation` only for true local observation/asset frames and explain why in `guide_text`.
+   - Every Boss/add/clone/source should have a visible target ring, readable name label, radius, and distinct identity. Use direction or index suffixes for duplicated add names.
    - For long dense mechanics, use `P1/P1_thunder_fire_swords.xivplan` as the information-density reference: many steps are acceptable when each frame remains readable and focused.
    - Treat long-flow density differently from single-step clutter: a semantic long-flow scene is acceptable only when it has 10-14 purposeful steps, observe/move/resolve/reset coverage, no severe label or arrow issues, and clear reset/next-read frames.
    - Use XivPlan scene coordinates when concrete files are needed: center is `(0,0)`, `x` positive east, `y` positive north.
@@ -110,6 +112,9 @@ Load only the reference needed for the task:
 - `references/xivplan-scene-format.md`: local XivPlan JSON schema, object fields, coordinates, and file handling.
 - `references/arena-presets.md`: arena background selection rules, aliases, and source labels.
 - `references/xivplan-style-guide.md`: KING X golden-sample visual baseline, diagram sizes, colors, layering, and step decomposition.
+- `references/enemy-identity-style-guide.md`: Boss/add/clone/source target-ring, name, radius, facing, duplicate-name, and identity audit rules.
+- `references/enemy-image-asset-workflow.md`: enemy-specific image brief, manifest, fallback icon, and `inject_enemy_assets.py` workflow.
+- `references/party-job-defaults.md`: default eight-player job comp, job icon tokens, role labels, cluster-frame omissions, and Phase R validation rules.
 - `references/visual-flow-language.md`: arrow styles, path/polyline routing, reset arrows, forbidden routes, and flow-line audit rules.
 - `references/image-asset-workflow.md`: image2 / local PNG asset generation, validation, manifest placement, and data-URL injection workflow.
 - `references/solution-optimization.md`: candidate comparison rules for safety, movement, melee uptime, memory cost, and diagram clarity.
@@ -188,8 +193,11 @@ When generating object-level instructions:
 - In concrete `.xivplan` JSON, prefer these object types:
   - `party` for players, `enemy` for boss/adds, `marker` for A/B/C/D/1/2/3/4, `tower` for towers, `stack` for stacks, `circle`/`rect`/`line`/`cone`/`donut`/`arc`/`polygon`/`starburst` for AoEs and safe zones, `image`/`icon` for embedded assets, `arrow` for movement, `tether` for links, `text` for labels.
   - For multi-step specs, use `style: "king-x-fru"`, `arena.preset`, `markerPresets`, `guide_text`, and `inherit`/`updates`/`remove` to keep repeated objects stable while showing only the change in each figure.
-- Generated solution specs should use Phase F storyboard metadata on every step: `storyboard_phase`, `purpose`, `guide_text`, `checks`, `visual_focus`, `required_roles`, and `reset_state`. Normal generated mechanics should cover observe, move, resolve, and reset phases in 6-14 steps.
-- Complex mechanics must be storyboarded first, then converted into spec objects. Do not compress observation, assignment, movement, resolution, and reset into one overloaded frame.
+- Generated solution specs should use Phase O storyboard metadata on every step: `storyboard_phase`, `teaching_question`, `why_this_frame_exists`, `changed_objects_only`, `purpose`, `guide_text`, `checks`, `visual_focus`, `required_roles`, and `reset_state`. Normal generated mechanics should cover observation, assignment, movement, resolution, reset, and next-read setup in 6-16 steps; long teaching flows may use 12-20 steps.
+- Complex mechanics must be storyboarded first, then converted into spec objects. Do not compress observation, assignment, movement, resolution, reset, and next-read setup into one overloaded frame.
+- Enemy objects must carry the Phase P identity contract: non-empty `name` / `displayName`, `enemyKind`, `radius` or `targetRing.radius`, visible target ring, readable label, and `facing` when direction matters. Duplicated add names must be made distinguishable by direction or index.
+- Enemy objects must also carry the Phase Q image contract: use a dedicated PNG data URL from `inject_enemy_assets.py` when available, otherwise keep a `generic-boss-icon` or `generic-add-icon` fallback data URL with `asset_status: "fallback"`. Do not skip enemy names or target rings because an asset is uncertain.
+- Party objects must carry the Phase R/S identity contract: one unique `role`, default or user-overridden `job`, official XivPlan `/actor/<JOB>.png` `icon`/`image`, `roleLabel`, and `roleLabelPlacement: "near-icon"`. Non-cluster frames keep role labels visible; stack/cluster frames may hide short role labels only if official job icons remain readable. Do not use `job:*` tokens, generic role icons, or text-only job abbreviation badges as the default job-icon representation.
 - Default full-scene contract for generated specs:
   - `scene_contract.require_full_party_each_step: true`
   - `scene_contract.require_enemy_each_step: true`
@@ -199,7 +207,7 @@ When generating object-level instructions:
 - Use `focusRoles` on a step when only current actors should be highlighted. Non-focused party members stay visible with `ghost: true` / lower opacity instead of disappearing.
 - Text avoidance priority is: keep labels off players, Boss/enemy anchors, towers/stacks, dangerous AoE edges, arrowheads, waymarks, and other text. Put generated step titles outside the cardinal waymark collision band; for attached mechanic labels, prefer `labelPlacement: "auto"` with `labelAvoid: ["party", "enemy", "marker", "mechanic", "arrow", "text"]`. Use `leaderLine: true` when a label is moved outside the object it explains; if it still collides, shorten the label and move the explanation into `guide_text`.
 - For movement and route lines, use `arrowStyle` instead of hand-picked colors: `movement`, `preposition`, `micro`, `knockback`, `bait`, `forbidden`, or `reset`. Use `waypoints`, `curve`, `kind: "path"`, or `kind: "polyline"` when a route should bend around mechanics or avoid crossing another arrow. Any step marked as movement/reset must include an explicit arrow or tether layer.
-- Use `P1/P1_thunder_fire_swords.xivplan` as the long-flow density target: 10-14 steps and dense Chinese labels are acceptable only when each step has a distinct teaching purpose, context remains stable, labels and arrows pass severe gates, and the final frames state reset or next-read setup.
+- Use `P1/P1_thunder_fire_swords.xivplan` as the long-flow density target: 14+ teaching steps and dense labels are acceptable only when each step has a distinct teaching question, context remains stable, labels and arrows pass severe gates, and the final frames state reset or next-read setup.
 - Keep scene-wide object IDs unique across all steps.
 - Validate generated or edited `.xivplan` JSON with:
 
@@ -234,6 +242,15 @@ When a mechanic needs a special image2/local PNG asset:
 4. Write an asset manifest and inject it into the scene spec with `scripts/inject_image_assets.py`.
 5. Build and validate the `.xivplan` normally.
 
+When a Boss/add/clone/source needs an enemy icon, prefer `references/enemy-image-asset-workflow.md` and inject through:
+
+```bash
+python xivplan-ffxiv-guide/scripts/inject_enemy_assets.py spec.json enemy-assets.json -o spec.enemy-assets.json
+python xivplan-ffxiv-guide/scripts/validate_image_assets.py enemy-assets.json
+```
+
+Fallback-only enemy manifest entries are acceptable when the appearance cannot be confirmed, but they must be explicit and traceable.
+
 ## Quality Gate
 
 Before finalizing, verify:
@@ -251,7 +268,7 @@ For generated Phase 8-style guide packages, run the automated gate:
 python xivplan-ffxiv-guide/scripts/run_quality_gate.py artifacts/phase8-e2e
 ```
 
-For a single package, use `scripts/validate_guide_package.py` on the case directory and `scripts/audit_visual_quality.py` on the `.xivplan` file. The visual quality gate fails severe issues such as missing party context, missing Boss/enemy, missing arena context, severe label collisions, severe arrow obstruction, or missing reset coverage; review items are reported for manual polish.
+For a single package, use `scripts/validate_guide_package.py` on the case directory and `scripts/audit_visual_quality.py` on the `.xivplan` file. The visual quality gate fails severe issues such as missing party context, missing Boss/enemy, missing arena context, severe label collisions, severe arrow obstruction, missing reset coverage, broken enemy identity, missing enemy icons, or broken party job/role identity; review items are reported for manual polish.
 
 ```bash
 python xivplan-ffxiv-guide/scripts/audit_visual_quality.py artifacts/generated-xivplan/my-scene.xivplan --markdown-out artifacts/visual-quality-report.md --json-out artifacts/visual-quality-results.json
@@ -259,7 +276,7 @@ python xivplan-ffxiv-guide/scripts/audit_visual_quality.py artifacts/generated-x
 
 For targeted debugging, `scripts/audit_visual_density.py`, `scripts/audit_label_layout.py`, and `scripts/audit_flow_lines.py` remain available. If a draft has severe label collisions, run `scripts/auto_place_labels.py input.xivplan -o fixed.xivplan` and re-audit.
 
-Before final handoff, fill or mentally run `assets/templates/visual-quality-checklist.md`. For second-round release checks, run `scripts/run_visual_regression.py --force`, `scripts/summarize_visual_reviews.py`, and `scripts/build_contact_sheets.py`; hand off the visual-regression report, review burndown, contact sheets, and human-review notes together. If any severe checklist item is unresolved, keep the output draft-scoped instead of presenting it as release-ready.
+Before final handoff, fill or mentally run `assets/templates/visual-quality-checklist.md`. For Phase S / release checks, run `scripts/run_visual_regression.py --force`, `scripts/summarize_visual_reviews.py`, `scripts/build_contact_sheets.py`, and `scripts/build_identity_crop_sheets.py`; hand off the visual-regression report, review burndown, contact sheets, enemy crop sheets, party identity crop sheets, and human-review notes together. Phase S expects 10/10 regression fixtures, severe visual issues at 0, visible Boss/add icons or explicit fallback icons, and the default party comp visible in exported PNGs through official XivPlan icons: MT=/actor/DRK.png, ST=/actor/PLD.png, H1=/actor/AST.png, H2=/actor/SCH.png, D1=/actor/SAM.png, D2=/actor/DRG.png, D3=/actor/BRD.png, D4=/actor/PCT.png. If any severe checklist item is unresolved, keep the output draft-scoped instead of presenting it as release-ready.
 
 ## Mechanic IR Parsing
 

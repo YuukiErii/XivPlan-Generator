@@ -65,7 +65,14 @@ When the local XivPlan app exports all steps, the title is written to `manifest.
   "id": 1,
   "type": "party",
   "name": "MT",
-  "image": "/actor/tank.png",
+  "role": "MT",
+  "job": "DRK",
+  "jobName": "Dark Knight",
+  "roleLabel": "MT",
+  "roleLabelVisible": true,
+  "roleLabelPlacement": "near-icon",
+  "icon": "/actor/DRK.png",
+  "image": "/actor/DRK.png",
   "x": 0,
   "y": 180,
   "width": 32,
@@ -75,7 +82,7 @@ When the local XivPlan app exports all steps, the title is written to `manifest.
 }
 ```
 
-Useful role images:
+Useful role or job images:
 
 - `/actor/tank.png`
 - `/actor/healer.png`
@@ -83,6 +90,9 @@ Useful role images:
 - `/actor/melee.png`
 - `/actor/ranged.png`
 - `/actor/magic_ranged.png`
+- `/actor/DRK.png`, `/actor/PLD.png`, `/actor/AST.png`, `/actor/SCH.png`, `/actor/SAM.png`, `/actor/DRG.png`, `/actor/BRD.png`, `/actor/PCT.png`
+
+Phase R/S generated scenes keep a concrete default comp: MT=DRK, ST=PLD, H1=AST, H2=SCH, D1=SAM, D2=DRG, D3=BRD, D4=PCT. Default job icons must be XivPlan built-in `/actor/<JOB>.png` assets, not `job:*` tokens or text-only badges. Non-cluster frames should have a visible `roleLabel`; cluster or stack frames may set `roleLabelVisible: false` only when the official job icon remains readable.
 
 ### Custom Images
 
@@ -111,19 +121,30 @@ The same `image` field on `party`, `marker`, and `icon` objects may also contain
 {
   "id": 10,
   "type": "enemy",
-  "name": "Boss",
-  "icon": "/actor/enemy.png",
+  "name": "Fatebreaker",
+  "displayName": "Fatebreaker",
+  "enemyKind": "boss",
+  "icon": "data:image/png;base64,...",
+  "assetStatus": "dedicated",
+  "assetFallback": "generic-boss-icon",
   "x": 0,
   "y": 0,
-  "radius": 50,
-  "rotation": 0,
+  "radius": 42,
+  "rotation": 180,
+  "facing": 180,
   "ring": "dir",
+  "targetRing": {
+    "visible": true,
+    "radius": 42,
+    "strokeWidth": 3,
+    "style": "target-ring"
+  },
   "color": "#d13438",
   "opacity": 100
 }
 ```
 
-`ring` may be `dir`, `omni`, or `none`.
+`ring` may be `dir`, `omni`, or `none`; Phase P audits also read `targetRing`. Normal steps require a non-empty name/display name, a visible target ring, a radius or `targetRing.radius`, and a matching readable text label. Phase Q also requires an enemy icon: dedicated assets should be embedded as PNG data URLs, while uncertain assets use the explicit `generic-boss-icon` or `generic-add-icon` fallback. Compact specs may use `kind: "boss"`, `kind: "add"`, `kind: "clone"`, `kind: "shadow"`, or `kind: "untargetable_source"`; the builder normalizes them into `type: "enemy"` objects.
 
 ### Common Mechanic Objects
 
@@ -343,9 +364,9 @@ Step inheritance:
 - `updates` patches inherited objects by `key`, `role`, or `name`.
 - `remove` removes inherited objects by `key`, `role`, or `name`.
 - `replace` removes the object with the same key and appends a replacement object.
-- `guide_text`, `purpose`, `checks`, `visual_focus`, `required_roles`, `reset_state`, and `storyboard_phase` are preserved on the output step for guide assembly, export manifests, and storyboard audits.
-- Phase F generated steps should use `storyboard_phase` values such as `observe`, `preposition`, `move`, `resolve`, and `reset`; the final scene should contain at least observe / move / resolve / reset coverage and normally 6-14 steps.
-- Contracted scenes are validated for complete MT/ST/H1/H2/D1/D2/D3/D4 role coverage, at least one enemy anchor, and stable cardinal waymarks on every normal step.
+- `guide_text`, `purpose`, `checks`, `visual_focus`, `required_roles`, `reset_state`, `storyboard_phase`, `teaching_question`, `why_this_frame_exists`, and `changed_objects_only` are preserved on the output step for guide assembly, export manifests, and storyboard audits.
+- Phase O generated steps should use finer `storyboard_phase` values such as `observe_signal`, `assign_roles`, `preposition`, `first_move`, `first_resolve`, `second_move`, `second_resolve`, `reset`, and `next_read_setup`; the final scene should contain observation / assignment / movement / resolve / reset / next-read coverage and normally 6-16 steps, or 12-20 for long teaching flows.
+- Contracted scenes are validated for complete MT/ST/H1/H2/D1/D2/D3/D4 role coverage, at least one named enemy anchor with visible target ring, and stable cardinal waymarks on every normal step.
 
 Label layout audit:
 

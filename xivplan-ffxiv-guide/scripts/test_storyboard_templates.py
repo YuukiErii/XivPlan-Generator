@@ -20,8 +20,31 @@ TARGETS = {
     "D3": [-125, -125],
     "D4": [125, -125],
 }
-REQUIRED_PHASES = {"observe", "move", "resolve", "reset"}
-REQUIRED_FIELDS = ("purpose", "guide_text", "checks", "visual_focus", "required_roles", "reset_state", "storyboard_phase")
+PHASE_BUCKETS = {
+    "observe_signal": "observation",
+    "assign_roles": "assignment",
+    "preposition": "assignment",
+    "first_move": "movement",
+    "second_move": "movement",
+    "between_resolves": "movement",
+    "first_resolve": "resolve",
+    "second_resolve": "resolve",
+    "reset": "reset",
+    "next_read_setup": "next_read",
+}
+REQUIRED_PHASES = {"observation", "assignment", "movement", "resolve", "reset", "next_read"}
+REQUIRED_FIELDS = (
+    "purpose",
+    "guide_text",
+    "checks",
+    "visual_focus",
+    "required_roles",
+    "reset_state",
+    "storyboard_phase",
+    "teaching_question",
+    "why_this_frame_exists",
+    "changed_objects_only",
+)
 
 
 def bundle_for(categories: list[str]) -> dict:
@@ -48,8 +71,10 @@ def bundle_for(categories: list[str]) -> dict:
 def assert_storyboard(categories: list[str]) -> None:
     spec = build_spec(bundle_for(categories), None, "safe-prog")
     steps = spec["steps"]
-    assert 6 <= len(steps) <= 14, (categories, len(steps))
-    phases = {step["storyboard_phase"] for step in steps}
+    assert 6 <= len(steps) <= 16, (categories, len(steps))
+    phases = {PHASE_BUCKETS.get(step["storyboard_phase"], step["storyboard_phase"]) for step in steps}
+    if "next_read" in phases:
+        phases.add("reset")
     assert REQUIRED_PHASES <= phases, (categories, phases)
     for index, step in enumerate(steps, start=1):
         for field in REQUIRED_FIELDS:
@@ -78,7 +103,7 @@ def main() -> int:
     ]
     for categories in cases:
         assert_storyboard(categories)
-    print(f"OK: Phase F storyboard templates covered {len(cases)} category sets")
+    print(f"OK: Phase O storyboard templates covered {len(cases)} category sets")
     return 0
 
 

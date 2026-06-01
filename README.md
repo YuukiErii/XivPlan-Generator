@@ -13,7 +13,7 @@ Codex skill and local tooling for turning FFXIV mechanic descriptions into XivPl
 - `xivplan-ffxiv-guide/assets/optimization/`: multi-candidate fixtures for strategy scoring.
 - `xivplan-ffxiv-guide/assets/parser-fixtures/`: natural-language mechanic notes for parser regression tests.
 - `xivplan-ffxiv-guide/assets/knowledge-fixtures/`: similar-mechanic retrieval fixtures.
-- `xivplan-ffxiv-guide/assets/visual-regression-fixtures/`: Phase I golden visual regression inputs.
+- `xivplan-ffxiv-guide/assets/visual-regression-fixtures/`: Phase I golden and Phase S identity visual regression inputs.
 - `artifacts/generated-xivplan/`: lightweight generated `.xivplan` examples for smoke testing.
 - `artifacts/guide-packages/`: generated Markdown / DOCX / PDF guide package smoke outputs.
 - `artifacts/solution-scores/`: lightweight JSON and Markdown strategy-score reports.
@@ -22,7 +22,7 @@ Codex skill and local tooling for turning FFXIV mechanic descriptions into XivPl
 - `artifacts/full-guide-pipeline/`: one-command guide package outputs.
 - `artifacts/ultimate-yokai-star-dance/`: versioned Ultimate Yokai Star Dance progression workspace.
 - `docs/roadmap.md`: full implementation roadmap.
-- `docs/xivplan-skill-visual-upgrade-plan.md`: Phase A-N visual-upgrade plan and second-round checklist.
+- `docs/xivplan-skill-visual-upgrade-plan.md`: Phase A-S visual-upgrade plan and third-round acceptance checklist.
 - `docs/visual-upgrade-work-record.md`: cumulative visual-upgrade work log and handoff notes.
 - `docs/project-requirements.md`: original requirements snapshot.
 
@@ -101,6 +101,15 @@ Validate and inject image2/local PNG assets:
 & $py xivplan-ffxiv-guide\scripts\validate_xivplan_scene.py artifacts\generated-xivplan\image-asset-injected.xivplan
 ```
 
+Validate and inject enemy icon manifests:
+
+```powershell
+& $py xivplan-ffxiv-guide\scripts\validate_image_assets.py artifacts\phase-q\enemy-assets.json --json-out artifacts\phase-q\enemy-asset-validation.json
+& $py xivplan-ffxiv-guide\scripts\inject_enemy_assets.py artifacts\phase-q\spec.json artifacts\phase-q\enemy-assets.json -o artifacts\phase-q\spec.enemy-assets.json
+& $py xivplan-ffxiv-guide\scripts\build_xivplan_scene.py artifacts\phase-q\spec.enemy-assets.json -o artifacts\phase-q\scene.xivplan
+& $py xivplan-ffxiv-guide\scripts\validate_xivplan_scene.py artifacts\phase-q\scene.xivplan
+```
+
 Run Phase 8 end-to-end fixtures:
 
 ```powershell
@@ -117,13 +126,34 @@ Run the Phase 9 quality gate over those generated packages:
 
 This checks `.xivplan` structure, embedded image data URLs, step titles and guide text, object bounds, player overlap, manifest / figure alignment, PNG dimensions, Markdown / DOCX / PDF outputs, role coverage, `unknowns`, and visual density. It writes `artifacts\quality-gates\phase9-quality-report.md` and `artifacts\quality-gates\phase9-quality-results.json`.
 
-Run the Phase I visual regression suite:
+Run the visual regression suite:
 
 ```powershell
 & $py xivplan-ffxiv-guide\scripts\run_visual_regression.py --force
 ```
 
-This runs the golden visual fixtures through the full guide pipeline, writes top-level case surfaces for quality gating, and produces `artifacts\phase-i-visual-regression\visual-regression-report.md`. The long FRU-style fixture guards against density regressions by requiring at least 10 steps and 500 objects.
+This runs the golden visual fixtures plus Phase O/P/Q/R/S third-round checks, writes top-level case surfaces for quality gating, and produces `artifacts\phase-i-visual-regression\visual-regression-report.md`. The suite now expects 10/10 fixtures: the long FRU-style fixtures guard 14+ teaching steps and 500+ objects; enemy fixtures check target rings, readable names, duplicate add disambiguation, and fallback/dedicated enemy icons; party fixtures check the default comp through official XivPlan icons MT=/actor/DRK.png, ST=/actor/PLD.png, H1=/actor/AST.png, H2=/actor/SCH.png, D1=/actor/SAM.png, D2=/actor/DRG.png, D3=/actor/BRD.png, D4=/actor/PCT.png plus stack-frame role-label omission.
+
+Run the Phase S third-round release gate:
+
+```powershell
+& $py -m compileall -q xivplan-ffxiv-guide\scripts
+& $py xivplan-ffxiv-guide\scripts\test_visual_quality_audit.py
+& $py xivplan-ffxiv-guide\scripts\test_storyboard_templates.py
+& $py xivplan-ffxiv-guide\scripts\run_visual_regression.py --force
+& $py xivplan-ffxiv-guide\scripts\summarize_visual_reviews.py `
+  artifacts\phase-i-visual-regression\visual-regression-results.json `
+  --json-out artifacts\phase-s-release-gate\review-burndown.json `
+  --markdown-out artifacts\phase-s-release-gate\review-burndown.md
+& $py xivplan-ffxiv-guide\scripts\build_contact_sheets.py `
+  --input-dir artifacts\phase-i-visual-regression `
+  --output-dir artifacts\phase-s-release-gate\contact-sheets
+& $py xivplan-ffxiv-guide\scripts\build_identity_crop_sheets.py `
+  --input-dir artifacts\phase-i-visual-regression `
+  --output-dir artifacts\phase-s-release-gate\identity-crop-sheets
+```
+
+The Phase S gate expects severe visual issues to remain 0, all 10 regression fixtures to pass the quality gate, every normal Boss/add to have a name/target ring/icon or fallback icon, every normal party frame to preserve unique role plus official job identity, and the crop sheets to show the default XivPlan job icons and stack-frame icon readability in exported PNGs.
 
 Run the second-round visual release gate:
 
@@ -141,7 +171,7 @@ Run the second-round visual release gate:
   --output-dir artifacts\phase-n-release-gate\contact-sheets
 ```
 
-The release gate expects no severe visual issues, no label/title obstruction, no severe movement-arrow issues, five visual-regression fixtures passing the quality gate, regenerated contact sheets, and a review burndown. Semantic long-flow scenes use the Phase L density policy: `phase-l-semantic-long-flow` fixtures are accepted when they stay in the 10-14 step golden-sample band, retain observe/move/resolve/reset coverage, and keep severe issues at 0.
+The release gate expects no severe visual issues, no label/title obstruction, no severe movement-arrow issues, all current visual-regression fixtures passing the quality gate, regenerated contact sheets, and a review burndown. Semantic long-flow scenes use the Phase L/O density policy: `phase-l-semantic-long-flow` and `phase-o-teaching-long-flow` fixtures are accepted when they stay in the golden-sample density band, retain observe/move/resolve/reset coverage, and keep severe issues at 0.
 
 For full pipeline outputs, the quality gate is run automatically. To inspect a generated case manually, use the per-version `quality-report.md` plus `scripts\validate_guide_package.py` and `scripts\audit_visual_density.py`.
 

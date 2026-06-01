@@ -11,11 +11,32 @@ Run this before final handoff, alongside `scripts/audit_visual_quality.py`.
 
 ## Storyboard
 
-- [ ] The scene covers observation.
+- [ ] The scene covers observation / signal reading.
+- [ ] The scene covers assignment.
 - [ ] The scene covers movement or prepositioning.
 - [ ] The scene covers resolution / damage / responsibility check.
 - [ ] The scene covers reset or next-read setup.
-- [ ] Each step explains what changed from the previous step.
+- [ ] Each step has exactly one `teaching_question`.
+- [ ] Each step explains why the frame exists and what changed from the previous step.
+
+## Enemy Identity
+
+- [ ] Every Boss/add/clone/source has a non-empty name or display name.
+- [ ] Every enemy has a visible target ring and radius / target-ring radius.
+- [ ] Every enemy has a dedicated icon or an explicit fallback icon.
+- [ ] Enemy asset manifest entries match the generated `.xivplan` data URLs or clearly record fallback status.
+- [ ] Same-name adds are disambiguated by direction or index.
+- [ ] Enemy labels do not have severe obstruction from text, arrows, players, or high-opacity mechanics.
+- [ ] Facing is visible or encoded when cleaves, body checks, or relative directions matter.
+
+## Party Identity
+
+- [ ] Every normal non-cluster frame has eight unique roles: MT, ST, H1, H2, D1, D2, D3, D4.
+- [ ] Every party object has an official XivPlan `/actor/<JOB>.png` job icon plus a nearby role label.
+- [ ] Default jobs match the Phase R/S comp, with MT=/actor/DRK.png, ST=/actor/PLD.png, H1=/actor/AST.png, H2=/actor/SCH.png, D1=/actor/SAM.png, D2=/actor/DRG.png, D3=/actor/BRD.png, D4=/actor/PCT.png, or are intentionally overridden by the user/static.
+- [ ] No default party icon is an abstract `job:*` token, generic role icon, or text-only abbreviation badge.
+- [ ] Cluster/stack frames keep job icons readable when role labels are hidden.
+- [ ] Job icons remain readable in exported PNG contact sheets.
 
 ## Labels
 

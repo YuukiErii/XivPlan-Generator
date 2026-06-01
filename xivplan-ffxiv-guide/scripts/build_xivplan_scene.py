@@ -153,6 +153,30 @@ ROLE_IMAGES = {
 
 PARTY_ROLES = ("MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4")
 ROLE_DIR = {"MT": "N", "ST": "S", "H1": "W", "H2": "E", "D1": "NW", "D2": "NE", "D3": "SW", "D4": "SE"}
+DEFAULT_PARTY_JOBS = {
+    "MT": {"job": "DRK", "jobName": "Dark Knight", "icon": "/actor/DRK.png"},
+    "ST": {"job": "PLD", "jobName": "Paladin", "icon": "/actor/PLD.png"},
+    "H1": {"job": "AST", "jobName": "Astrologian", "icon": "/actor/AST.png"},
+    "H2": {"job": "SCH", "jobName": "Scholar", "icon": "/actor/SCH.png"},
+    "D1": {"job": "SAM", "jobName": "Samurai", "icon": "/actor/SAM.png"},
+    "D2": {"job": "DRG", "jobName": "Dragoon", "icon": "/actor/DRG.png"},
+    "D3": {"job": "BRD", "jobName": "Bard", "icon": "/actor/BRD.png"},
+    "D4": {"job": "PCT", "jobName": "Pictomancer", "icon": "/actor/PCT.png"},
+}
+ENEMY_SPEC_KINDS = {"boss", "enemy", "add", "clone", "shadow", "untargetable_source"}
+ENEMY_KIND_DEFAULT_RADIUS = {
+    "boss": 42,
+    "enemy": 42,
+    "add": 26,
+    "clone": 28,
+    "shadow": 28,
+    "untargetable_source": 32,
+}
+FALLBACK_ENEMY_ICON_DATA_URLS = {
+    "boss": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAD/klEQVR4nO1dsZLTMBCVPFRHcfX1VPAVNIGKVv9Avif3D2pTQRq+4q66npqCa82YwRnjkWTZertaOftmbi6FI63e211pFUUxRqFQKBQKhUKhUCgUCoVCoVAobgHWNIT+eOxzn7WnUxNjs3shvFVB7J5Jb0EMeyukSxWjMzdMvoT+bUsDd99+/Mx91n/++NBCNFjJ5LsVhKME4RbBtk68f3y+d1/f/2pViDdGCPkO6O25/aTEGOzlEKFrmXz/+Hw//b8WS/1yTNDkEZAahGPy+hRGG2LRQB0JXavk+5nXb42CHHsoI6G7Vc+XIkLXIvk+4u2lUVBDBNZKWKrn17QTLkDMS1ohf8ledBR0rZHvF9IMIg1xikCeglrzfG77YQJwFC0+07uRUUA9XogAe8n7NVIRpMILGYIm30+9+tDH277Ya0W7ZpMuy4ZAtVxaJbNtxhXjkCA9+tyHOyMcXRO5/+XplfN9nOMnWQWh0o9/eXotJRHRBuWcJjYF+RRpkzyfm6qG9tw7eSnJSpx8fYz8FPGZQiBEQE7G1U9FZGMN+VuerwRxAviQ928lM/A+jomZNwV9OeEGdAikDYQnU7U74ny8Y09B1/x/PtJNbBcQSZTp6N/4ty5HMaugUQRkNEgHyPGgc0BR6X+YpQm0187by62sA0BuccDrgNE4jh1JbqD3lkhXQRTG1gTVeEgr4T1EgyN2JJY6oNVocAx2s+0FtRQNjtFh2Cth6dHgmO2rshsajIaLffhvaTi8Ri5FF5a5tRyj6l6QExINNe0Qsx3th2hg3gvaSvwut6PdQEaI7IKKlYJ8NMQIcAVSBOpd0D0J4JeWp2tFWHheynK4SIBQ3tvy9dBsLx1IXRIi9QzA+9Fng8R+KG/my9LSlCQs9ZCmoLVR4GPpYCCtlLhEG2vTECS60QKwfJ/2gvtMGI3mjyb6XC+ckpl5NjS3/5pLUjIBhnAlOx194c/nFOkHNgfEwpDK6BGD545/hhCxcSDSL2wS3mKML1iLz0kvEWGLHai5j3wOQKcilyCa4jMH6iiGLkOpU5HL9HJUSqJMPde2DAFyvrK0xksdU3qZ9sNBPvte0JZIcIXevOX91GmHXICUl+QOzgFXN2vaStlHUXSSVrHR85ILRxgd4bJyMSVFjhxSVfzk2whBESICOMaKNCpEQIBm7wsKGi+A/GR/M/uo97pYJuHkIM7HO9Ij7iks9M2x0ch/a+LUw87hwVN+wz46yc7s4ro1kVeA7+b33xeZHu8q3Bs6CmE/mbdmjwKMA5N8c24/sXP3l3f3le9urn2Bd/VTEbby7eXV+zfC0OvvB8hBr7+gIQv9Dn9DRqFQKBQKhUKhUCgUCoVCoVAYHvwBvlhymqjhOA0AAAAASUVORK5CYII=",
+    "add": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAACbUlEQVR4nO2cMU7DQBBFbYueJjUNHQ2tqxxihZC4BX3q9NwCKUJzCKq0NO5oqNPkBEZ0UeQgJ5md+bP7X5kCr/+bmVgKnqYhhBBCCCGEEEIIIYQQQgghpGRaz4s/vI9jA8Lw0rpk0dYcOoIMswtFCN5DRNcYEDF8q3NnNRw1eMtuaD3DHz9WPw0I7dP6zkOCyQiaCl4rfHlbLdDO5N4Bp6pf+wblIPz0ut5ZdIR2F7SRw1/2j9+Hny3659toEkxGENKsRzt3F/GpR07Mfa3vA8v7zN4BOee+hYTcXeDyFHQpMjNcq06AEjDVlprVI2eGqilh6j60xlCoDiiREALkwmqOMIrgBciVIaJLgBYgSuEhS4AWUAOwAkS5alG7AFKAZAoLUQKcAMkcEpoEKAFiFA6SBCgBNQIjQIyrEqULIASIUxgIEtwFiHMI3tfvar55hHO4d0Dt3HhdeLfd7Jf9Zq/5N49/pD8X7R/1YTsAZfQgnMtFgPb/8EQ+F78Dav0O+Ju3cmXLH8/8z+3XfbSudO2ABDKKPM/hPoKSswTv67sL8AzBO3wYAR5hIIQPJaBWoAQko6pEqX44ARbhIIUPKSBnSGjhwwrIERZi+NACagFaQFKqWtTqhxegER5y+CEEXBMievhhBJSMmoCpd2fnvP6fq5o1q3/qPrTeFQ7VAWlmqBFGj5kAzS6YE67VygJIAVabptKJkK0qP9yqgtxVFPnc3JZS2raUOS8ya7/AnTI/8eQcsdyY5bwxizvjSt0ZV8ryviHzk11X8lbaCOfm5txaNueij6YhaJcSQgghhBBCCCGEEEIIIYSQ5n9+AR9+LrHgK8bcAAAAAElFTkSuQmCC",
+    "generic": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAACeElEQVR4nO3csaoaQRTG8RnjJcTumiKFkEZbn8DnWbCwtbD2AXyAaXwDsfMNLHwCYatgFYIgSRBCkhuWEAjBe3M32TNnzuz/19gI7p5vz8wu64xzAAAAAAAAAAAAQM68M6Qsy4fnfnc0Gpk4N59Lwa0G4nMvfOpB+DYUPeUwOq6lxdf83d+pXgFlzQIURfHuud8NIby10A0+9eIXNYr+v2FohOBTLH7RQNH/NYzYIfiUil8IFr5OEDFD6LSx+H/7vZiTc6eNxU8phCit9tjJFEqFrzMkSQ9H4h1gofhPHY90J4gGYKX4miEk8STcZmIBWLv6tbpAJACrxdcIIdoQZKX4sY+XOUBZ4/e4t9q0iatpPB6/nE6n991u163X68t+v786peeDJp8Nus6I2Wx2v1wuP1yv14fVavUmVgCmhiDJ++XNZvPxdDp9vVwu33u9nqn3GKpzQFOT2W63+1x9DofDu+Px+MVlMhmbm4Qnk8mr7Xb7yWXCXACDweDucDhkMf5XfOp3P3/q9/svzufzNxeZ1N2QuQ5YLBavXUbMBTCfz9+7jJgLIDcEoIwAlBGAMgJQRgDKCEAZAeQSwK3H8rp/EU+V5EsZOkAZAeQegPVhKAgffye3RW8xNHmeDEHKGg8gp7uhIPyXlAodoCxaANa6IEQ6XpEAHmtTKyGEiKtlxDrAaggh8lIl5gBlogFY64KgsFBPvAOshBCUVkn6Nq8TTmHFfLQ54KmTCUrdoF386JNwSiGEBIpfYbeUtu2W8gv7Bf1kaqVJwY5ZaQSR0zuMJJ6ER0pF0C5+Rf0AbmHf0ESU7JybljLDvaMBAAAAAAAAAADgZP0Alow3hY1ayVoAAAAASUVORK5CYII=",
+}
 
 DEFAULT_SCENE_CONTRACT = {
     "require_full_party_each_step": False,
@@ -289,16 +313,33 @@ def add_common(obj: dict[str, Any], spec_obj: dict[str, Any], obj_id: int) -> di
 
 def make_boss(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
     x, y = pos_from_obj(obj)
+    enemy_kind = enemy_kind_from_spec(obj)
+    radius = int(obj.get("radius", default_enemy_radius(enemy_kind)))
+    display_name = str(obj.get("displayName") or obj.get("name") or default_enemy_name(enemy_kind))
+    ring = normalize_enemy_ring(obj, radius)
+    rotation = int(obj.get("facing", obj.get("rotation", 180)))
+    icon = str(obj.get("icon") or obj.get("image") or fallback_enemy_icon(enemy_kind))
     return add_common(
         {
             "type": "enemy",
-            "name": obj.get("name", "Boss"),
-            "icon": obj.get("icon", "/actor/enemy.png"),
+            "name": display_name,
+            "displayName": display_name,
+            "enemyKind": enemy_kind,
+            "icon": icon,
+            "image": obj.get("image", icon),
+            "assetId": obj.get("asset_id", obj.get("assetId")),
+            "assetStatus": obj.get("asset_status", obj.get("assetStatus", "fallback")),
+            "assetSource": obj.get("asset_source", obj.get("assetSource", "fallback")),
+            "assetFallback": obj.get("asset_fallback", obj.get("assetFallback")),
+            "iconWidth": int(obj.get("iconWidth", obj.get("icon_width", min(72, max(42, radius * 2))))),
+            "iconHeight": int(obj.get("iconHeight", obj.get("icon_height", min(72, max(42, radius * 2))))),
             "x": x,
             "y": y,
-            "radius": int(obj.get("radius", style_value("boss_radius", 52))),
-            "rotation": int(obj.get("rotation", 180)),
-            "ring": obj.get("ring", "dir"),
+            "radius": radius,
+            "rotation": rotation,
+            "facing": rotation,
+            "ring": "dir" if ring.get("visible", True) else "none",
+            "targetRing": ring,
             "color": obj.get("color", "#d13438"),
             "opacity": 100,
         },
@@ -307,24 +348,213 @@ def make_boss(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
     )
 
 
+def is_enemy_spec(obj: dict[str, Any]) -> bool:
+    obj_type = obj.get("type")
+    kind = obj.get("kind")
+    return obj_type == "enemy" or (isinstance(kind, str) and kind in ENEMY_SPEC_KINDS)
+
+
+def enemy_kind_from_spec(obj: dict[str, Any]) -> str:
+    explicit = obj.get("enemyKind") or obj.get("enemy_kind")
+    if isinstance(explicit, str) and explicit:
+        return explicit
+    if obj.get("type") == "enemy":
+        kind = obj.get("kind")
+        return str(kind) if isinstance(kind, str) and kind else "boss"
+    kind = obj.get("kind")
+    if isinstance(kind, str) and kind in ENEMY_SPEC_KINDS:
+        return "boss" if kind == "boss" else kind
+    return "boss"
+
+
+def default_enemy_name(enemy_kind: str) -> str:
+    if enemy_kind == "add":
+        return "Add"
+    if enemy_kind in {"clone", "shadow"}:
+        return "Clone"
+    if enemy_kind == "untargetable_source":
+        return "Source"
+    return "Boss"
+
+
+def default_enemy_radius(enemy_kind: str) -> int:
+    if enemy_kind in {"boss", "enemy"}:
+        return int(style_value("boss_radius", ENEMY_KIND_DEFAULT_RADIUS["boss"]))
+    return ENEMY_KIND_DEFAULT_RADIUS.get(enemy_kind, 32)
+
+
+def fallback_enemy_icon(enemy_kind: str) -> str:
+    if enemy_kind in {"boss", "enemy", "clone", "shadow", "untargetable_source"}:
+        return FALLBACK_ENEMY_ICON_DATA_URLS["boss"]
+    if enemy_kind == "add":
+        return FALLBACK_ENEMY_ICON_DATA_URLS["add"]
+    return FALLBACK_ENEMY_ICON_DATA_URLS["generic"]
+
+
+def normalize_enemy_ring(obj: dict[str, Any], radius: int) -> dict[str, Any]:
+    raw = obj.get("ring")
+    if isinstance(raw, dict):
+        ring = copy.deepcopy(raw)
+        ring.setdefault("visible", True)
+        ring.setdefault("radius", radius)
+        ring.setdefault("strokeWidth", 3)
+        ring.setdefault("style", "target-ring")
+        return ring
+    if raw in {False, "none", "hidden"}:
+        return {"visible": False, "radius": radius, "strokeWidth": 0, "style": "none"}
+    return {"visible": True, "radius": int(obj.get("ringRadius", radius)), "strokeWidth": int(obj.get("ringStrokeWidth", 3)), "style": "target-ring"}
+
+
+def enemy_suffix_from_position(obj: dict[str, Any], duplicate_index: int) -> str:
+    pos = obj.get("pos")
+    if isinstance(pos, str) and pos.upper() in DIRECTION_DEGREES:
+        return pos.upper()
+    if isinstance(pos, dict) and isinstance(pos.get("dir"), str) and pos["dir"].upper() in DIRECTION_DEGREES:
+        return pos["dir"].upper()
+    try:
+        x, y = pos_from_obj(obj)
+    except BuildError:
+        return str(duplicate_index)
+    if abs(x) > abs(y) and abs(x) > 16:
+        return "E" if x > 0 else "W"
+    if abs(y) > 16:
+        return "N" if y > 0 else "S"
+    return str(duplicate_index)
+
+
+def normalize_enemy_spec(obj: dict[str, Any], duplicate_index: int | None = None) -> dict[str, Any]:
+    normalized = copy.deepcopy(obj)
+    enemy_kind = enemy_kind_from_spec(normalized)
+    normalized["enemyKind"] = enemy_kind
+    display_name = str(normalized.get("displayName") or normalized.get("name") or default_enemy_name(enemy_kind)).strip()
+    if not display_name:
+        display_name = default_enemy_name(enemy_kind)
+    if duplicate_index is not None:
+        suffix = enemy_suffix_from_position(normalized, duplicate_index)
+        if not display_name.endswith(f" {suffix}"):
+            display_name = f"{display_name} {suffix}"
+    normalized["name"] = display_name
+    normalized["displayName"] = display_name
+    radius = int(normalized.get("radius", default_enemy_radius(enemy_kind)))
+    normalized["radius"] = radius
+    normalized["ring"] = normalize_enemy_ring(normalized, radius)
+    normalized.setdefault("icon", fallback_enemy_icon(enemy_kind))
+    normalized.setdefault("asset_status", "fallback")
+    normalized.setdefault("asset_fallback", "generic-add-icon" if enemy_kind == "add" else "generic-boss-icon")
+    normalized.setdefault("label", display_name)
+    normalized.setdefault("labelPlacement", "auto")
+    normalized.setdefault("labelDistance", radius + 96)
+    normalized.setdefault("leaderLine", True)
+    normalized.setdefault("labelAvoid", ["party", "enemy", "mechanic", "arrow", "text"])
+    if "facing" in normalized and "rotation" not in normalized:
+        normalized["rotation"] = normalized["facing"]
+    return normalized
+
+
+def normalize_enemy_specs(objects_spec: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    names: dict[str, int] = {}
+    for spec_obj in objects_spec:
+        if not is_enemy_spec(spec_obj):
+            continue
+        enemy_kind = enemy_kind_from_spec(spec_obj)
+        name = str(spec_obj.get("displayName") or spec_obj.get("name") or default_enemy_name(enemy_kind)).strip()
+        names[name] = names.get(name, 0) + 1
+
+    occurrences: dict[str, int] = {}
+    normalized: list[dict[str, Any]] = []
+    for spec_obj in objects_spec:
+        if not is_enemy_spec(spec_obj):
+            normalized.append(spec_obj)
+            continue
+        enemy_kind = enemy_kind_from_spec(spec_obj)
+        base_name = str(spec_obj.get("displayName") or spec_obj.get("name") or default_enemy_name(enemy_kind)).strip()
+        occurrences[base_name] = occurrences.get(base_name, 0) + 1
+        duplicate_index = occurrences[base_name] if names.get(base_name, 0) > 1 else None
+        normalized.append(normalize_enemy_spec(spec_obj, duplicate_index=duplicate_index))
+    return normalized
+
+
 def make_party(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
-    role = obj.get("role") or obj.get("name") or "Player"
+    role = str(obj.get("role") or obj.get("name") or "Player").upper()
+    defaults = DEFAULT_PARTY_JOBS.get(role, {})
+    job = str(obj.get("job") or defaults.get("job") or role)
+    job_name = str(obj.get("jobName") or obj.get("job_name") or defaults.get("jobName") or job)
+    icon = str(obj.get("icon") or defaults.get("icon") or ROLE_IMAGES.get(role, "/actor/any.png"))
+    role_label = str(obj.get("roleLabel") or obj.get("role_label") or role)
+    icon_scale = float(obj.get("iconScale", obj.get("icon_scale", 1.0)) or 1.0)
+    icon_scale = max(0.72, min(1.25, icon_scale))
+    base_size = int(obj.get("width", style_value("player_size", DEFAULT_PLAYER_SIZE)))
+    width = int(max(24, round(base_size * icon_scale)))
+    height = int(max(24, round(int(obj.get("height", base_size)) * icon_scale)))
     x, y = pos_from_obj(obj)
     return add_common(
         {
             "type": "party",
             "name": role,
-            "image": obj.get("image", ROLE_IMAGES.get(str(role).upper(), "/actor/any.png")),
+            "role": role,
+            "job": job,
+            "jobName": job_name,
+            "jobDefault": "job" not in obj and role in DEFAULT_PARTY_JOBS,
+            "roleLabel": role_label,
+            "roleLabelPlacement": obj.get("roleLabelPlacement", obj.get("role_label_placement", "near-icon")),
+            "roleLabelVisible": obj.get("roleLabelVisible", obj.get("role_label_visible", True)) is not False,
+            "icon": icon,
+            "image": obj.get("image", icon),
+            "iconScale": icon_scale,
             "x": x,
             "y": y,
-            "width": int(obj.get("width", style_value("player_size", DEFAULT_PLAYER_SIZE))),
-            "height": int(obj.get("height", style_value("player_size", DEFAULT_PLAYER_SIZE))),
+            "width": width,
+            "height": height,
             "rotation": int(obj.get("rotation", 0)),
             "opacity": 100,
         },
         obj,
         obj_id,
     )
+
+
+def party_role_label_position(spec_obj: dict[str, Any]) -> tuple[float, float]:
+    x, y = pos_from_obj(spec_obj)
+    role = str(spec_obj.get("role") or spec_obj.get("key") or "").upper()
+    role_offsets = {
+        "MT": (26.0, 0.0),
+        "ST": (-26.0, 0.0),
+        "H1": (0.0, -26.0),
+        "H2": (0.0, 26.0),
+        "D1": (24.0, -18.0),
+        "D2": (-24.0, -18.0),
+        "D3": (24.0, 18.0),
+        "D4": (-24.0, 18.0),
+    }
+    if role in role_offsets:
+        candidate = (x + role_offsets[role][0], y + role_offsets[role][1])
+    else:
+        radius = math.hypot(x, y)
+        inward = (0.0, 1.0) if radius <= 24 else (-x / radius, -y / radius)
+        distance = float(spec_obj.get("roleLabelDistance", spec_obj.get("role_label_distance", 26)))
+        candidate = (x + inward[0] * distance, y + inward[1] * distance)
+    offset = spec_obj.get("roleLabelOffset", spec_obj.get("role_label_offset"))
+    return with_offset(candidate, offset)
+
+
+def build_party_role_label_objects(spec_obj: dict[str, Any], next_id: int, anchor_id: int) -> tuple[list[dict[str, Any]], int]:
+    visible = spec_obj.get("roleLabelVisible", spec_obj.get("role_label_visible", True)) is not False
+    role_label = spec_obj.get("roleLabel", spec_obj.get("role_label", spec_obj.get("role")))
+    if not visible or not role_label:
+        return [], next_id
+    label_pos = party_role_label_position(spec_obj)
+    label_obj = {
+        "kind": "text",
+        "text": str(role_label),
+        "pos": [round(label_pos[0], 3), round(label_pos[1], 3)],
+        "fontSize": int(spec_obj.get("roleLabelFontSize", spec_obj.get("role_label_font_size", 11))),
+        "labelKind": "party_role",
+        "roleLabelAnchorId": anchor_id,
+        "labelAnchorId": anchor_id,
+        "labelAnchor": object_key(spec_obj),
+        "leaderLine": False,
+    }
+    return [make_text(label_obj, next_id)], next_id + 1
 
 
 def make_image(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
@@ -467,6 +697,10 @@ def make_text(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
         result["labelAnchor"] = obj["labelAnchor"]
     if "labelAnchorId" in obj:
         result["labelAnchorId"] = obj["labelAnchorId"]
+    if "labelKind" in obj:
+        result["labelKind"] = obj["labelKind"]
+    if "roleLabelAnchorId" in obj:
+        result["roleLabelAnchorId"] = obj["roleLabelAnchorId"]
     if "leaderLine" in obj:
         result["leaderLine"] = bool(obj["leaderLine"])
     if "labelAvoid" in obj:
@@ -795,6 +1029,15 @@ def label_clearance(spec_obj: dict[str, Any]) -> float:
 
 def auto_label_position(anchor: tuple[float, float], spec_obj: dict[str, Any]) -> tuple[float, float]:
     x, y = anchor
+    if is_enemy_spec(spec_obj):
+        offset = spec_obj.get("labelOffset")
+        if math.hypot(x, y) <= 24:
+            return with_offset((238.0, 70.0), offset)
+        if abs(x) >= abs(y):
+            corner_y = 214.0 if y >= 0 else -214.0
+            return with_offset((226.0 if x >= 0 else -226.0, corner_y), offset)
+        corner_x = 214.0 if x >= 0 else -214.0
+        return with_offset((corner_x, 226.0 if y >= 0 else -226.0), offset)
     radius = max(1.0, math.hypot(x, y))
     outward = (x / radius, y / radius) if radius > 24 else (0.0, 1.0)
     distance = float(spec_obj.get("labelDistance", label_clearance(spec_obj)))
@@ -864,6 +1107,7 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
     objects_spec = step.get("objects", [])
     if not isinstance(objects_spec, list):
         raise BuildError("step.objects must be a list")
+    objects_spec = normalize_enemy_specs(objects_spec)
 
     objects: list[dict[str, Any]] = []
     refs: dict[str, int] = {}
@@ -877,7 +1121,7 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
             deferred_tethers.append(spec_obj)
             continue
 
-        if kind == "boss":
+        if spec_obj.get("type") == "enemy" or kind in ENEMY_SPEC_KINDS:
             built = make_boss(spec_obj, next_id)
         elif kind == "party":
             built = make_party(spec_obj, next_id)
@@ -936,11 +1180,17 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
         ref = object_key(spec_obj)
         if ref:
             refs[ref] = next_id
+        attached_objects: list[dict[str, Any]] = []
+        attached_next_id = next_id + 1
+        if kind == "party":
+            party_labels, attached_next_id = build_party_role_label_objects(spec_obj, attached_next_id, next_id)
+            attached_objects.extend(party_labels)
         if kind not in {"text", "label"}:
-            label_objects, next_id = build_attached_label_objects(spec_obj, next_id + 1, next_id)
-            objects.extend(label_objects)
-            if label_objects:
-                next_id -= 1
+            label_objects, attached_next_id = build_attached_label_objects(spec_obj, attached_next_id, next_id)
+            attached_objects.extend(label_objects)
+        objects.extend(attached_objects)
+        if attached_objects:
+            next_id = attached_next_id - 1
         next_id += 1
 
     for spec_obj in deferred_tethers:
@@ -991,8 +1241,13 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
         "required_roles",
         "reset_state",
         "storyboard_phase",
+        "teaching_question",
+        "why_this_frame_exists",
+        "changed_objects_only",
         "movement_required",
         "flow_kind",
+        "party_cluster",
+        "stack_group",
         "partial_observation",
         "partial",
         "local_view",
@@ -1037,7 +1292,7 @@ def default_party_objects(distance: int = 108) -> list[dict[str, Any]]:
 
 
 def default_enemy_object() -> dict[str, Any]:
-    return {"kind": "boss", "key": "boss", "name": "Boss", "pos": "center"}
+    return {"kind": "boss", "key": "boss", "name": "Boss", "displayName": "Boss", "pos": "center", "radius": 42, "labelPlacement": "auto"}
 
 
 def default_waymark_objects(root_marker_presets: list[str]) -> list[dict[str, Any]]:
@@ -1074,7 +1329,7 @@ def marker_name_from_spec(spec_obj: dict[str, Any]) -> str:
 
 
 def has_enemy_anchor(objects: list[dict[str, Any]]) -> bool:
-    return any(spec_object_kind(obj) in {"boss", "enemy"} for obj in objects)
+    return any(is_enemy_spec(obj) for obj in objects)
 
 
 def apply_scene_contract(

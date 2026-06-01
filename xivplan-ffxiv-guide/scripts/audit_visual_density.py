@@ -20,8 +20,19 @@ KEY_LAYER_GROUPS = {
     "arrow": {"arrow", "tether"},
 }
 REQUIRED_LAYERS = {"marker", "party", "enemy", "text", "mechanic_zone"}
-LONG_FLOW_GENERATORS = {"phase-l-semantic-long-flow"}
+LONG_FLOW_GENERATORS = {"phase-l-semantic-long-flow", "phase-o-teaching-long-flow"}
 LONG_FLOW_REQUIRED_PHASES = {"observe", "move", "resolve", "reset"}
+PHASE_BUCKETS = {
+    "observe_signal": "observe",
+    "assign_roles": "observe",
+    "preposition": "move",
+    "first_move": "move",
+    "second_move": "move",
+    "between_resolves": "move",
+    "first_resolve": "resolve",
+    "second_resolve": "resolve",
+    "next_read_setup": "reset",
+}
 
 
 def read_scene(path: Path) -> dict[str, Any]:
@@ -57,7 +68,9 @@ def is_semantic_long_flow(scene: dict[str, Any]) -> bool:
 
 def step_phase(step: dict[str, Any]) -> str:
     phase = step.get("storyboard_phase")
-    return str(phase) if isinstance(phase, str) and phase else "unknown"
+    if isinstance(phase, str) and phase:
+        return PHASE_BUCKETS.get(phase, phase)
+    return "unknown"
 
 
 def long_flow_density_accepted(scene: dict[str, Any], per_step: list[dict[str, Any]], missing_required_layers: list[str]) -> bool:
@@ -67,8 +80,10 @@ def long_flow_density_accepted(scene: dict[str, Any], per_step: list[dict[str, A
     total_objects = sum(int(item["objects"]) for item in per_step)
     avg_objects = total_objects / step_count
     phases = {step_phase(step) for step in scene.get("steps", []) if isinstance(step, dict)}
+    max_steps = 20 if str(scene.get("metadata", {}).get("storyboard_generator", "")) == "phase-o-teaching-long-flow" else 14
+    min_steps = 14 if str(scene.get("metadata", {}).get("storyboard_generator", "")) == "phase-o-teaching-long-flow" else 10
     return (
-        10 <= step_count <= 14
+        min_steps <= step_count <= max_steps
         and 35 <= avg_objects <= 65
         and total_objects >= 450
         and LONG_FLOW_REQUIRED_PHASES <= phases

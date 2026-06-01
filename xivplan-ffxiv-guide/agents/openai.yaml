@@ -9,18 +9,25 @@ defaults:
   visual_quality_gate_required: true
   visual_regression_required_for_release: true
   release_visual_severe_allowed: 0
-  release_visual_fixture_pass_target: 5
+  release_visual_fixture_pass_target: 10
   full_party_each_step_required: true
-  semantic_long_flow_density_policy: "accept only phase-l-semantic-long-flow scenes with 10-14 steps, golden-band density, storyboard coverage, and zero severe visual issues"
+  enemy_identity_gate_required: true
+  enemy_asset_icon_gate_required: true
+  party_identity_gate_required: true
+  teaching_storyboard_v3_required: true
+  semantic_long_flow_density_policy: "accept phase-l-semantic-long-flow and phase-o-teaching-long-flow scenes with golden-band density, storyboard coverage, and zero severe visual issues"
   unknowns_required: true
   preserve_version_outputs: true
   bundled_python_hint: "C:\\Users\\Mahiru\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe"
 policies:
   - "Every generated guide package must run the quality gate before final handoff."
   - "Every normal generated XivPlan step must preserve the full party, Boss/enemy anchor, stable waymarks, and arena context unless explicitly marked as a partial observation."
-  - "Complex mechanics must be storyboarded before concrete spec generation and must include observe, movement, resolution, and reset coverage."
+  - "Every Boss/add/clone/source must have a name, visible target ring, radius, and readable label; duplicate add names must be disambiguated."
+  - "Every Boss/add/clone/source must have a dedicated or fallback icon; uncertain assets use an explicit fallback instead of removing enemy identity."
+  - "Every normal party frame must preserve unique MT/ST/H1/H2/D1/D2/D3/D4 role identity, official XivPlan /actor/<JOB>.png job icons, and readable role labels unless the frame is an intentional cluster/stack."
+  - "Complex mechanics must be storyboarded before concrete spec generation and must include observation, assignment, movement, resolution, reset, and next-read coverage."
   - "Visual quality gate severe items block release-ready handoff; review items must be reported with step/object pointers."
   - "Second-round release handoff must include visual regression results, review burndown, contact sheets, and human-review notes."
-  - "Semantic long-flow dense-step review is accepted only for the explicit phase-l-semantic-long-flow profile; ordinary scenes still use the single-step focus threshold."
+  - "Semantic long-flow dense-step review is accepted only for explicit semantic long-flow profiles; ordinary scenes still use the single-step focus threshold."
   - "Unknown or draft fight facts must be listed explicitly in unknowns/risk output and guide text."
   - "Use versioned output folders for progression work; do not overwrite previous versions unless the user explicitly requests a rerun."

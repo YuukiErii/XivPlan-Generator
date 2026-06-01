@@ -10,8 +10,37 @@ from pathlib import Path
 from typing import Any
 
 
-REQUIRED_FIELDS = ("purpose", "guide_text", "checks", "visual_focus", "required_roles", "reset_state", "storyboard_phase")
-REQUIRED_PHASES = ("observe", "move", "resolve", "reset")
+REQUIRED_FIELDS = (
+    "purpose",
+    "guide_text",
+    "checks",
+    "visual_focus",
+    "required_roles",
+    "reset_state",
+    "storyboard_phase",
+    "teaching_question",
+    "why_this_frame_exists",
+    "changed_objects_only",
+)
+REQUIRED_PHASES = ("observation", "movement", "resolve", "reset")
+V3_REQUIRED_COVERAGE = ("observation", "assignment", "movement", "resolve", "reset", "next_read")
+PHASE_BUCKETS = {
+    "observe": "observation",
+    "observe_signal": "observation",
+    "assign_roles": "assignment",
+    "assignment": "assignment",
+    "preposition": "assignment",
+    "first_move": "movement",
+    "second_move": "movement",
+    "between_resolves": "movement",
+    "move": "movement",
+    "first_resolve": "resolve",
+    "second_resolve": "resolve",
+    "resolve": "resolve",
+    "reset": "reset",
+    "next_read_setup": "next_read",
+}
+ACTION_HINTS = ("移动", "散开", "分摊", "入塔", "拉线", "击退", "复位", "判定", "观察", "读取", "确认", "move", "resolve", "reset")
 
 
 def read_scene(path: Path) -> dict[str, Any]:
@@ -25,6 +54,8 @@ def is_phase_f_scene(scene: dict[str, Any]) -> bool:
     return metadata.get("source") == "build_spec_from_solution.py" or metadata.get("storyboard_generator") in {
         "phase-f-v2",
         "phase-l-semantic-long-flow",
+        "phase-o-v3",
+        "phase-o-teaching-long-flow",
     }
 
 
@@ -41,17 +72,39 @@ def has_value(value: Any) -> bool:
 def normalized_phase(step: dict[str, Any]) -> str:
     phase = step.get("storyboard_phase")
     if isinstance(phase, str) and phase:
-        return phase
+        return PHASE_BUCKETS.get(phase, phase)
     text = " ".join(str(step.get(key, "")) for key in ("title", "purpose", "guide_text")).lower()
     if any(token in text for token in ("observe", "观察", "读取", "确认")):
-        return "observe"
+        return "observation"
     if any(token in text for token in ("move", "移动", "路线", "入塔", "拉线", "击退")):
-        return "move"
+        return "movement"
     if any(token in text for token in ("resolve", "判定", "结算", "散开", "分摊", "塔")):
         return "resolve"
     if any(token in text for token in ("reset", "复位", "回中", "下一")):
         return "reset"
     return "unknown"
+
+
+def raw_phase(step: dict[str, Any]) -> str:
+    phase = step.get("storyboard_phase")
+    return str(phase) if isinstance(phase, str) and phase else "unknown"
+
+
+def teaching_question_count(value: Any) -> int:
+    if isinstance(value, list):
+        return len([item for item in value if has_value(item)])
+    if not isinstance(value, str) or not value.strip():
+        return 0
+    text = value.strip()
+    question_marks = text.count("?") + text.count("？")
+    if question_marks > 1:
+        return question_marks
+    return 1
+
+
+def action_hint_count(text: str) -> int:
+    lowered = text.lower()
+    return sum(1 for hint in ACTION_HINTS if hint in lowered)
 
 
 def audit_step(step: dict[str, Any], step_index: int) -> dict[str, Any]:
@@ -67,10 +120,31 @@ def audit_step(step: dict[str, Any], step_index: int) -> dict[str, Any]:
         elif not has_value(value):
             issues.append({"severity": "severe", "kind": "missing_or_empty_field", "field": field})
 
+    question_count = teaching_question_count(step.get("teaching_question"))
+    if question_count != 1:
+        issues.append({"severity": "severe", "kind": "teaching_question_not_single", "field": "teaching_question", "count": question_count})
+
+    guide_text = str(step.get("guide_text", ""))
+    has_flow = any(
+        isinstance(obj, dict) and obj.get("type") in {"arrow", "tether"}
+        for obj in step.get("objects", [])
+        if isinstance(step.get("objects"), list)
+    )
+    if action_hint_count(guide_text) >= 4 and not has_flow and raw_phase(step) not in {"observe_signal", "assign_roles"}:
+        issues.append(
+            {
+                "severity": "review",
+                "kind": "possibly_overloaded_guide_text",
+                "field": "guide_text",
+                "suggestion": "Split observation, assignment, movement, and resolution into adjacent frames.",
+            }
+        )
+
     return {
         "step": step_index,
         "title": step.get("title", f"Step {step_index}"),
         "phase": normalized_phase(step),
+        "raw_phase": raw_phase(step),
         "issues": issues,
         "severe_items": sum(1 for issue in issues if issue["severity"] == "severe"),
     }
@@ -97,10 +171,23 @@ def audit_scene(path: Path, required: bool | None = None) -> dict[str, Any]:
 
     per_step = [audit_step(step, index) for index, step in enumerate(steps, start=1) if isinstance(step, dict)]
     phases = sorted({item["phase"] for item in per_step})
+    raw_phases = sorted({item["raw_phase"] for item in per_step})
     issues: list[dict[str, Any]] = []
-    if not 6 <= len(per_step) <= 14:
-        issues.append({"severity": "severe", "kind": "step_count_out_of_range", "steps": len(per_step), "expected": "6..14"})
-    missing_phases = [phase for phase in REQUIRED_PHASES if phase not in phases]
+    metadata = scene.get("metadata") if isinstance(scene.get("metadata"), dict) else {}
+    generator = str(metadata.get("storyboard_generator", ""))
+    if generator in {"phase-o-teaching-long-flow"}:
+        min_steps, max_steps = 14, 20
+    elif generator in {"phase-o-v3"}:
+        min_steps, max_steps = 6, 16
+    else:
+        min_steps, max_steps = 6, 14
+    if not min_steps <= len(per_step) <= max_steps:
+        issues.append({"severity": "severe", "kind": "step_count_out_of_range", "steps": len(per_step), "expected": f"{min_steps}..{max_steps}"})
+    required = V3_REQUIRED_COVERAGE if generator in {"phase-o-v3", "phase-o-teaching-long-flow"} else REQUIRED_PHASES
+    coverage = set(phases)
+    if "next_read" in coverage:
+        coverage.add("reset")
+    missing_phases = [phase for phase in required if phase not in coverage]
     if missing_phases:
         issues.append({"severity": "severe", "kind": "missing_storyboard_phases", "missing": missing_phases})
 
@@ -111,6 +198,7 @@ def audit_scene(path: Path, required: bool | None = None) -> dict[str, Any]:
         "ok": severe == 0,
         "steps": len(per_step),
         "phases": phases,
+        "raw_phases": raw_phases,
         "severe_items": severe,
         "issues": issues,
         "per_step": per_step,

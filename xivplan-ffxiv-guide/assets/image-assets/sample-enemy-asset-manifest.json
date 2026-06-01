@@ -1,0 +1,31 @@
+{
+  "enemy_assets": [
+    {
+      "enemy_id": "main-boss",
+      "name": "Main Boss",
+      "kind": "boss",
+      "source": "sample-dedicated-png",
+      "asset_id": "main-boss-sample-icon",
+      "path": "samples/m6s-animal-icon-256.png",
+      "fallback": "generic-boss-icon",
+      "display": {
+        "width": 72,
+        "height": 72,
+        "anchor": "center"
+      }
+    },
+    {
+      "enemy_id": "orb-east",
+      "name": "Orb E",
+      "kind": "add",
+      "source": "fallback",
+      "asset_id": "orb-east-fallback-icon",
+      "fallback": "generic-add-icon",
+      "display": {
+        "width": 56,
+        "height": 56,
+        "anchor": "center"
+      }
+    }
+  ]
+}

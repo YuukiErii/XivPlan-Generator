@@ -11,11 +11,11 @@ The phase-specific source files below were merged into this document and then re
 - `docs/phase-h-progress-2026-06-01.md`
 - `docs/phase-i-progress-2026-06-01.md`
 
-The authoritative continuation plan is `docs/xivplan-skill-visual-upgrade-plan.md`. First-round acceptance is audited in `docs/first-round-acceptance-audit-2026-06-01.md`; second-round Phase J-N details and release handoff are integrated below.
+The authoritative continuation plan is `docs/xivplan-skill-visual-upgrade-plan.md`. First-round acceptance is audited in `docs/first-round-acceptance-audit-2026-06-01.md`; second-round Phase J-N and third-round Phase O-S details are integrated below.
 
 ## Executive Summary
 
-The first and second visual upgrade rounds are complete. The skill now has:
+The first, second, and Phase O-S third-round visual upgrade work are complete. The skill now has:
 
 - full-scene context for normal generated steps;
 - category-aware storyboard generation for complex mechanics;
@@ -23,27 +23,31 @@ The first and second visual upgrade rounds are complete. The skill now has:
 - quality reports integrated into guide-package pipelines;
 - prompt and template defaults that ask future runs to use the new visual standards;
 - golden visual regression fixtures and a one-command regression runner;
-- release-grade review burndown and PNG contact-sheet evidence.
+- release-grade review burndown and PNG contact-sheet evidence;
+- teaching-question storyboard metadata for every generated step;
+- enemy identity contracts for Boss/add/clone/source names, target rings, radius, and duplicate-name disambiguation.
+- official XivPlan `/actor/<JOB>.png` party job icons plus nearby role labels for the default comp.
 
 Current status:
 
 - Phase A-I first-round acceptance is re-audited and complete.
 - Phase J-N second-round polish and release-gate work is complete.
-- Visual regression suite passes 5/5.
-- The semantic long-flow fixture reaches 12 steps / 601 objects.
+- Phase O-S third-round teaching storyboard, enemy identity, enemy icon assets, official party job icons, and release-gate work are complete.
+- Visual regression suite passes 10/10.
+- The semantic long-flow fixture reaches 14 steps / 845 objects.
 - Severe visual issues are 0 in the regression suite.
-- Current visual quality is PASS 100.0 for all five fixtures.
-- Review burndown is 0.
+- Current visual quality severe issues are 0 for all ten fixtures; review items are non-blocking polish notes after the stricter identity scoring.
 
 Current non-blocking note:
 
 - `light-rampant-like` still records one parsed content unknown about real fight eligibility/grouping confirmation. This is input uncertainty, not a visual release blocker.
+- The Phase S review burndown still lists 150 review-class polish items, mostly leader-line distance and dense-label notes. Severe items remain 0, so they do not block the third-round acceptance stop line.
 
 ## Current Entry Points
 
 Use these files first in future threads:
 
-- Roadmap and completed checklist: `docs/xivplan-skill-visual-upgrade-plan.md`, section `8`.
+- Roadmap and completed checklist: `docs/xivplan-skill-visual-upgrade-plan.md`, sections `8` and `9`.
 - Consolidated work record: this file.
 - First-round acceptance audit: `docs/first-round-acceptance-audit-2026-06-01.md`.
 - Regression command:
@@ -56,7 +60,7 @@ Use these files first in future threads:
 
 | File | Role | Current Status |
 |---|---|---|
-| `docs/visual-upgrade-work-record.md` | Consolidated A-N history and evidence index. | Authoritative summary. |
+| `docs/visual-upgrade-work-record.md` | Consolidated A-S history and evidence index. | Authoritative summary. |
 | `docs/xivplan-skill-visual-upgrade-plan.md` | Original plan plus completed checklists. | Keep as checklist/source-of-truth for phase status. |
 | `docs/first-round-acceptance-audit-2026-06-01.md` | Fresh audit of Phase A-I acceptance. | Current acceptance snapshot. |
 | `artifacts/phase-f-progress.md` | Early Phase F progress note. | Historical; superseded by this consolidated record. |
@@ -518,3 +522,137 @@ Missing-task audit:
 - No Phase N checklist items remain open.
 - No visual review items remain for a third round.
 - `light-rampant-like` keeps one parsed content unknown about real fight eligibility/grouping confirmation; this is not a visual release blocker.
+
+## Phase O/P Update - 2026-06-01
+
+Phase O and Phase P are complete.
+
+Changes:
+
+- `build_spec_from_solution.py` now emits Phase O storyboard metadata:
+  - `storyboard_generator: phase-o-v3`;
+  - `teaching_question`;
+  - `why_this_frame_exists`;
+  - `changed_objects_only`;
+  - finer storyboard phases including `observe_signal`, `assign_roles`, `first_move`, `first_resolve`, `second_move`, `second_resolve`, `reset`, and `next_read_setup`.
+- `audit_storyboard_steps.py` now checks one primary teaching question per step, v3 phase coverage, long teaching-flow step ranges, and overloaded guide-text review hints.
+- `assets/templates/visual-storyboard-template.md` and `references/xivplan-style-guide.md` now document the teaching-granularity rules.
+- `build_xivplan_scene.py` now normalizes enemy identity for `boss`, `enemy`, `add`, `clone`, `shadow`, and `untargetable_source`, including target rings, labels, radius, display names, and duplicate-name suffixes.
+- `validate_xivplan_scene.py` now rejects missing enemy names, missing radius/target-ring radius, hidden target rings, missing enemy labels, and indistinguishable duplicate enemy names.
+- `audit_visual_quality.py` now reports `enemy_identity_score` and fails severe enemy identity obstruction.
+- `run_visual_regression.py` now includes two third-round fixtures:
+  - `long-teaching-storyboard`;
+  - `multi-boss-add-identity`.
+
+Evidence:
+
+- `artifacts/phase-i-visual-regression/visual-regression-report.md`
+- `artifacts/phase-i-visual-regression/visual-regression-results.json`
+- `xivplan-ffxiv-guide/references/enemy-identity-style-guide.md`
+- `xivplan-ffxiv-guide/assets/visual-regression-fixtures/long-teaching-storyboard.input.md`
+- `xivplan-ffxiv-guide/assets/visual-regression-fixtures/multi-boss-add-identity.input.md`
+
+Verification:
+
+- compileall: PASS.
+- `test_storyboard_templates.py`: PASS.
+- `test_visual_quality_audit.py`: PASS.
+- visual regression: PASS 7/7.
+- long-flow fixture: 14 steps / 733 objects.
+- `multi-boss-add-identity`: PASS with label severe 0, flow severe 0, storyboard PASS, visual quality severe 0.
+- all seven fixtures: quality gate PASS, scene validation PASS, guide package validation PASS, visual quality severe 0.
+
+Missing-task audit:
+
+- Phase O checklist items O1-O5 are complete.
+- Phase P checklist items P1-P5 are complete.
+- Remaining third-round work starts at Phase Q if the next pass should implement enemy icon/image asset injection.
+
+## Phase Q/R Update - 2026-06-01
+
+Phase Q and Phase R are complete.
+
+Changes:
+
+- Added `references/enemy-image-asset-workflow.md` for enemy `asset_brief`, PNG/data-URL manifest, fallback icon, and source-trace rules.
+- Added `scripts/inject_enemy_assets.py` to inject enemy icons from `enemy_assets` manifests and to fall back to generic Boss/add PNG data URLs when a dedicated PNG is unavailable.
+- Added `assets/image-assets/sample-enemy-asset-manifest.json`, covering one dedicated sample PNG and one fallback-only add entry.
+- `build_xivplan_scene.py` now gives every normalized enemy an icon, `assetStatus`, `assetFallback`, target ring, name label, and display dimensions; `export_xivplan_steps.py` renders enemy PNG data URLs in contact sheets.
+- `validate_image_assets.py` now validates enemy manifests, dedicated PNGs, and explicit fallback-only entries.
+- Added `references/party-job-defaults.md` and Phase R party identity fields: `job`, `jobName`, `icon`, `image`, `roleLabel`, `roleLabelVisible`, `roleLabelPlacement`, and `iconScale`.
+- `build_spec_from_solution.py`, `build_xivplan_scene.py`, and `plan_solution_candidates.py` now preserve the corrected Phase R/S default comp with official XivPlan icons: MT=/actor/DRK.png, ST=/actor/PLD.png, H1=/actor/AST.png, H2=/actor/SCH.png, D1=/actor/SAM.png, D2=/actor/DRG.png, D3=/actor/BRD.png, D4=/actor/PCT.png.
+- `validate_xivplan_scene.py` now rejects duplicate/missing roles, missing party jobs, missing party icons, missing non-cluster role labels, default icon path mismatches, and abstract `job:*` tokens.
+- `audit_visual_quality.py` now includes `party_identity_score`; party role labels are handled as identity badges rather than ordinary floating labels in label/flow/enemy-obstruction audits.
+- `SKILL.md`, `agents/openai.yaml`, `README.md`, `references/xivplan-scene-format.md`, and `assets/templates/visual-quality-checklist.md` document the Phase Q/R gates.
+
+Evidence:
+
+- `artifacts/phase-i-visual-regression/visual-regression-report.md`
+- `artifacts/phase-q/sample-enemy-asset-validation.json`
+- `artifacts/phase-q/multi-boss-add-identity.enemy-assets.spec.json`
+- `artifacts/phase-q/multi-boss-add-identity.enemy-assets.xivplan`
+- `artifacts/phase-q/multi-boss-add-identity.enemy-assets.visual-quality.md`
+- `artifacts/phase-q/contact-sheets/`
+
+Verification:
+
+- compileall: PASS.
+- `test_storyboard_templates.py`: PASS.
+- `test_visual_quality_audit.py`: PASS, including enemy identity and party identity negative checks.
+- `validate_image_assets.py` on sample enemy manifest: PASS, one dedicated PNG and one fallback entry.
+- `inject_enemy_assets.py` smoke on `multi-boss-add-identity`: PASS, 6 dedicated Boss injections and 18 fallback injections.
+- scene validation on `artifacts/phase-q/multi-boss-add-identity.enemy-assets.xivplan`: PASS.
+- visual quality on `artifacts/phase-q/multi-boss-add-identity.enemy-assets.xivplan`: REVIEW 88.11, severe 0, Enemy 100, Party 100.
+- visual regression at Phase Q/R checkpoint: PASS 7/7; long-flow fixture was 14 steps / 845 objects.
+- contact sheets regenerated under `artifacts/phase-q/contact-sheets/`; `multi-boss-add-identity.png` visually shows enemy icons, target rings, and job/role player identity. The later Phase S correction supersedes the earlier abstract `job:*` icon token wording.
+
+Missing-task audit:
+
+- Phase Q checklist items Q1-Q6 are complete.
+- Phase R checklist items R1-R7 are complete.
+- Remaining third-round work starts at Phase S: regression fixture expansion, review/crop-sheet packaging, README/agent handoff polish, and release-gate consolidation.
+
+## Phase S Update - 2026-06-01
+
+Phase S is complete, including the corrected interpretation of "job icons".
+
+Correction:
+
+- The user clarified that "use job icons" means XivPlan built-in official job icon assets from `..\XivPlan\public\actor\*.png`, not colored text badges or abstract `job:*` icon tokens.
+- The accepted default party icon paths are MT=/actor/DRK.png, ST=/actor/PLD.png, H1=/actor/AST.png, H2=/actor/SCH.png, D1=/actor/SAM.png, D2=/actor/DRG.png, D3=/actor/BRD.png, D4=/actor/PCT.png.
+
+Changes:
+
+- `build_spec_from_solution.py`, `build_xivplan_scene.py`, and `plan_solution_candidates.py` now emit `/actor/<JOB>.png` paths for the default comp.
+- `export_xivplan_steps.py` resolves local `/actor/*.png` references from the sibling XivPlan app public directory, so generated PNG previews and contact sheets show official job icons instead of fallback text badges.
+- `validate_xivplan_scene.py`, `audit_visual_quality.py`, and `run_visual_regression.py` now treat `job:*` tokens or default icon path mismatches as invalid for Phase S party identity acceptance.
+- `README.md`, `SKILL.md`, `agents/openai.yaml`, `references/party-job-defaults.md`, `references/xivplan-scene-format.md`, `references/xivplan-style-guide.md`, and `assets/templates/visual-quality-checklist.md` now state the official-icon requirement.
+- `docs/xivplan-skill-visual-upgrade-plan.md` now marks Phase O-S and the third-round stop line complete under this corrected icon definition.
+
+Evidence:
+
+- `artifacts/phase-i-visual-regression/visual-regression-report.md`
+- `artifacts/phase-i-visual-regression/job-specific-positioning/job-identity-report.md`
+- `artifacts/phase-i-visual-regression/party-stack-label-omission/job-identity-report.md`
+- `artifacts/phase-s-release-gate/review-burndown.md`
+- `artifacts/phase-s-release-gate/contact-sheets/`
+- `artifacts/phase-s-release-gate/identity-crop-sheets/`
+- `artifacts/phase-s-release-gate/human-review.md`
+
+Verification:
+
+- compileall: PASS.
+- `test_storyboard_templates.py`: PASS.
+- `test_visual_quality_audit.py`: PASS.
+- `run_visual_regression.py --force`: PASS 10/10.
+- long-flow fixture: 14 steps / 845 objects.
+- severe visual items: 0.
+- review burndown: 150 review-class items, 0 severe.
+- `job-specific-positioning` and `party-stack-label-omission` job identity reports: PASS with expected official XivPlan icon paths.
+- Manual image review of the Phase S party identity crop sheets confirms official job icons are visible in normal, movement, reset, and cluster/stack frames.
+
+Missing-task audit:
+
+- Phase S checklist items S1-S6 are complete.
+- Third-round stop line is closed.
+- Remaining work, if any, is fourth-round polish: reduce leader-line distance review noise and dense-label review notes without changing the accepted Phase S release gate.

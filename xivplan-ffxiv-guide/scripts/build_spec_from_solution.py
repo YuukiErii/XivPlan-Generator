@@ -17,6 +17,16 @@ DIRECTION_DEGREES = {"E": 0, "NE": 45, "N": 90, "NW": 135, "W": 180, "SW": 225, 
 ALL_ROLES = list(ROLES)
 TH_ROLES = ["MT", "ST", "H1", "H2"]
 DPS_ROLES = ["D1", "D2", "D3", "D4"]
+DEFAULT_PARTY_JOBS = {
+    "MT": {"job": "DRK", "jobName": "Dark Knight", "icon": "/actor/DRK.png"},
+    "ST": {"job": "PLD", "jobName": "Paladin", "icon": "/actor/PLD.png"},
+    "H1": {"job": "AST", "jobName": "Astrologian", "icon": "/actor/AST.png"},
+    "H2": {"job": "SCH", "jobName": "Scholar", "icon": "/actor/SCH.png"},
+    "D1": {"job": "SAM", "jobName": "Samurai", "icon": "/actor/SAM.png"},
+    "D2": {"job": "DRG", "jobName": "Dragoon", "icon": "/actor/DRG.png"},
+    "D3": {"job": "BRD", "jobName": "Bard", "icon": "/actor/BRD.png"},
+    "D4": {"job": "PCT", "jobName": "Pictomancer", "icon": "/actor/PCT.png"},
+}
 
 
 def read_json(path: Path) -> Any:
@@ -31,7 +41,19 @@ def write_json(path: Path, data: Any) -> None:
 def party_objects(distance: int = 108, positions: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     objects = []
     for role in ROLES:
-        obj: dict[str, Any] = {"kind": "party", "key": role, "role": role, "pos": ROLE_DIR[role], "distance": distance}
+        defaults = DEFAULT_PARTY_JOBS[role]
+        obj: dict[str, Any] = {
+            "kind": "party",
+            "key": role,
+            "role": role,
+            "job": defaults["job"],
+            "jobName": defaults["jobName"],
+            "icon": defaults["icon"],
+            "roleLabel": role,
+            "roleLabelPlacement": "near-icon",
+            "pos": ROLE_DIR[role],
+            "distance": distance,
+        }
         if positions and role in positions:
             obj["pos"] = positions[role]
         objects.append(obj)
@@ -132,7 +154,7 @@ def infer_flow_kind(phase: str, objects: list[dict[str, Any]], explicit: str | N
 def requires_movement(phase: str, objects: list[dict[str, Any]], explicit: bool | None = None) -> bool:
     if explicit is not None:
         return explicit
-    if phase in {"move", "reset"}:
+    if phase in {"move", "first_move", "second_move", "between_resolves", "reset", "next_read_setup"}:
         return True
     return any(str(obj.get("arrowStyle", "")).lower() in {"bait", "knockback", "forbidden"} for obj in objects if isinstance(obj, dict))
 
@@ -175,6 +197,9 @@ def step(
     remove: list[str] | None = None,
     movement_required: bool | None = None,
     flow_kind: str | None = None,
+    teaching_question: str | None = None,
+    why_this_frame_exists: str | None = None,
+    changed_objects_only: str | None = None,
 ) -> dict[str, Any]:
     objects = objects or []
     inferred_flow_kind = infer_flow_kind(phase, objects, flow_kind)
@@ -183,6 +208,9 @@ def step(
         "storyboard_phase": phase,
         "movement_required": requires_movement(phase, objects, movement_required),
         "flow_kind": inferred_flow_kind,
+        "teaching_question": teaching_question or f"{purpose.rstrip('。.')}？",
+        "why_this_frame_exists": why_this_frame_exists or purpose,
+        "changed_objects_only": changed_objects_only or visual_focus,
         "purpose": purpose,
         "guide_text": guide_text,
         "checks": checks,
@@ -206,7 +234,7 @@ def observation_step(unknowns: list[str]) -> dict[str, Any]:
     callout = "保守假设" if unknowns else "信息已知"
     return step(
         "1 观察与信息确认",
-        "observe",
+        "observe_signal",
         "展示机制读条、未知点和全员默认站位。",
         "先确认机制类别、点名和安全半场；未知点按保守假设处理，不把草案当作最终打法。",
         ["未知点已列入攻略包", "八人、Boss、标点都可见"],
@@ -217,6 +245,9 @@ def observation_step(unknowns: list[str]) -> dict[str, Any]:
             {"kind": "circle", "key": "read-source-ring", "pos": "center", "radius": 104, "color": "#ffb900", "opacity": 18},
             {"kind": "label", "key": "info-state", "text": callout, "pos": [0, -210]},
         ],
+        teaching_question="这一步要先读到什么机制信息？",
+        why_this_frame_exists="先冻结读条、未知点和全员上下文，避免后续移动没有判断来源。",
+        changed_objects_only="读条提示、未知点状态和机制源提示。",
     )
 
 
@@ -224,7 +255,7 @@ def preposition_step(candidate: dict[str, Any]) -> dict[str, Any]:
     guide_text = candidate.get("step_plan", [{}, {"guide_text": "按职能固定预站。"}])[1].get("guide_text", "按职能固定预站。")
     return step(
         "2 固定预站",
-        "preposition",
+        "assign_roles",
         "固定八人初始职责，给后续模板提供稳定起点。",
         guide_text,
         ["八个职能都有初始站位", "读条职业优先少移动"],
@@ -232,6 +263,9 @@ def preposition_step(candidate: dict[str, Any]) -> dict[str, Any]:
         ALL_ROLES,
         "预站完成后等待第一轮读条。",
         [{"kind": "circle", "key": "safe-center", "pos": "center", "radius": 128, "color": "#8fd14f", "opacity": 18, "label": "内圈"}],
+        teaching_question="每个职责的默认起点在哪里？",
+        why_this_frame_exists="把职责分配从移动和判定中拆出来，保证队员先知道自己属于哪一组。",
+        changed_objects_only="八方职责锚点和内圈安全参考。",
     )
 
 
@@ -245,7 +279,7 @@ def tower_steps() -> list[dict[str, Any]]:
     return [
         step(
             "塔出现",
-            "resolve",
+            "observe_signal",
             "把塔位和每塔人数单独展示，避免职责和移动混在一张图里。",
             "先读四座塔的位置和人数，按固定职能分桶处理。",
             ["塔位清楚", "每塔人数清楚"],
@@ -253,10 +287,13 @@ def tower_steps() -> list[dict[str, Any]]:
             ALL_ROLES,
             "读塔后不急动，等待入塔提示。",
             towers,
+            teaching_question="塔刷在哪里、每座塔需要几个人？",
+            why_this_frame_exists="先看塔位和人数，避免把读塔和入塔路线挤在同一帧。",
+            changed_objects_only="四座塔和人数标签出现。",
         ),
         step(
             "入塔职责",
-            "move",
+            "first_move",
             "显示每组进入对应塔位的移动方向。",
             "T/H 处理南北塔，DPS 处理东西塔；移动路线短且不穿中心。",
             ["入塔路线不交叉", "每塔至少标明职责组"],
@@ -271,6 +308,9 @@ def tower_steps() -> list[dict[str, Any]]:
                 {"kind": "arrow", "key": "tower-d1", "from": [-44, 0], "to": [-190, 0], "arrowStyle": "movement", "endGap": 44},
             ],
             focus_roles=ALL_ROLES,
+            teaching_question="每组从哪里进到哪座塔？",
+            why_this_frame_exists="把入塔路线单独画出，队员不用同时读塔位和移动方向。",
+            changed_objects_only="入塔箭头和当前行动组。",
         ),
     ]
 
@@ -279,7 +319,7 @@ def stack_steps() -> list[dict[str, Any]]:
     return [
         step(
             "分摊目标确认",
-            "resolve",
+            "first_resolve",
             "拆出分摊人数和分组，不和散开或塔判定混读。",
             "A/B 两组各自集合，若实际点名不同，以点名者为中心微调。",
             ["分摊人数明确", "分组边界明确"],
@@ -290,6 +330,9 @@ def stack_steps() -> list[dict[str, Any]]:
                 {"kind": "stack", "key": "stack-a", "pos": "W", "distance": 95, "radius": 58, "count": 4, "label": "A组"},
                 {"kind": "stack", "key": "stack-b", "pos": "E", "distance": 95, "radius": 58, "count": 4, "label": "B组"},
             ],
+            teaching_question="哪两组要分别吃分摊？",
+            why_this_frame_exists="让分摊目标和人数成为独立判断，不和后续散开或入塔混在一起。",
+            changed_objects_only="A/B 分摊圈与人数标签。",
         )
     ]
 
@@ -324,7 +367,7 @@ def spread_steps() -> list[dict[str, Any]]:
     return [
         step(
             "散开点名",
-            "resolve",
+            "first_resolve",
             "把每个角色的散开落点从其他判定中拆出来。",
             "按八方或指定 clock 散开，DPS 外圈、T/H 内圈，保持最小间距。",
             ["八个散开点不重叠", "远近职责没有互抢位置"],
@@ -332,6 +375,9 @@ def spread_steps() -> list[dict[str, Any]]:
             ALL_ROLES,
             "散开判定后立刻看复位箭头。",
             spread_circle_objects(),
+            teaching_question="每个职责最终散开落点在哪里？",
+            why_this_frame_exists="单独展示八方散开，避免和移动或其他判定压成一帧。",
+            changed_objects_only="八个散开圈和职责标签。",
         )
     ]
 
@@ -340,7 +386,7 @@ def tether_steps() -> list[dict[str, Any]]:
     return [
         step(
             "连线出现",
-            "observe",
+            "observe_signal",
             "把连线方向和不能交叉的关系单独展示。",
             "先读连线端点，同半场拉开；不要横穿 Boss 圈。",
             ["连线端点清楚", "禁止交叉已说明"],
@@ -353,10 +399,13 @@ def tether_steps() -> list[dict[str, Any]]:
                 {"kind": "arrow", "key": "tether-se", "from": "SE", "to": "S", "distance": 205, "arrowStyle": "bait", "endGap": 40},
             ],
             focus_roles=DPS_ROLES,
+            teaching_question="先看哪些端点被连线？",
+            why_this_frame_exists="连线端点是后续拉线方向的前置判断，必须先单独读清楚。",
+            changed_objects_only="连线端点、半场边界和禁止交叉提示。",
         ),
         step(
             "拉线方向",
-            "move",
+            "first_move",
             "显示拉线者的安全移动路径。",
             "拉线者沿同侧外圈移动，线不交叉；非拉线者保留上下文但降低存在感。",
             ["拉线方向与 guide_text 一致", "箭头头部不压玩家"],
@@ -369,6 +418,9 @@ def tether_steps() -> list[dict[str, Any]]:
                 {"kind": "polyline", "key": "tether-route-right", "from": "SE", "waypoints": [[175, -45]], "to": "E", "distance": 190, "arrowStyle": "movement", "endGap": 42},
             ],
             focus_roles=DPS_ROLES,
+            teaching_question="拉线者沿哪条路线拉开？",
+            why_this_frame_exists="把拉线移动从连线观察中拆出来，降低路线交叉误读。",
+            changed_objects_only="外圈移动路线和拉线者高亮。",
         ),
     ]
 
@@ -388,10 +440,13 @@ def knockback_steps() -> list[dict[str, Any]]:
                 {"kind": "knockback", "key": "kb-source", "pos": "center", "radius": 82, "color": "#d13438", "opacity": 35, "label": "击退源"},
                 {"kind": "safe_circle", "key": "kb-safe", "pos": "N", "distance": 220, "radius": 70, "label": "落点"},
             ],
+            teaching_question="击退源在哪里、预站要对准哪一侧？",
+            why_this_frame_exists="击退前先确认源点和安全落点，避免直接跳到位移结果。",
+            changed_objects_only="击退源、预站提示和安全落点。",
         ),
         step(
             "击退落点",
-            "move",
+            "first_move",
             "把强制位移方向和最终落点拆成独立画面。",
             "击退方向从源点指向安全区；被击退后先站稳，再处理下一判定。",
             ["击退箭头起点在机制源", "箭头终点不压玩家"],
@@ -399,6 +454,9 @@ def knockback_steps() -> list[dict[str, Any]]:
             ALL_ROLES,
             "落点稳定后进入结算或复位。",
             [{"kind": "arrow", "key": "kb-arrow", "from": "center", "to": "N", "distance": 220, "arrowStyle": "knockback", "allowDangerCrossing": True, "endGap": 58}],
+            teaching_question="击退会把人推到哪里？",
+            why_this_frame_exists="强制位移方向需要独立展示，和预站判断分开读。",
+            changed_objects_only="击退箭头和最终落点方向。",
         ),
     ]
 
@@ -407,7 +465,7 @@ def dance_steps() -> list[dict[str, Any]]:
     return [
         step(
             "Case 读取",
-            "observe",
+            "observe_signal",
             "把分支条件作为独立读取画面，避免边读边移动。",
             "确认当前 case 后只执行对应路线；没有被点名者保持默认位。",
             ["case 标签清楚", "未确认分支不画成事实"],
@@ -415,10 +473,13 @@ def dance_steps() -> list[dict[str, Any]]:
             ALL_ROLES,
             "读 case 后进入第一拍路线。",
             [{"kind": "label", "key": "case-label", "text": "Case A / B", "pos": [0, 205]}],
+            teaching_question="当前是哪一个 case？",
+            why_this_frame_exists="分支条件决定后续路线，必须先确认 case 再移动。",
+            changed_objects_only="case 标签和当前读法提示。",
         ),
         step(
             "第一拍路线",
-            "move",
+            "first_move",
             "显示舞蹈机制第一拍的路线，不和后续拍混在一起。",
             "当前行动者按箭头移动，其余人保留原位等待下一拍。",
             ["路线不交叉", "行动者明确"],
@@ -430,6 +491,9 @@ def dance_steps() -> list[dict[str, Any]]:
                 {"kind": "polyline", "key": "dance-st", "from": "S", "waypoints": [[75, -165]], "to": "SE", "distance": 135, "arrowStyle": "movement", "endGap": 42},
             ],
             focus_roles=["MT", "ST"],
+            teaching_question="第一拍由谁先动、动到哪里？",
+            why_this_frame_exists="第一拍路线和后续拍分开，避免舞蹈机制被压缩成摘要图。",
+            changed_objects_only="MT/ST 第一拍路线和行动者高亮。",
         ),
     ]
 
@@ -438,7 +502,7 @@ def tile_steps() -> list[dict[str, Any]]:
     return [
         step(
             "地板状态",
-            "observe",
+            "observe_signal",
             "先展示哪些格子可用，避免路线图缺少场地状态。",
             "红色格子不可站，绿色格子为下一步安全路线。",
             ["可用格和危险格分色", "场地状态先于人物移动"],
@@ -449,10 +513,13 @@ def tile_steps() -> list[dict[str, Any]]:
                 {"kind": "rect", "key": "tile-danger", "pos": "E", "distance": 75, "width": 120, "height": 360, "color": "#d13438", "opacity": 26},
                 {"kind": "rect", "key": "tile-safe", "pos": "W", "distance": 75, "width": 120, "height": 360, "color": "#8fd14f", "opacity": 28, "label": "安全格"},
             ],
+            teaching_question="哪些地板能站、哪些地板不能站？",
+            why_this_frame_exists="先读地板状态，再画路线，避免队员不知道为什么绕行。",
+            changed_objects_only="安全格、危险格和平台边界。",
         ),
         step(
             "格子移动",
-            "move",
+            "first_move",
             "显示跨格移动路线，确保不穿过不可用地板。",
             "全员沿安全格一侧移动，避免穿越红色格。",
             ["路线绕过危险格", "终点在可用平台"],
@@ -460,6 +527,9 @@ def tile_steps() -> list[dict[str, Any]]:
             ALL_ROLES,
             "抵达安全格后等待结算。",
             [{"kind": "polyline", "key": "tile-route", "from": "S", "waypoints": [[-105, -70], [-105, 70]], "to": "N", "distance": 165, "arrowStyle": "movement", "endGap": 48}],
+            teaching_question="全员沿哪条格子路线移动？",
+            why_this_frame_exists="把路线放在地板读法之后，明确移动不穿过危险格。",
+            changed_objects_only="跨格移动路线和终点。",
         ),
     ]
 
@@ -468,7 +538,7 @@ def movement_step(candidate: dict[str, Any], movement_targets: dict[str, Any], m
     focus_roles = [move.get("role") for move in candidate.get("movements", []) if move.get("role") in ROLES]
     return step(
         "主要移动",
-        "move",
+        "second_move",
         "执行推荐候选的主要移动窗口。",
         "只移动需要处理当前职责的人；近战保持目标圈附近，D4 和治疗尽量在自然窗口移动。",
         ["读条职业移动窗口已标注", "近战离圈时间最短"],
@@ -481,13 +551,16 @@ def movement_step(candidate: dict[str, Any], movement_targets: dict[str, Any], m
         ]
         + movement_arrows,
         focus_roles=focus_roles or None,
+        teaching_question="当前候选打法里真正需要移动的是谁？",
+        why_this_frame_exists="把推荐方案的主移动窗口从职责分配和判定结果中拆出来。",
+        changed_objects_only="行动者、主移动箭头和目标落点。",
     )
 
 
 def final_resolution_step(categories: set[str], movement_targets: dict[str, Any]) -> dict[str, Any]:
     return step(
         "最终判定",
-        "resolve",
+        "second_resolve",
         "显示最后的安全站位和判定范围。",
         "完成散开、双分摊或安全半场判定；出错时优先保持不撞线、不抢塔。",
         ["散开距离足够", "安全区/危险区不冲突"],
@@ -495,6 +568,9 @@ def final_resolution_step(categories: set[str], movement_targets: dict[str, Any]
         ALL_ROLES,
         "判定后立刻回中或回八方。",
         party_objects(108, movement_targets) + final_resolution_objects(categories),
+        teaching_question="移动后最终在哪里吃判定？",
+        why_this_frame_exists="把最终站位和判定范围作为单独结果帧，方便复盘是否撞线或抢塔。",
+        changed_objects_only="最终站位、判定范围和安全/危险区。",
     )
 
 
@@ -515,6 +591,44 @@ def reset_step() -> dict[str, Any]:
             {"kind": "arrow", "key": "reset-west", "from": [-220, 20], "to": [-145, 20], "arrowStyle": "reset"},
         ],
         flow_kind="reset",
+        teaching_question="判定后队伍如何回到可控位置？",
+        why_this_frame_exists="结算后需要统一复位，避免下一机制从混乱站位开始。",
+        changed_objects_only="复位集合点和回中箭头。",
+    )
+
+
+def next_read_setup_step() -> dict[str, Any]:
+    return step(
+        "下一读条准备",
+        "next_read_setup",
+        "重新展开到下一读条可用的八方起手。",
+        "复位完成后按八方重新展开，Boss 居中，下一轮读条从同一语法继续。",
+        ["八方职责已恢复", "下一读条起点明确"],
+        "下一读条八方起手、Boss 中心、稳定标点",
+        ALL_ROLES,
+        "八方起手已恢复，等待下一机制。",
+        party_objects(108)
+        + [
+            {
+                "kind": "circle",
+                "key": "next-read-ring",
+                "pos": "center",
+                "radius": 154,
+                "color": "#8fd14f",
+                "opacity": 14,
+                "label": "下一读条",
+                "labelPlacement": "fixed",
+                "labelPos": [0, -210],
+                "leaderLine": False,
+            },
+            {"kind": "arrow", "key": "next-read-reset-a", "from": [220, -20], "to": [160, -20], "arrowStyle": "reset", "endGap": 28},
+            {"kind": "arrow", "key": "next-read-reset-b", "from": [-220, 20], "to": [-160, 20], "arrowStyle": "reset", "endGap": 28},
+        ],
+        movement_required=True,
+        flow_kind="reset",
+        teaching_question="下一轮从什么阵型重新开始？",
+        why_this_frame_exists="把复位结果和下一读条起手分开，保证长机制有明确衔接帧。",
+        changed_objects_only="八方重新展开和下一读条准备圈。",
     )
 
 
@@ -563,7 +677,7 @@ def storyboard_templates(categories: set[str]) -> list[dict[str, Any]]:
     return templates
 
 
-def cap_storyboard_steps(steps: list[dict[str, Any]], max_steps: int = 14) -> list[dict[str, Any]]:
+def cap_storyboard_steps(steps: list[dict[str, Any]], max_steps: int = 16) -> list[dict[str, Any]]:
     if len(steps) <= max_steps:
         return steps
     required_tail = steps[-2:]
@@ -599,6 +713,7 @@ def build_steps(bundle: dict[str, Any], candidate: dict[str, Any]) -> list[dict[
     steps.append(movement_step(candidate, movement_targets, movement_arrows))
     steps.append(final_resolution_step(categories, movement_targets))
     steps.append(reset_step())
+    steps.append(next_read_setup_step())
     return renumber_steps(ensure_flow_objects(cap_storyboard_steps(steps)))
 
 
@@ -665,8 +780,9 @@ def build_spec(bundle: dict[str, Any], score_report: dict[str, Any] | None, cand
         "markerPresets": "cardinals",
         "metadata": {
             "source": "build_spec_from_solution.py",
-            "storyboard_generator": "phase-f-v2",
-            "storyboard_policy": "category-template-chain",
+            "storyboard_generator": "phase-o-v3",
+            "storyboard_policy": "teaching-question-template-chain",
+            "party_defaults": "phase-r-defaults",
             "arena_selection": arena_selection,
             "recommended_candidate": candidate.get("id"),
             "mode": candidate.get("mode"),

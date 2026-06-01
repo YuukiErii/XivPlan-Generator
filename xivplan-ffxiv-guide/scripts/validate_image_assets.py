@@ -65,19 +65,33 @@ def validate_png(path: Path, min_size: int, max_size: int, require_alpha: bool) 
     }
 
 
-def iter_manifest_paths(manifest_path: Path, manifest: dict[str, Any]) -> list[Path]:
-    assets = manifest.get("assets", [])
+def iter_manifest_assets(manifest_path: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    assets = manifest.get("enemy_assets")
+    if assets is None:
+        assets = manifest.get("assets", [])
     if not isinstance(assets, list):
-        raise AssetError("manifest.assets must be a list")
-    paths: list[Path] = []
+        raise AssetError("manifest.assets or manifest.enemy_assets must be a list")
+    items: list[dict[str, Any]] = []
     for index, asset in enumerate(assets):
         if not isinstance(asset, dict):
             raise AssetError(f"assets[{index}] must be an object")
         asset_path = asset.get("path")
-        if not isinstance(asset_path, str) or not asset_path:
-            raise AssetError(f"assets[{index}].path must be a non-empty string")
-        paths.append((manifest_path.parent / asset_path).resolve())
-    return paths
+        fallback = asset.get("fallback")
+        if isinstance(asset_path, str) and asset_path:
+            items.append({"path": (manifest_path.parent / asset_path).resolve(), "asset": asset})
+            continue
+        if manifest.get("enemy_assets") is not None and isinstance(fallback, str) and fallback:
+            items.append(
+                {
+                    "fallback": fallback,
+                    "asset": asset,
+                    "status": "fallback",
+                    "path": None,
+                }
+            )
+            continue
+        raise AssetError(f"assets[{index}].path must be a non-empty string or enemy fallback must be set")
+    return items
 
 
 def main() -> int:
@@ -91,14 +105,29 @@ def main() -> int:
 
     report: list[dict[str, Any]] = []
     try:
+        manifest_fallbacks: list[dict[str, Any]] = []
         paths: list[Path] = []
         for input_path in args.paths:
             if input_path.suffix.lower() == ".json":
-                paths.extend(iter_manifest_paths(input_path, read_json(input_path)))
+                for item in iter_manifest_assets(input_path, read_json(input_path)):
+                    if item.get("path") is None:
+                        asset = item.get("asset", {})
+                        manifest_fallbacks.append(
+                            {
+                                "enemy_id": asset.get("enemy_id") or asset.get("asset_id") or asset.get("name"),
+                                "name": asset.get("name"),
+                                "kind": asset.get("kind"),
+                                "fallback": item.get("fallback"),
+                                "status": "fallback",
+                            }
+                        )
+                    else:
+                        paths.append(item["path"])
             else:
                 paths.append(input_path)
         for path in paths:
             report.append(validate_png(path.resolve(), args.min_size, args.max_size, not args.no_alpha_required))
+        report.extend(manifest_fallbacks)
     except (OSError, json.JSONDecodeError, AssetError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
@@ -108,7 +137,10 @@ def main() -> int:
         args.json_out.write_text(json.dumps({"assets": report}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"OK: {len(report)} asset(s)")
     for item in report:
-        print(f"- {item['path']} {item['width']}x{item['height']} alpha={item['has_alpha']} subject={item['subject_ratio']}")
+        if item.get("status") == "fallback":
+            print(f"- {item.get('enemy_id') or item.get('name')}: fallback={item.get('fallback')}")
+        else:
+            print(f"- {item['path']} {item['width']}x{item['height']} alpha={item['has_alpha']} subject={item['subject_ratio']}")
     return 0
 
 

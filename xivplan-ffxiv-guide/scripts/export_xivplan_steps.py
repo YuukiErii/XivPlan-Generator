@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import math
+import os
 import re
 import sys
+from functools import lru_cache
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +21,17 @@ from PIL import Image, ImageColor, ImageDraw, ImageFont
 CANVAS_SIZE = 720
 CENTER = CANVAS_SIZE // 2
 SCALE = 0.9
+ROOT = Path(__file__).resolve().parents[2]
+ROLE_COLORS = {
+    "MT": "#3f7bdc",
+    "ST": "#3f7bdc",
+    "H1": "#49a86d",
+    "H2": "#49a86d",
+    "D1": "#d86b7d",
+    "D2": "#d86b7d",
+    "D3": "#b58a2a",
+    "D4": "#8d6eea",
+}
 
 
 def read_json(path: Path) -> Any:
@@ -65,6 +80,77 @@ def draw_centered_text(draw: ImageDraw.ImageDraw, center: tuple[float, float], t
     draw.text((x, y), text, font=face, fill=fill, stroke_width=2, stroke_fill="#101318")
 
 
+def data_url_image(value: Any) -> Image.Image | None:
+    if not isinstance(value, str) or not value.startswith("data:image/"):
+        return None
+    header, sep, payload = value.partition(",")
+    if not sep or ";base64" not in header:
+        return None
+    try:
+        return Image.open(BytesIO(base64.b64decode(payload))).convert("RGBA")
+    except Exception:
+        return None
+
+
+@lru_cache(maxsize=1)
+def xivplan_public_dirs() -> tuple[Path, ...]:
+    env_dir = os.environ.get("XIVPLAN_PUBLIC_DIR")
+    candidates = []
+    if env_dir:
+        candidates.append(Path(env_dir))
+    candidates.extend(
+        [
+            ROOT.parent / "XivPlan" / "public",
+            ROOT / "public",
+            ROOT / "xivplan-ffxiv-guide" / "public",
+        ]
+    )
+    return tuple(path.resolve() for path in candidates if path.exists())
+
+
+@lru_cache(maxsize=128)
+def local_asset_image(value: str) -> Image.Image | None:
+    if not value.startswith("/"):
+        return None
+    relative = Path(value.lstrip("/").replace("/", "\\"))
+    for public_dir in xivplan_public_dirs():
+        candidate = (public_dir / relative).resolve()
+        try:
+            candidate.relative_to(public_dir)
+        except ValueError:
+            continue
+        if candidate.is_file():
+            try:
+                return Image.open(candidate).convert("RGBA")
+            except Exception:
+                return None
+    return None
+
+
+def reference_image(value: Any) -> Image.Image | None:
+    source = data_url_image(value)
+    if source is not None:
+        return source
+    if isinstance(value, str):
+        return local_asset_image(value)
+    return None
+
+
+def paste_centered(canvas: Image.Image, source: Image.Image, center: tuple[float, float], size: tuple[float, float], opacity: Any = 100) -> None:
+    width = max(1, round(size[0] * SCALE))
+    height = max(1, round(size[1] * SCALE))
+    icon = source.copy()
+    icon.thumbnail((width, height), Image.Resampling.LANCZOS)
+    if opacity is not None:
+        alpha_factor = max(0.0, min(1.0, float(opacity) / 100.0))
+        if alpha_factor < 1.0:
+            alpha = icon.getchannel("A").point(lambda value: round(value * alpha_factor))
+            icon.putalpha(alpha)
+    x = round(center[0] - icon.width / 2)
+    y = round(center[1] - icon.height / 2)
+    canvas.alpha_composite(icon, (x, y))
+
+
 def polygon_points(cx: float, cy: float, r: float, sides: int, rotation: float) -> list[tuple[float, float]]:
     return [
         (
@@ -103,7 +189,15 @@ def draw_arrow(draw: ImageDraw.ImageDraw, obj: dict[str, Any]) -> None:
         draw.line([end, point], fill=fill, width=3)
 
 
-def draw_object(draw: ImageDraw.ImageDraw, obj: dict[str, Any]) -> None:
+def draw_job_badge(draw: ImageDraw.ImageDraw, obj: dict[str, Any], center: tuple[float, float], width: float, height: float) -> None:
+    role = str(obj.get("role") or obj.get("name") or "")
+    job = str(obj.get("job") or role)
+    fill = color_rgba(ROLE_COLORS.get(role, "#20252d"), obj.get("opacity", 100))
+    draw.rounded_rectangle([center[0] - width / 2, center[1] - height / 2, center[0] + width / 2, center[1] + height / 2], radius=6, fill=fill, outline="#f2f7ff", width=2)
+    draw_centered_text(draw, center, job[:3], 10)
+
+
+def draw_object(image: Image.Image, draw: ImageDraw.ImageDraw, obj: dict[str, Any]) -> None:
     obj_type = obj.get("type")
     cx, cy = xy(obj)
     fill = color_rgba(obj.get("color", "#ffffff"), obj.get("opacity", 100))
@@ -158,16 +252,31 @@ def draw_object(draw: ImageDraw.ImageDraw, obj: dict[str, Any]) -> None:
         draw_arrow(draw, obj)
     elif obj_type == "enemy":
         r = radius(obj.get("radius", 44))
-        draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color_rgba("#5b2b2b", obj.get("opacity", 100)), outline="#ff6b6b", width=4)
-        draw_centered_text(draw, (cx, cy), str(obj.get("name", "Boss")), 14)
+        ring = obj.get("targetRing")
+        ring_width = 4
+        if isinstance(ring, dict):
+            r = radius(ring.get("radius", obj.get("radius", 44)))
+            ring_width = max(2, round(float(ring.get("strokeWidth", 3)) * SCALE))
+        draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color_rgba("#5b2b2b", min(28, obj.get("opacity", 100))), outline="#ff6b6b", width=ring_width)
+        icon = reference_image(obj.get("icon") or obj.get("image"))
+        if icon is not None:
+            paste_centered(image, icon, (cx, cy), (float(obj.get("iconWidth", r * 1.45)), float(obj.get("iconHeight", r * 1.45))), obj.get("opacity", 100))
+        else:
+            draw_centered_text(draw, (cx, cy), str(obj.get("name", "Boss"))[:4], 12)
     elif obj_type in {"party", "marker", "image", "icon"}:
         width = float(obj.get("width", 34)) * SCALE
         height = float(obj.get("height", 34)) * SCALE
-        draw.rounded_rectangle([cx - width / 2, cy - height / 2, cx + width / 2, cy + height / 2], radius=6, fill=color_rgba("#20252d", obj.get("opacity", 100)), outline="#d7e3f5", width=2)
-        label = str(obj.get("name", obj.get("type", "")))
-        if obj_type == "marker":
-            label = str(obj.get("name", "M"))
-        draw_centered_text(draw, (cx, cy), label[:4], 12)
+        source = reference_image(obj.get("image") or obj.get("icon"))
+        if source is not None:
+            paste_centered(image, source, (cx, cy), (float(obj.get("width", 34)), float(obj.get("height", 34))), obj.get("opacity", 100))
+        elif obj_type == "party":
+            draw_job_badge(draw, obj, (cx, cy), width, height)
+        else:
+            draw.rounded_rectangle([cx - width / 2, cy - height / 2, cx + width / 2, cy + height / 2], radius=6, fill=color_rgba("#20252d", obj.get("opacity", 100)), outline="#d7e3f5", width=2)
+            label = str(obj.get("name", obj.get("type", "")))
+            if obj_type == "marker":
+                label = str(obj.get("name", "M"))
+            draw_centered_text(draw, (cx, cy), label[:4], 12)
     elif obj_type == "text":
         draw_centered_text(draw, (cx, cy), str(obj.get("text", "")), int(obj.get("fontSize", 16)))
 
@@ -182,10 +291,10 @@ def render_step(scene: dict[str, Any], step: dict[str, Any], output_path: Path, 
 
     for obj in step.get("objects", []):
         if obj.get("type") not in {"party", "marker", "enemy", "text", "tether"}:
-            draw_object(draw, obj)
+            draw_object(image, draw, obj)
     for obj in step.get("objects", []):
         if obj.get("type") in {"party", "marker", "enemy", "image", "icon", "arrow", "text"}:
-            draw_object(draw, obj)
+            draw_object(image, draw, obj)
 
     if scale_factor != 1:
         image = image.resize((size, size), Image.Resampling.LANCZOS)

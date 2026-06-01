@@ -94,14 +94,14 @@ def collect_unknowns(mechanic_ir: dict[str, Any], timeline_ir: dict[str, Any]) -
 
 def default_party() -> dict[str, dict[str, Any]]:
     return {
-        "MT": {"job": "DRK", "tags": ["tank", "uptime"]},
-        "ST": {"job": "PLD", "tags": ["tank", "uptime"]},
-        "H1": {"job": "AST", "tags": ["healer", "caster"]},
-        "H2": {"job": "SCH", "tags": ["healer", "caster"]},
-        "D1": {"job": "SAM", "tags": ["melee", "uptime"]},
-        "D2": {"job": "RPR", "tags": ["melee", "uptime"]},
-        "D3": {"job": "BRD", "tags": ["mobile_ranged"]},
-        "D4": {"job": "BLM", "tags": ["caster"]},
+        "MT": {"job": "DRK", "icon": "/actor/DRK.png", "roleLabel": "MT", "tags": ["tank", "uptime"]},
+        "ST": {"job": "PLD", "icon": "/actor/PLD.png", "roleLabel": "ST", "tags": ["tank", "uptime"]},
+        "H1": {"job": "AST", "icon": "/actor/AST.png", "roleLabel": "H1", "tags": ["healer", "caster"]},
+        "H2": {"job": "SCH", "icon": "/actor/SCH.png", "roleLabel": "H2", "tags": ["healer", "caster"]},
+        "D1": {"job": "SAM", "icon": "/actor/SAM.png", "roleLabel": "D1", "tags": ["melee", "uptime"]},
+        "D2": {"job": "DRG", "icon": "/actor/DRG.png", "roleLabel": "D2", "tags": ["melee", "uptime"]},
+        "D3": {"job": "BRD", "icon": "/actor/BRD.png", "roleLabel": "D3", "tags": ["mobile_ranged"]},
+        "D4": {"job": "PCT", "icon": "/actor/PCT.png", "roleLabel": "D4", "tags": ["caster"]},
     }
 
 

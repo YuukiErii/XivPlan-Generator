@@ -1234,11 +1234,19 @@ artifacts/parsed-mechanics/<case>/
 
 目标：为马上开启的新绝本「绝妖星乱舞」建立专门的快速攻略制作工作流，使本项目能在开荒信息持续变化时快速迭代。
 
-工作目录建议：
+当前目录约定：
 
 ```text
+docs/case-studies/ultimate-yokai-star-dance/
+├── README.md
+└── change-log.md
+
+xivplan-ffxiv-guide/assets/progression-notes/ultimate-yokai-star-dance/
+└── raw-notes/
+    ├── p1-draft-notes.md
+    └── p1-observed-notes.md
+
 artifacts/ultimate-yokai-star-dance/
-├── raw-notes/
 ├── parsed-ir/
 ├── knowledge-matches/
 ├── solution-candidates/
@@ -1251,10 +1259,11 @@ artifacts/ultimate-yokai-star-dance/
 
 任务：
 
-- [x] 建立 `artifacts/ultimate-yokai-star-dance/README.md`。
+- [x] 建立并迁移说明文件；当前位于 `docs/case-studies/ultimate-yokai-star-dance/README.md`。
   - [x] 说明当前信息来源、版本号、阶段状态、置信度。
   - [x] 说明所有输出都是开荒草案，必须等待实测修正。
-- [x] 建立 `raw-notes/p1-draft-notes.md`。
+- [x] 整理后持久说明位于 `docs/case-studies/ultimate-yokai-star-dance/README.md`，运行输出位于 `artifacts/ultimate-yokai-star-dance/`。
+- [x] 建立 `xivplan-ffxiv-guide/assets/progression-notes/ultimate-yokai-star-dance/raw-notes/p1-draft-notes.md`。
   - [x] 用于记录用户输入的绝妖星乱舞 P1 机制流程。
   - [x] 支持未确认信息、截图描述、时间轴、口述 call。
 - [x] 建立 `scripts/run_ultimate_yokai_star_dance_pipeline.py`。
@@ -1288,13 +1297,15 @@ artifacts/ultimate-yokai-star-dance/
 
 当前验收证据：
 
-- 专用工作区：`artifacts/ultimate-yokai-star-dance/`，含 `raw-notes/`、`parsed-ir/`、`knowledge-matches/`、`solution-candidates/`、`generated-specs/`、`generated-xivplan/`、`guide-packages/`、`quality-reports/`。
-- `v0.1-draft` 已由 `raw-notes/p1-draft-notes.md` 生成，输出在 `guide-packages/v0.1-draft/`、`generated-xivplan/v0.1-draft/` 等目录。
-- `v0.2-observed` 已由 `raw-notes/p1-observed-notes.md` 生成，并在 `change-log.md` 记录“新增确认”“推翻假设”“仍待确认”。
+- 专用运行输出：`artifacts/ultimate-yokai-star-dance/`，含 `parsed-ir/`、`knowledge-matches/`、`solution-candidates/`、`generated-specs/`、`generated-xivplan/`、`guide-packages/`、`quality-reports/`。
+- Source notes：`xivplan-ffxiv-guide/assets/progression-notes/ultimate-yokai-star-dance/raw-notes/`。
+- 持久案例记录：`docs/case-studies/ultimate-yokai-star-dance/`。
+- `v0.1-draft` 已由 `p1-draft-notes.md` 生成，输出在 `guide-packages/v0.1-draft/`、`generated-xivplan/v0.1-draft/` 等目录。
+- `v0.2-observed` 已由 `p1-observed-notes.md` 生成，并在 `change-log.md` 记录“新增确认”“推翻假设”“仍待确认”。
 - 两个版本均生成 Markdown / DOCX / PDF、`.xivplan`、step PNG、候选方案报告、类比报告、未知点清单和质量门报告。
 - 验证命令：
   - `C:\Users\Mahiru\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe xivplan-ffxiv-guide\scripts\run_ultimate_yokai_star_dance_pipeline.py --version v0.1-draft`
-  - `C:\Users\Mahiru\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe xivplan-ffxiv-guide\scripts\run_ultimate_yokai_star_dance_pipeline.py --notes artifacts\ultimate-yokai-star-dance\raw-notes\p1-observed-notes.md --version v0.2-observed --previous-version v0.1-draft`
+  - `C:\Users\Mahiru\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe xivplan-ffxiv-guide\scripts\run_ultimate_yokai_star_dance_pipeline.py --notes xivplan-ffxiv-guide\assets\progression-notes\ultimate-yokai-star-dance\raw-notes\p1-observed-notes.md --version v0.2-observed --previous-version v0.1-draft`
 - 最新质量门：
   - `artifacts/ultimate-yokai-star-dance/quality-reports/v0.1-draft/quality-report.md`：`PASS`
   - `artifacts/ultimate-yokai-star-dance/quality-reports/v0.2-observed/quality-report.md`：`PASS`
@@ -1337,8 +1348,8 @@ artifacts/ultimate-yokai-star-dance/
 - README 已写明普通机制、绝妖星乱舞和质量门命令。
 - `agents/openai.yaml` 固定默认输出目录、质量门必跑、unknowns 必列和版本输出保留策略。
 - 验证命令：
-  - `python xivplan-ffxiv-guide\scripts\run_full_guide_pipeline.py artifacts\ultimate-yokai-star-dance\raw-notes\p1-draft-notes.md --encounter-name "Ultimate Yokai Star Dance" --phase P1 --version v0.1-smoke --output-dir artifacts\full-guide-pipeline\ultimate-yokai-smoke --force`
-  - `python xivplan-ffxiv-guide\scripts\run_full_guide_pipeline.py artifacts\ultimate-yokai-star-dance\raw-notes\p1-observed-notes.md --ultimate-yokai-star-dance --version v0.2-observed-smoke --previous-version v0.2-observed --force`
+  - `python xivplan-ffxiv-guide\scripts\run_full_guide_pipeline.py xivplan-ffxiv-guide\assets\progression-notes\ultimate-yokai-star-dance\raw-notes\p1-draft-notes.md --encounter-name "Ultimate Yokai Star Dance" --phase P1 --version v0.1-smoke --output-dir artifacts\full-guide-pipeline\ultimate-yokai-smoke --force`
+  - `python xivplan-ffxiv-guide\scripts\run_full_guide_pipeline.py xivplan-ffxiv-guide\assets\progression-notes\ultimate-yokai-star-dance\raw-notes\p1-observed-notes.md --ultimate-yokai-star-dance --version v0.2-observed-smoke --previous-version v0.2-observed --force`
 
 ## 11. 风险与处理策略
 
@@ -1386,6 +1397,6 @@ artifacts/ultimate-yokai-star-dance/
 
 建议立即执行：
 
-1. 根据真实开荒信息继续更新 `artifacts/ultimate-yokai-star-dance/raw-notes/`。
+1. 根据真实开荒信息继续更新 `xivplan-ffxiv-guide/assets/progression-notes/ultimate-yokai-star-dance/raw-notes/`。
 2. 用 `run_full_guide_pipeline.py --ultimate-yokai-star-dance --version <new-version>` 生成下一版。
 3. 发布前检查 `change-log.md`、质量门报告、unknowns 和攻略正文措辞。

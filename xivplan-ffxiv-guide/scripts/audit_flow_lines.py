@@ -16,6 +16,8 @@ from audit_label_layout import bbox_for_object, overlap_area
 HEAD_BLOCKING_TYPES = {"party", "enemy", "marker", "text"}
 MECHANIC_TYPES = {"arc", "circle", "cone", "donut", "exaflare", "eye", "knockback", "line", "lineStack", "polygon", "rect", "stack", "starburst", "tower"}
 DANGER_COLORS = ("#d13438", "#ff8c00", "#8764b8", "#b146c2", "#ff4f64")
+ROUTE_SOURCE_KEYS = ("fromRole", "fromObject", "fromMarker")
+ROUTE_TARGET_KEYS = ("toRole", "toObject", "toMarker", "toZone")
 
 
 Point = tuple[float, float]
@@ -100,6 +102,8 @@ def arrow_head_box(segment: Segment, arrow: dict[str, Any]) -> tuple[float, floa
 def is_danger_zone(obj: dict[str, Any]) -> bool:
     if obj.get("type") not in MECHANIC_TYPES:
         return False
+    if obj.get("aoeIntent") in {"safe", "bait_history", "future_resolve", "reference_only"}:
+        return False
     if obj.get("type") in {"tower", "stack"}:
         return False
     opacity = float(obj.get("opacity", 100) or 100)
@@ -113,7 +117,48 @@ def route_check_enabled(obj: dict[str, Any]) -> bool:
     return obj.get("routeCheck", obj.get("route_check", True)) is not False
 
 
-def audit_step(step: dict[str, Any], step_index: int, max_crossings_per_step: int) -> dict[str, Any]:
+def has_semantic_value(obj: dict[str, Any], keys: tuple[str, ...]) -> bool:
+    return any(obj.get(key) not in (None, "", [], {}) for key in keys)
+
+
+def object_matches_endpoint(obj: dict[str, Any], arrow: dict[str, Any]) -> bool:
+    if arrow.get("toRole") and obj.get("type") == "party":
+        role = str(obj.get("role") or obj.get("name") or "").upper()
+        if role == str(arrow["toRole"]).upper():
+            return True
+    if arrow.get("toMarker") and obj.get("type") == "marker":
+        marker = str(obj.get("name") or obj.get("marker") or "").upper()
+        if marker == str(arrow["toMarker"]).upper():
+            return True
+    target = arrow.get("toObject") or arrow.get("toZone")
+    if target:
+        target = str(target).lower()
+        for key in ("sourceKey", "key", "name", "label"):
+            value = obj.get(key)
+            if isinstance(value, str) and value.lower() == target:
+                return True
+    return False
+
+
+def legal_endpoint_snap(arrow: dict[str, Any], obj: dict[str, Any]) -> bool:
+    return bool(arrow.get("snapToTarget")) and object_matches_endpoint(obj, arrow)
+
+
+def step_requires_semantic_routes(step: dict[str, Any]) -> bool:
+    if step.get("movement_required") is True:
+        return True
+    phase = str(step.get("storyboard_phase", ""))
+    return phase in {"first_move", "second_move", "move", "reset", "next_read_setup"}
+
+
+def audit_step(
+    step: dict[str, Any],
+    step_index: int,
+    max_crossings_per_step: int,
+    *,
+    require_semantics: bool = False,
+    require_danger_declaration: bool = False,
+) -> dict[str, Any]:
     objects = [obj for obj in step.get("objects", []) if isinstance(obj, dict)]
     arrow_items = [(index, obj, segment) for index, obj in enumerate(objects) if obj.get("type") == "arrow" and (segment := arrow_segment(obj))]
     issues: list[dict[str, Any]] = []
@@ -138,6 +183,7 @@ def audit_step(step: dict[str, Any], step_index: int, max_crossings_per_step: in
                     }
                 )
 
+    endpoint_snaps = 0
     for _index, arrow, segment in arrow_items:
         if not arrow.get("arrowEnd", True):
             continue
@@ -149,6 +195,9 @@ def audit_step(step: dict[str, Any], step_index: int, max_crossings_per_step: in
                 continue
             box = bbox_for_object(obj)
             if box and overlap_area(head_box, box) > 0:
+                if legal_endpoint_snap(arrow, obj):
+                    endpoint_snaps += 1
+                    continue
                 issues.append(
                     {
                         "severity": "severe",
@@ -168,12 +217,51 @@ def audit_step(step: dict[str, Any], step_index: int, max_crossings_per_step: in
             if box and segment_intersects_box(segment, box):
                 issues.append(
                     {
-                        "severity": "review",
+                        "severity": "severe" if require_danger_declaration else "review",
                         "kind": "arrow_through_danger_zone",
                         "arrow_id": arrow.get("id"),
                         "other_id": obj.get("id"),
                     }
                 )
+
+    semantic_arrows = 0
+    declared_endpoint_snaps = 0
+    semantic_required_for_step = require_semantics and step_requires_semantic_routes(step)
+    for _index, arrow, _segment in arrow_items:
+        missing = []
+        if not has_semantic_value(arrow, ROUTE_SOURCE_KEYS):
+            missing.append("source")
+        if not has_semantic_value(arrow, ROUTE_TARGET_KEYS):
+            missing.append("target")
+        if not arrow.get("routeIntent"):
+            missing.append("intent")
+        if arrow.get("resolveIndex") in (None, ""):
+            missing.append("resolveIndex")
+        if not isinstance(arrow.get("snapToTarget"), bool):
+            missing.append("snapToTarget")
+        if not missing:
+            semantic_arrows += 1
+        elif semantic_required_for_step:
+            issues.append(
+                {
+                    "severity": "severe",
+                    "kind": "arrow_missing_route_semantics",
+                    "arrow_id": arrow.get("id"),
+                    "missing": missing,
+                }
+            )
+        if isinstance(arrow.get("snapToTarget"), bool):
+            declared_endpoint_snaps += 1
+        if arrow.get("snapToTarget") and not has_semantic_value(arrow, ROUTE_TARGET_KEYS):
+            issues.append(
+                {
+                    "severity": "severe" if semantic_required_for_step else "review",
+                    "kind": "arrow_snap_without_target",
+                    "arrow_id": arrow.get("id"),
+                }
+            )
+    if semantic_required_for_step and not arrow_items:
+        issues.append({"severity": "severe", "kind": "movement_step_missing_semantic_route"})
 
     severe_count = sum(1 for issue in issues if issue["severity"] == "severe")
     review_count = sum(1 for issue in issues if issue["severity"] == "review")
@@ -182,6 +270,9 @@ def audit_step(step: dict[str, Any], step_index: int, max_crossings_per_step: in
         "title": step.get("title", f"Step {step_index}"),
         "arrows": len(arrow_items),
         "crossings": crossings,
+        "semantic_arrows": semantic_arrows,
+        "declared_endpoint_snaps": declared_endpoint_snaps,
+        "endpoint_snaps": endpoint_snaps,
         "severe_items": severe_count,
         "review_items": review_count,
         "issues": issues,
@@ -193,15 +284,36 @@ def audit_scene(path: Path, max_crossings_per_step: int = 0) -> dict[str, Any]:
     steps = scene.get("steps", [])
     if not isinstance(steps, list):
         raise ValueError("scene.steps must be a list")
-    per_step = [audit_step(step, index, max_crossings_per_step) for index, step in enumerate(steps, start=1) if isinstance(step, dict)]
+    semantics_contract = scene.get("mechanic_semantics_contract") if isinstance(scene.get("mechanic_semantics_contract"), dict) else {}
+    require_semantics = bool(semantics_contract.get("require_arrow_semantics"))
+    require_danger_declaration = bool(semantics_contract.get("require_danger_crossing_declaration"))
+    per_step = [
+        audit_step(
+            step,
+            index,
+            max_crossings_per_step,
+            require_semantics=require_semantics,
+            require_danger_declaration=require_danger_declaration,
+        )
+        for index, step in enumerate(steps, start=1)
+        if isinstance(step, dict)
+    ]
     severe = sum(item["severe_items"] for item in per_step)
     review = sum(item["review_items"] for item in per_step)
     crossings = sum(item["crossings"] for item in per_step)
+    arrows = sum(item["arrows"] for item in per_step)
+    semantic_arrows = sum(item["semantic_arrows"] for item in per_step)
+    declared_endpoint_snaps = sum(item["declared_endpoint_snaps"] for item in per_step)
     return {
         "path": str(path),
         "steps": len(per_step),
-        "arrows": sum(item["arrows"] for item in per_step),
+        "arrows": arrows,
         "crossings": crossings,
+        "semantic_contract_active": require_semantics,
+        "semantic_arrows": semantic_arrows,
+        "arrow_semantics_score": round(semantic_arrows / arrows * 100, 2) if arrows else (100.0 if not require_semantics else 0.0),
+        "declared_endpoint_snaps": declared_endpoint_snaps,
+        "endpoint_snaps": sum(item["endpoint_snaps"] for item in per_step),
         "severe_items": severe,
         "review_items": review,
         "ok": severe == 0,

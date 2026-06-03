@@ -15,7 +15,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageColor, ImageDraw, ImageFont
+from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps
 
 
 CANVAS_SIZE = 720
@@ -121,10 +121,31 @@ def local_asset_image(value: str) -> Image.Image | None:
             continue
         if candidate.is_file():
             try:
+                if candidate.suffix.lower() == ".svg":
+                    return svg_placeholder_image(candidate)
                 return Image.open(candidate).convert("RGBA")
             except Exception:
                 return None
     return None
+
+
+def svg_placeholder_image(path: Path) -> Image.Image:
+    """Draw a lightweight arena fallback when Pillow cannot rasterize SVG."""
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    match = re.search(r"pagecolor=\"(#[0-9a-fA-F]{6})\"", text)
+    background = match.group(1) if match else "#40352c"
+    image = Image.new("RGBA", (600, 600), background)
+    draw = ImageDraw.Draw(image, "RGBA")
+    draw.ellipse([4, 4, 596, 596], outline=color_rgba("#8f7b66", 82), width=6)
+    for index in range(8):
+        angle = math.radians(index * 45)
+        x = 300 + math.cos(angle) * 292
+        y = 300 + math.sin(angle) * 292
+        draw.line([(300, 300), (x, y)], fill=color_rgba("#6f5a48", 42), width=2)
+    for radius_px in (150, 225):
+        draw.ellipse([300 - radius_px, 300 - radius_px, 300 + radius_px, 300 + radius_px], outline=color_rgba("#6f5a48", 46), width=2)
+    draw_centered_text(draw, (300, 300), path.stem.upper(), 22, fill="#f5efe7")
+    return image
 
 
 def reference_image(value: Any) -> Image.Image | None:
@@ -134,6 +155,147 @@ def reference_image(value: Any) -> Image.Image | None:
     if isinstance(value, str):
         return local_asset_image(value)
     return None
+
+
+def arena_bounds() -> tuple[int, int, int, int]:
+    return 60, 60, CANVAS_SIZE - 60, CANVAS_SIZE - 60
+
+
+def arena_center_radius() -> tuple[tuple[int, int], int]:
+    left, top, right, bottom = arena_bounds()
+    return (CENTER, CENTER), (right - left) // 2
+
+
+def paste_arena_background(canvas: Image.Image, source: Image.Image, opacity: Any, shape: str) -> None:
+    left, top, right, bottom = arena_bounds()
+    size = (right - left, bottom - top)
+    background = ImageOps.fit(source.convert("RGBA"), size, method=Image.Resampling.LANCZOS)
+    alpha_factor = max(0.0, min(1.0, float(opacity if opacity is not None else 100) / 100.0))
+    if alpha_factor < 1.0:
+        alpha = background.getchannel("A").point(lambda value: round(value * alpha_factor))
+        background.putalpha(alpha)
+    if shape == "circle":
+        mask = Image.new("L", size, 0)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.ellipse([0, 0, size[0] - 1, size[1] - 1], fill=255)
+        background.putalpha(Image.composite(background.getchannel("A"), Image.new("L", size, 0), mask))
+    canvas.alpha_composite(background, (left, top))
+
+
+def draw_grid(draw: ImageDraw.ImageDraw, arena: dict[str, Any]) -> None:
+    center, outer = arena_center_radius()
+    grid = arena.get("grid") if isinstance(arena.get("grid"), dict) else {}
+    grid_type = grid.get("type")
+    if arena.get("shape", "circle") == "rectangle" or grid_type == "rectangle":
+        rows = int(grid.get("rows", 4) or 4)
+        columns = int(grid.get("columns", 4) or 4)
+        left, top, right, bottom = arena_bounds()
+        for index in range(1, columns):
+            x = left + (right - left) * index / columns
+            draw.line([(x, top), (x, bottom)], fill=color_rgba("#3a414d", 50), width=1)
+        for index in range(1, rows):
+            y = top + (bottom - top) * index / rows
+            draw.line([(left, y), (right, y)], fill=color_rgba("#3a414d", 50), width=1)
+        return
+    angular_divs = int(grid.get("angularDivs", 8) or 8)
+    radial_divs = int(grid.get("radialDivs", 2) or 2)
+    for index in range(angular_divs):
+        angle = math.radians(index * 360 / angular_divs)
+        end = (center[0] + math.cos(angle) * outer, center[1] + math.sin(angle) * outer)
+        draw.line([center, end], fill=color_rgba("#3a414d", 44), width=1)
+    for index in range(1, radial_divs + 1):
+        r = outer * index / (radial_divs + 1)
+        draw.ellipse([center[0] - r, center[1] - r, center[0] + r, center[1] + r], outline=color_rgba("#3a414d", 42), width=1)
+
+
+def draw_radial_ticks(draw: ImageDraw.ImageDraw, count: int, color: str, opacity: Any) -> None:
+    center, outer = arena_center_radius()
+    for index in range(max(1, count)):
+        angle = math.radians(index * 360 / count)
+        inner = outer - (18 if index % 2 == 0 else 11)
+        start = (center[0] + math.cos(angle) * inner, center[1] + math.sin(angle) * inner)
+        end = (center[0] + math.cos(angle) * outer, center[1] + math.sin(angle) * outer)
+        draw.line([start, end], fill=color_rgba(color, opacity), width=2)
+
+
+def draw_axis_overlay(draw: ImageDraw.ImageDraw, axis: str, label: str, color: str, opacity: Any) -> None:
+    center, outer = arena_center_radius()
+    if axis.upper() == "AC":
+        points = [(center[0], center[1] - outer), (center[0], center[1] + outer)]
+        label_pos = (center[0] - 34, center[1] - outer + 26)
+    else:
+        points = [(center[0] - outer, center[1]), (center[0] + outer, center[1])]
+        label_pos = (center[0] + outer - 42, center[1] - 24)
+    draw.line(points, fill=color_rgba(color, opacity), width=3)
+    if label:
+        draw_centered_text(draw, label_pos, label, 13, fill=color)
+
+
+def draw_half_mask(canvas: Image.Image, side: str, color: str, opacity: Any, label: str) -> None:
+    left, top, right, bottom = arena_bounds()
+    overlay = Image.new("RGBA", (CANVAS_SIZE, CANVAS_SIZE), (0, 0, 0, 0))
+    overlay_draw = ImageDraw.Draw(overlay, "RGBA")
+    side = side.upper()
+    if side in {"W", "WEST"}:
+        box = [left, top, CENTER, bottom]
+        label_pos = (CENTER - 128, CENTER)
+    elif side in {"E", "EAST"}:
+        box = [CENTER, top, right, bottom]
+        label_pos = (CENTER + 128, CENTER)
+    elif side in {"N", "NORTH"}:
+        box = [left, top, right, CENTER]
+        label_pos = (CENTER, CENTER - 128)
+    else:
+        box = [left, CENTER, right, bottom]
+        label_pos = (CENTER, CENTER + 128)
+    overlay_draw.rectangle(box, fill=color_rgba(color, opacity))
+    mask = Image.new("L", (CANVAS_SIZE, CANVAS_SIZE), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.ellipse(arena_bounds(), fill=255)
+    overlay.putalpha(Image.composite(overlay.getchannel("A"), Image.new("L", (CANVAS_SIZE, CANVAS_SIZE), 0), mask))
+    canvas.alpha_composite(overlay)
+    if label:
+        draw = ImageDraw.Draw(canvas, "RGBA")
+        draw_centered_text(draw, label_pos, label, 13, fill=color)
+
+
+def draw_arena_overlays(image: Image.Image, draw: ImageDraw.ImageDraw, arena: dict[str, Any]) -> None:
+    overlays = arena.get("arenaOverlays")
+    if not isinstance(overlays, list):
+        return
+    for overlay in overlays:
+        if not isinstance(overlay, dict):
+            continue
+        kind = str(overlay.get("kind", ""))
+        if kind == "radial_ticks":
+            draw_radial_ticks(draw, int(overlay.get("count", 16) or 16), str(overlay.get("color", "#8aa0b8")), overlay.get("opacity", 42))
+        elif kind == "axis":
+            draw_axis_overlay(draw, str(overlay.get("axis", "AC")), str(overlay.get("label", "")), str(overlay.get("color", "#f7f7f7")), overlay.get("opacity", 72))
+        elif kind == "half_mask":
+            draw_half_mask(image, str(overlay.get("side", "W")), str(overlay.get("color", "#5fb3ff")), overlay.get("opacity", 12), str(overlay.get("label", "")))
+        elif kind == "ring_label_band":
+            draw_centered_text(draw, (CENTER, 38), str(overlay.get("label", ""))[:78], 12, fill=str(overlay.get("color", "#f7f7f7")))
+
+
+def draw_arena(image: Image.Image, scene: dict[str, Any]) -> None:
+    arena = scene.get("arena") if isinstance(scene.get("arena"), dict) else {}
+    shape = str(arena.get("shape", "circle"))
+    draw = ImageDraw.Draw(image, "RGBA")
+    background = reference_image(arena.get("backgroundImage"))
+    if background is not None:
+        paste_arena_background(image, background, arena.get("backgroundOpacity", 88), shape)
+    elif shape == "rectangle":
+        draw.rectangle(arena_bounds(), fill="#242932", outline="#667085", width=3)
+    else:
+        draw.ellipse(arena_bounds(), fill="#242932", outline="#667085", width=3)
+    draw_grid(draw, arena)
+    draw_arena_overlays(image, draw, arena)
+    if background is None and arena.get("backgroundImage"):
+        draw_centered_text(draw, (CENTER, CANVAS_SIZE - 36), f"arena asset fallback: {arena.get('backgroundImage')}", 11, fill="#f7c873")
+    if shape == "rectangle":
+        draw.rectangle(arena_bounds(), outline="#667085", width=3)
+    else:
+        draw.ellipse(arena_bounds(), outline="#667085", width=3)
 
 
 def paste_centered(canvas: Image.Image, source: Image.Image, center: tuple[float, float], size: tuple[float, float], opacity: Any = 100) -> None:
@@ -285,9 +447,7 @@ def render_step(scene: dict[str, Any], step: dict[str, Any], output_path: Path, 
     size = CANVAS_SIZE * scale_factor
     image = Image.new("RGBA", (CANVAS_SIZE, CANVAS_SIZE), "#15171ccc")
     draw = ImageDraw.Draw(image, "RGBA")
-    draw.ellipse([60, 60, CANVAS_SIZE - 60, CANVAS_SIZE - 60], fill="#242932", outline="#667085", width=3)
-    draw.line([(CENTER, 70), (CENTER, CANVAS_SIZE - 70)], fill="#3a414d", width=1)
-    draw.line([(70, CENTER), (CANVAS_SIZE - 70, CENTER)], fill="#3a414d", width=1)
+    draw_arena(image, scene)
 
     for obj in step.get("objects", []):
         if obj.get("type") not in {"party", "marker", "enemy", "text", "tether"}:

@@ -5,16 +5,20 @@ interface:
 defaults:
   output_root: "artifacts/full-guide-pipeline"
   ultimate_yokai_star_dance_root: "artifacts/ultimate-yokai-star-dance"
+  ultimate_yokai_star_dance_notes_root: "xivplan-ffxiv-guide/assets/progression-notes/ultimate-yokai-star-dance/raw-notes"
   quality_gate_required: true
   visual_quality_gate_required: true
   visual_regression_required_for_release: true
   release_visual_severe_allowed: 0
-  release_visual_fixture_pass_target: 10
+  release_visual_fixture_pass_target: 12
   full_party_each_step_required: true
   enemy_identity_gate_required: true
   enemy_asset_icon_gate_required: true
   party_identity_gate_required: true
   teaching_storyboard_v3_required: true
+  in_scene_annotation_contract_required: true
+  mechanic_semantics_contract_required: true
+  status_assignment_contract_required: true
   semantic_long_flow_density_policy: "accept phase-l-semantic-long-flow and phase-o-teaching-long-flow scenes with golden-band density, storyboard coverage, and zero severe visual issues"
   unknowns_required: true
   preserve_version_outputs: true
@@ -24,8 +28,11 @@ policies:
   - "Every normal generated XivPlan step must preserve the full party, Boss/enemy anchor, stable waymarks, and arena context unless explicitly marked as a partial observation."
   - "Every Boss/add/clone/source must have a name, visible target ring, radius, and readable label; duplicate add names must be disambiguated."
   - "Every Boss/add/clone/source must have a dedicated or fallback icon; uncertain assets use an explicit fallback instead of removing enemy identity."
-  - "Every normal party frame must preserve unique MT/ST/H1/H2/D1/D2/D3/D4 role identity, official XivPlan /actor/<JOB>.png job icons, and readable role labels unless the frame is an intentional cluster/stack."
+  - "Every normal party frame must preserve unique MT/ST/H1/H2/D1/D2/D3/D4 role identity; mechanic_flow uses official numbered role icons, while flow_example uses official XivPlan /actor/<JOB>.png job icons plus readable role labels unless the frame is an intentional cluster/stack."
   - "Complex mechanics must be storyboarded before concrete spec generation and must include observation, assignment, movement, resolution, reset, and next-read coverage."
+  - "Complex generated mechanism diagrams must use the Phase U annotation contract: page title, axis/priority/mechanic/footer callouts, and enough in-scene text that the figure is readable without relying only on guide_text."
+  - "Complex generated mechanism diagrams must use the Phase V mechanic semantics contract: movementRoute endpoints and resolve rounds, damagePattern intent/source/targets/timing metadata, real resolve geometry, and no undeclared current-danger crossing."
+  - "Buff/debuff or status-driven mechanism diagrams must use the Phase X status assignment contract: every assigned MT/ST/H1/H2/D1/D2/D3/D4 role gets a readable upper-left status overlay, and fallback status badges record a reason."
   - "Visual quality gate severe items block release-ready handoff; review items must be reported with step/object pointers."
   - "Second-round release handoff must include visual regression results, review burndown, contact sheets, and human-review notes."
   - "Semantic long-flow dense-step review is accepted only for explicit semantic long-flow profiles; ordinary scenes still use the single-step focus threshold."

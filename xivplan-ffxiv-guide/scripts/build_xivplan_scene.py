@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import copy
+import io
 import json
 import math
 from pathlib import Path
@@ -87,6 +89,37 @@ ARENA_PRESETS = {
         "padding": 120,
         "grid": {"type": "rectangle", "rows": 4, "columns": 4},
     },
+    "omega-o8s": {
+        "shape": "circle",
+        "width": 600,
+        "height": 600,
+        "padding": 120,
+        "grid": {"type": "radial", "angularDivs": 8, "radialDivs": 2},
+        "backgroundStatus": "fallback",
+        "sourceReason": "no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays",
+        "arenaOverlays": [
+            {"kind": "radial_ticks", "count": 16, "color": "#8aa0b8", "opacity": 42},
+            {"kind": "axis", "axis": "AC", "label": "AC 轴", "color": "#5fb3ff", "opacity": 72},
+            {"kind": "axis", "axis": "BD", "label": "BD 轴", "color": "#ffb650", "opacity": 72},
+            {"kind": "half_mask", "side": "W", "label": "西半场", "color": "#5fb3ff", "opacity": 10},
+            {"kind": "ring_label_band", "label": "O8S/Omega arena fallback: use axes, waymarks, and Boss target ring", "color": "#f7f7f7"},
+        ],
+    },
+    "ultimate-yokai-star-dance": {
+        "shape": "circle",
+        "width": 600,
+        "height": 600,
+        "padding": 120,
+        "grid": {"type": "radial", "angularDivs": 8, "radialDivs": 2},
+        "backgroundImage": "/arena/udm-p1.png",
+        "backgroundStatus": "local-asset",
+        "sourceReason": "local UDM/Yokai arena asset `/arena/udm-p1.png` found; use it for Ultimate Yokai Star Dance P1 diagrams",
+        "arenaOverlays": [
+            {"kind": "radial_ticks", "count": 16, "color": "#8aa0b8", "opacity": 42},
+            {"kind": "axis", "axis": "AC", "label": "AC 轴", "color": "#5fb3ff", "opacity": 66},
+            {"kind": "axis", "axis": "BD", "label": "BD 轴", "color": "#ffb650", "opacity": 66},
+        ],
+    },
 }
 
 ARENA_ALIASES = {
@@ -107,6 +140,19 @@ ARENA_ALIASES = {
     "square": "tile-square",
     "tile": "tile-square",
     "tile-square": "tile-square",
+    "o8s": "omega-o8s",
+    "omega": "omega-o8s",
+    "omega-o8s": "omega-o8s",
+    "sigmascape": "omega-o8s",
+    "kefka": "omega-o8s",
+    "凯夫卡": "omega-o8s",
+    "妖星乱舞": "omega-o8s",
+    "ultimate-yokai-star-dance": "ultimate-yokai-star-dance",
+    "ultimate yokai star dance": "ultimate-yokai-star-dance",
+    "yokai-star-dance": "ultimate-yokai-star-dance",
+    "udm": "ultimate-yokai-star-dance",
+    "绝妖": "ultimate-yokai-star-dance",
+    "绝妖星乱舞": "ultimate-yokai-star-dance",
 }
 
 MARKER_PRESETS = {
@@ -153,6 +199,16 @@ ROLE_IMAGES = {
 
 PARTY_ROLES = ("MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4")
 ROLE_DIR = {"MT": "N", "ST": "S", "H1": "W", "H2": "E", "D1": "NW", "D2": "NE", "D3": "SW", "D4": "SE"}
+ROLE_NUMBER_ICONS = {
+    "MT": "/actor/tank1.png",
+    "ST": "/actor/tank2.png",
+    "H1": "/actor/healer1.png",
+    "H2": "/actor/healer2.png",
+    "D1": "/actor/dps1.png",
+    "D2": "/actor/dps2.png",
+    "D3": "/actor/dps3.png",
+    "D4": "/actor/dps4.png",
+}
 DEFAULT_PARTY_JOBS = {
     "MT": {"job": "DRK", "jobName": "Dark Knight", "icon": "/actor/DRK.png"},
     "ST": {"job": "PLD", "jobName": "Paladin", "icon": "/actor/PLD.png"},
@@ -163,6 +219,8 @@ DEFAULT_PARTY_JOBS = {
     "D3": {"job": "BRD", "jobName": "Bard", "icon": "/actor/BRD.png"},
     "D4": {"job": "PCT", "jobName": "Pictomancer", "icon": "/actor/PCT.png"},
 }
+MECHANIC_FLOW_TOKENS = {"mechanic_flow", "mechanic-flow", "mechanic", "main", "main_mechanic", "机制流程", "主机制流程"}
+FLOW_EXAMPLE_TOKENS = {"flow_example", "flow-example", "example", "position_example", "timeline_example", "流程示例", "示例"}
 ENEMY_SPEC_KINDS = {"boss", "enemy", "add", "clone", "shadow", "untargetable_source"}
 ENEMY_KIND_DEFAULT_RADIUS = {
     "boss": 42,
@@ -184,6 +242,57 @@ DEFAULT_SCENE_CONTRACT = {
     "require_waymarks_each_step": False,
     "allow_partial_observation": True,
 }
+SEMANTIC_OBJECT_FIELDS = (
+    "damagePattern",
+    "damagePatternKind",
+    "movementRoute",
+    "routeIntent",
+    "source",
+    "targets",
+    "targetRoles",
+    "resolveIndex",
+    "resolveTiming",
+    "aoeIntent",
+    "fromRole",
+    "fromObject",
+    "fromMarker",
+    "toRole",
+    "toObject",
+    "toMarker",
+    "toZone",
+    "startLabel",
+    "endLabel",
+    "snapToTarget",
+    "baitSequence",
+    "statusOverlay",
+    "statusRole",
+    "statusName",
+    "statusKind",
+    "decisionGroup",
+    "durationLabel",
+    "stackLabel",
+    "priorityLabel",
+    "anchorRole",
+    "anchorPartyId",
+    "visibleSteps",
+    "assetStatus",
+    "assetFallback",
+)
+
+STATUS_ICON_COLORS = {
+    "red": ("#d13438", "#ffffff"),
+    "blue": ("#0078d4", "#ffffff"),
+    "green": ("#107c10", "#ffffff"),
+    "yellow": ("#ffb900", "#101318"),
+    "purple": ("#8764b8", "#ffffff"),
+    "orange": ("#ff8c00", "#101318"),
+    "short": ("#d13438", "#ffffff"),
+    "long": ("#0078d4", "#ffffff"),
+    "fire": ("#ff8c00", "#101318"),
+    "ice": ("#2aa7ff", "#101318"),
+    "light": ("#f7e36d", "#101318"),
+    "dark": ("#3b2f66", "#ffffff"),
+}
 
 DIRECTION_DEGREES = {
     "E": 0,
@@ -194,6 +303,12 @@ DIRECTION_DEGREES = {
     "SW": 225,
     "S": 270,
     "SE": 315,
+}
+LABEL_BAND_POSITIONS = {
+    "top": [(-220.0, 302.0), (0.0, 286.0), (220.0, 302.0)],
+    "bottom": [(-220.0, -302.0), (0.0, -286.0), (220.0, -302.0)],
+    "left": [(-302.0, 176.0), (-302.0, 0.0), (-302.0, -176.0)],
+    "right": [(302.0, 176.0), (302.0, 0.0), (302.0, -176.0)],
 }
 
 _STYLE: dict[str, Any] = {}
@@ -253,6 +368,42 @@ def pos_from_obj(obj: dict[str, Any]) -> tuple[float, float]:
     return with_offset(resolve_pos(obj.get("pos", "center"), distance), obj.get("offset"))
 
 
+def label_band_position(obj: dict[str, Any]) -> tuple[float, float] | None:
+    raw_band = obj.get("labelBand", obj.get("label_band"))
+    if not isinstance(raw_band, str) or not raw_band.strip():
+        return None
+    band = raw_band.strip().lower().replace("-", "_")
+    positions = LABEL_BAND_POSITIONS.get(band)
+    if not positions:
+        return None
+    raw_index = obj.get("labelBandIndex", obj.get("label_band_index", obj.get("bandIndex", 0)))
+    try:
+        index = int(raw_index)
+    except (TypeError, ValueError):
+        index = 0
+    base = positions[index % len(positions)]
+    cycle = index // len(positions)
+    if cycle:
+        if band in {"top", "bottom"}:
+            step = -28.0 if band == "top" else 28.0
+            base = (base[0], base[1] + cycle * step)
+        else:
+            step = 28.0 if band == "left" else -28.0
+            base = (base[0] + cycle * step, base[1])
+    return with_offset(base, obj.get("offset"))
+
+
+def text_pos_from_obj(obj: dict[str, Any]) -> tuple[float, float]:
+    if "pos" not in obj:
+        band_pos = label_band_position(obj)
+        if band_pos is not None:
+            return band_pos
+    x, y = pos_from_obj(obj)
+    # Keep auto-generated labels inside the validator margin even when a large
+    # mechanic such as a charge line pushes the preferred offset outward.
+    return max(-330.0, min(330.0, x)), max(-330.0, min(330.0, y))
+
+
 def rotation_from_vector(start: tuple[float, float], end: tuple[float, float]) -> float:
     dx = end[0] - start[0]
     dy = end[1] - start[1]
@@ -293,7 +444,18 @@ def base_arena(spec: dict[str, Any]) -> dict[str, Any]:
         "padding": int(arena.get("padding", DEFAULT_PADDING)),
         "grid": grid,
     }
-    for optional_key in ("backgroundImage", "backgroundOpacity", "ticks", "preset", "source", "sourceReason"):
+    for optional_key in (
+        "backgroundImage",
+        "backgroundOpacity",
+        "backgroundStatus",
+        "backgroundAsset",
+        "fallbackBackground",
+        "ticks",
+        "preset",
+        "source",
+        "sourceReason",
+        "arenaOverlays",
+    ):
         if optional_key in arena:
             result[optional_key] = arena[optional_key]
     return result
@@ -301,6 +463,12 @@ def base_arena(spec: dict[str, Any]) -> dict[str, Any]:
 
 def add_common(obj: dict[str, Any], spec_obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
     obj["id"] = obj_id
+    source_key = object_key(spec_obj)
+    if source_key:
+        obj["sourceKey"] = source_key
+    for key in SEMANTIC_OBJECT_FIELDS:
+        if key in spec_obj:
+            obj[key] = copy.deepcopy(spec_obj[key])
     if spec_obj.get("ghost") and "opacity" not in spec_obj:
         obj["opacity"] = 35
     obj["opacity"] = int(spec_obj.get("opacity", obj.get("opacity", 100)))
@@ -479,8 +647,13 @@ def make_party(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
     defaults = DEFAULT_PARTY_JOBS.get(role, {})
     job = str(obj.get("job") or defaults.get("job") or role)
     job_name = str(obj.get("jobName") or obj.get("job_name") or defaults.get("jobName") or job)
-    icon = str(obj.get("icon") or defaults.get("icon") or ROLE_IMAGES.get(role, "/actor/any.png"))
+    display_style = explicit_party_display_style(obj.get("partyDisplayStyle")) or explicit_party_display_style(obj.get("party_display_style")) or "role-number-icon"
+    if display_style == "role-number-icon":
+        icon = str(ROLE_NUMBER_ICONS.get(role) or ROLE_IMAGES.get(role, "/actor/any.png"))
+    else:
+        icon = str(obj.get("icon") or defaults.get("icon") or ROLE_IMAGES.get(role, "/actor/any.png"))
     role_label = str(obj.get("roleLabel") or obj.get("role_label") or role)
+    role_label_visible = obj.get("roleLabelVisible", obj.get("role_label_visible", display_style != "role-number-icon")) is not False
     icon_scale = float(obj.get("iconScale", obj.get("icon_scale", 1.0)) or 1.0)
     icon_scale = max(0.72, min(1.25, icon_scale))
     base_size = int(obj.get("width", style_value("player_size", DEFAULT_PLAYER_SIZE)))
@@ -497,9 +670,11 @@ def make_party(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
             "jobDefault": "job" not in obj and role in DEFAULT_PARTY_JOBS,
             "roleLabel": role_label,
             "roleLabelPlacement": obj.get("roleLabelPlacement", obj.get("role_label_placement", "near-icon")),
-            "roleLabelVisible": obj.get("roleLabelVisible", obj.get("role_label_visible", True)) is not False,
+            "roleLabelVisible": role_label_visible,
             "icon": icon,
-            "image": obj.get("image", icon),
+            "image": icon if display_style == "role-number-icon" else obj.get("image", icon),
+            "partyDisplayStyle": display_style,
+            "guideSection": obj.get("guideSection", obj.get("guide_section", "mechanic_flow")),
             "iconScale": icon_scale,
             "x": x,
             "y": y,
@@ -538,6 +713,9 @@ def party_role_label_position(spec_obj: dict[str, Any]) -> tuple[float, float]:
 
 
 def build_party_role_label_objects(spec_obj: dict[str, Any], next_id: int, anchor_id: int) -> tuple[list[dict[str, Any]], int]:
+    display_style = explicit_party_display_style(spec_obj.get("partyDisplayStyle")) or explicit_party_display_style(spec_obj.get("party_display_style"))
+    if display_style == "role-number-icon":
+        return [], next_id
     visible = spec_obj.get("roleLabelVisible", spec_obj.get("role_label_visible", True)) is not False
     role_label = spec_obj.get("roleLabel", spec_obj.get("role_label", spec_obj.get("role")))
     if not visible or not role_label:
@@ -618,6 +796,159 @@ def make_icon(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
     )
 
 
+def status_visible_on_step(assignment: dict[str, Any], step_index: int) -> bool:
+    visible = assignment.get("visibleSteps", assignment.get("visible_steps"))
+    if visible is None:
+        return True
+    if isinstance(visible, str):
+        return visible.strip().lower() in {"all", "*", "normal"}
+    if not isinstance(visible, list):
+        return False
+    for item in visible:
+        if isinstance(item, int) and item == step_index:
+            return True
+        if isinstance(item, str) and item.strip().lower() in {"all", "*"}:
+            return True
+        if isinstance(item, list) and len(item) == 2 and all(isinstance(value, int) for value in item):
+            start, end = item
+            if start <= step_index <= end:
+                return True
+    return False
+
+
+def status_badge_data_url(label: str, color: str = "#5b2b2b", text_color: str = "#ffffff") -> str:
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        return ""
+    image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image, "RGBA")
+    draw.rounded_rectangle([4, 4, 60, 60], radius=12, fill=color, outline="#f7f7f7", width=4)
+    draw.rounded_rectangle([9, 9, 55, 55], radius=9, outline="#101318", width=2)
+    text = str(label or "?").strip()[:2] or "?"
+    try:
+        font = ImageFont.truetype("arial.ttf", 24 if len(text) == 1 else 20)
+    except OSError:
+        font = ImageFont.load_default()
+    bbox = draw.textbbox((0, 0), text, font=font, stroke_width=1)
+    x = 32 - (bbox[2] - bbox[0]) / 2
+    y = 32 - (bbox[3] - bbox[1]) / 2 - 1
+    draw.text((x, y), text, font=font, fill=text_color, stroke_width=1, stroke_fill="#101318")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+def status_assignment_role(assignment: dict[str, Any]) -> str:
+    value = assignment.get("role")
+    if isinstance(value, str) and value.upper() in PARTY_ROLES:
+        return value.upper()
+    return ""
+
+
+def status_assignment_icon(assignment: dict[str, Any]) -> tuple[str, str]:
+    icon = assignment.get("statusIcon", assignment.get("status_icon", assignment.get("icon")))
+    if isinstance(icon, str) and icon.strip():
+        return icon.strip(), str(assignment.get("assetStatus", assignment.get("asset_status", "dedicated")))
+    raw_token = str(
+        assignment.get("iconToken")
+        or assignment.get("icon_token")
+        or assignment.get("statusName")
+        or assignment.get("status_name")
+        or assignment.get("kind")
+        or "?"
+    ).strip()
+    token = raw_token.lower().replace(" ", "-").replace("_", "-")
+    color, text_color = STATUS_ICON_COLORS.get(token, ("#5b2b2b", "#ffffff"))
+    fallback_label = str(assignment.get("fallbackLabel", assignment.get("fallback_label", raw_token[:2] or "?")))
+    return status_badge_data_url(fallback_label, color, text_color), "fallback"
+
+
+def make_status_overlay(
+    assignment: dict[str, Any],
+    party_obj: dict[str, Any],
+    obj_id: int,
+    overlay_index: int,
+) -> dict[str, Any]:
+    role = status_assignment_role(assignment)
+    party_width = float(party_obj.get("width", DEFAULT_PLAYER_SIZE))
+    party_height = float(party_obj.get("height", DEFAULT_PLAYER_SIZE))
+    raw_scale = assignment.get("iconScale", assignment.get("icon_scale", 0.42))
+    try:
+        scale = max(0.35, min(0.5, float(raw_scale)))
+    except (TypeError, ValueError):
+        scale = 0.42
+    size = max(13, round(min(party_width, party_height) * scale))
+    offset_step = size * 0.56
+    x = float(party_obj.get("x", 0)) - party_width / 2 + size / 2 + overlay_index * offset_step
+    y = float(party_obj.get("y", 0)) + party_height / 2 - size / 2 - overlay_index * 1.5
+    icon, asset_status = status_assignment_icon(assignment)
+    name = str(assignment.get("statusName", assignment.get("status_name", "Status"))).strip() or "Status"
+    result = {
+        "kind": "icon",
+        "type": "icon",
+        "name": f"{role} {name}",
+        "image": icon,
+        "x": round(x, 3),
+        "y": round(y, 3),
+        "width": size,
+        "height": size,
+        "rotation": 0,
+        "opacity": int(assignment.get("opacity", 100)),
+        "statusOverlay": True,
+        "statusRole": role,
+        "statusName": name,
+        "statusKind": assignment.get("kind", assignment.get("statusKind", assignment.get("status_kind", "debuff"))),
+        "decisionGroup": assignment.get("decisionGroup", assignment.get("decision_group", "")),
+        "durationLabel": assignment.get("durationLabel", assignment.get("duration_label", "")),
+        "stackLabel": assignment.get("stackLabel", assignment.get("stack_label", "")),
+        "priorityLabel": assignment.get("priorityLabel", assignment.get("priority_label", "")),
+        "anchorRole": role,
+        "anchorPartyId": party_obj.get("id"),
+        "assetStatus": asset_status,
+        "assetFallback": assignment.get("assetFallback", assignment.get("asset_fallback", "status-icon-fallback" if asset_status == "fallback" else "")),
+        "fallbackReason": assignment.get("fallbackReason", assignment.get("fallback_reason", "")),
+        "visibleSteps": copy.deepcopy(assignment.get("visibleSteps", assignment.get("visible_steps", "all"))),
+    }
+    source = assignment.get("source")
+    confidence = assignment.get("confidence")
+    if source:
+        result["source"] = source
+    if confidence:
+        result["confidence"] = confidence
+    return add_common(result, assignment, obj_id)
+
+
+def attach_status_overlays(
+    objects: list[dict[str, Any]],
+    assignments: list[dict[str, Any]],
+    next_id: int,
+    step_index: int,
+) -> tuple[list[dict[str, Any]], int]:
+    if not assignments:
+        return objects, next_id
+    party_by_role = {
+        str(obj.get("role") or obj.get("name") or "").upper(): obj
+        for obj in objects
+        if isinstance(obj, dict) and obj.get("type") == "party"
+    }
+    overlays_by_role: dict[str, int] = {}
+    overlay_objects: list[dict[str, Any]] = []
+    for assignment in assignments:
+        if not isinstance(assignment, dict) or not status_visible_on_step(assignment, step_index):
+            continue
+        role = status_assignment_role(assignment)
+        if not role or role not in party_by_role:
+            continue
+        overlay_index = overlays_by_role.get(role, 0)
+        if overlay_index >= 3:
+            continue
+        overlay_objects.append(make_status_overlay(assignment, party_by_role[role], next_id, overlay_index))
+        overlays_by_role[role] = overlay_index + 1
+        next_id += 1
+    return objects + overlay_objects, next_id
+
+
 def make_tower(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
     x, y = pos_from_obj(obj)
     return add_common(
@@ -679,7 +1010,7 @@ def make_stack(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
 
 
 def make_text(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
-    x, y = pos_from_obj(obj)
+    x, y = text_pos_from_obj(obj)
     result = {
         "type": "text",
         "text": obj.get("text", obj.get("label", "")),
@@ -699,6 +1030,18 @@ def make_text(obj: dict[str, Any], obj_id: int) -> dict[str, Any]:
         result["labelAnchorId"] = obj["labelAnchorId"]
     if "labelKind" in obj:
         result["labelKind"] = obj["labelKind"]
+    if "labelRole" in obj:
+        result["labelRole"] = obj["labelRole"]
+    if "label_role" in obj:
+        result["labelRole"] = obj["label_role"]
+    if "labelBand" in obj:
+        result["labelBand"] = obj["labelBand"]
+    if "label_band" in obj:
+        result["labelBand"] = obj["label_band"]
+    if "labelBandIndex" in obj:
+        result["labelBandIndex"] = obj["labelBandIndex"]
+    if "label_band_index" in obj:
+        result["labelBandIndex"] = obj["label_band_index"]
     if "roleLabelAnchorId" in obj:
         result["roleLabelAnchorId"] = obj["roleLabelAnchorId"]
     if "leaderLine" in obj:
@@ -1101,13 +1444,237 @@ def object_key(spec_obj: dict[str, Any]) -> str | None:
     return None
 
 
+def semantic_value(spec_obj: dict[str, Any], nested: dict[str, Any], key: str, fallback: Any = None) -> Any:
+    if key in nested:
+        return nested[key]
+    if key in spec_obj:
+        return spec_obj[key]
+    return fallback
+
+
+def damage_pattern_metadata(spec_obj: dict[str, Any], pattern: dict[str, Any], pattern_kind: str) -> dict[str, Any]:
+    return {
+        "damagePattern": copy.deepcopy(pattern),
+        "damagePatternKind": pattern_kind,
+        "source": semantic_value(spec_obj, pattern, "source", "Boss"),
+        "targets": semantic_value(spec_obj, pattern, "targets", []),
+        "resolveIndex": semantic_value(spec_obj, pattern, "resolveIndex", 1),
+        "resolveTiming": semantic_value(spec_obj, pattern, "resolveTiming", "cast_snapshot"),
+        "aoeIntent": semantic_value(spec_obj, pattern, "aoeIntent", "damage"),
+    }
+
+
+def pattern_object(base: dict[str, Any], metadata: dict[str, Any], *, key: str, label: str | None = None) -> dict[str, Any]:
+    result = {**base, **copy.deepcopy(metadata), "key": key}
+    if label:
+        result["label"] = label
+        result.setdefault("labelFontSize", 13)
+        result.setdefault("labelPlacement", "auto")
+    return result
+
+
+def expand_damage_pattern_spec(spec_obj: dict[str, Any]) -> list[dict[str, Any]]:
+    raw_pattern = spec_obj.get("damagePattern")
+    pattern = copy.deepcopy(raw_pattern) if isinstance(raw_pattern, dict) else copy.deepcopy(spec_obj)
+    pattern_kind = str(pattern.get("kind") or spec_obj.get("patternKind") or spec_obj.get("pattern_kind") or "").strip()
+    if not pattern_kind:
+        raise BuildError("damagePattern requires a kind")
+    prefix = object_key(spec_obj) or f"damage-{pattern_kind}"
+    label = str(pattern.get("label") or spec_obj.get("label") or "").strip() or None
+    render_label = pattern.get("renderLabel", spec_obj.get("renderLabel", True)) is not False
+    metadata = damage_pattern_metadata(spec_obj, pattern, pattern_kind)
+    pos = pattern.get("pos", spec_obj.get("pos", "center"))
+    distance = pattern.get("distance", spec_obj.get("distance", DEFAULT_OBJECT_DISTANCE))
+    radius = int(pattern.get("radius", spec_obj.get("radius", 240)))
+    opacity = int(pattern.get("opacity", spec_obj.get("opacity", 24)))
+    color = pattern.get("color", spec_obj.get("color"))
+
+    if pattern_kind == "fan120":
+        rotations = pattern.get("rotations", [90, 210, 330])
+        return [
+            pattern_object(
+                {
+                    "kind": "cone",
+                    "pos": pos,
+                    "distance": distance,
+                    "radius": radius,
+                    "coneAngle": int(pattern.get("angle", 120)),
+                    "rotation": rotation,
+                    "color": color or "#2aa7ff",
+                    "opacity": opacity,
+                },
+                metadata,
+                key=f"{prefix}-{index + 1}",
+                label=label if render_label and index == 0 else None,
+            )
+            for index, rotation in enumerate(rotations)
+        ]
+    if pattern_kind == "shareFan90":
+        return [
+            pattern_object(
+                {
+                    "kind": "cone",
+                    "pos": pos,
+                    "distance": distance,
+                    "radius": radius,
+                    "coneAngle": int(pattern.get("angle", 90)),
+                    "rotation": float(pattern.get("rotation", 90)),
+                    "color": color or "#ff8c00",
+                    "opacity": opacity,
+                },
+                metadata,
+                key=prefix,
+                label=label if render_label else None,
+            )
+        ]
+    if pattern_kind == "baitTrail":
+        points = pattern.get("points", [[-150, -110], [-75, -55], [0, 0], [75, 55], [150, 110]])
+        return [
+            pattern_object(
+                {
+                    "kind": "circle",
+                    "pos": point,
+                    "radius": int(pattern.get("circleRadius", 34)),
+                    "color": color or "#d13438",
+                    "opacity": opacity,
+                    "baitSequence": index + 1,
+                },
+                metadata,
+                key=f"{prefix}-{index + 1}",
+                label=label if render_label and index == len(points) - 1 else None,
+            )
+            for index, point in enumerate(points)
+        ]
+    if pattern_kind == "towerResolve":
+        positions = pattern.get("positions", ["N", "S", "E", "W"])
+        return [
+            pattern_object(
+                {
+                    "kind": "tower",
+                    "pos": tower_pos,
+                    "distance": pattern.get("distance", 190),
+                    "radius": int(pattern.get("towerRadius", 42)),
+                    "count": int(pattern.get("count", 2)),
+                    "color": color or "#bae3ff",
+                    "opacity": int(pattern.get("opacity", 62)),
+                },
+                metadata,
+                key=f"{prefix}-{index + 1}",
+                label=label if render_label and index == 0 else None,
+            )
+            for index, tower_pos in enumerate(positions)
+        ]
+    if pattern_kind == "chargeLine":
+        return [
+            pattern_object(
+                {
+                    "kind": "rect",
+                    "pos": pos,
+                    "distance": distance,
+                    "width": int(pattern.get("width", 110)),
+                    "height": int(pattern.get("height", 520)),
+                    "rotation": float(pattern.get("rotation", 0)),
+                    "color": color or "#d13438",
+                    "opacity": opacity,
+                },
+                metadata,
+                key=prefix,
+                label=label if render_label else None,
+            )
+        ]
+    if pattern_kind == "safeSector":
+        safe_metadata = {**metadata, "aoeIntent": semantic_value(spec_obj, pattern, "aoeIntent", "safe")}
+        return [
+            pattern_object(
+                {
+                    "kind": "cone",
+                    "pos": pos,
+                    "distance": distance,
+                    "radius": radius,
+                    "coneAngle": int(pattern.get("angle", 90)),
+                    "rotation": float(pattern.get("rotation", 90)),
+                    "color": color or "#8fd14f",
+                    "opacity": int(pattern.get("opacity", 18)),
+                },
+                safe_metadata,
+                key=prefix,
+                label=label if render_label else None,
+            )
+        ]
+    if pattern_kind == "bossHitbox":
+        hitbox_metadata = {**metadata, "aoeIntent": semantic_value(spec_obj, pattern, "aoeIntent", "reference_only")}
+        return [
+            pattern_object(
+                {
+                    "kind": "circle",
+                    "pos": pos,
+                    "distance": distance,
+                    "radius": int(pattern.get("radius", 72)),
+                    "color": color or "#ffb900",
+                    "opacity": int(pattern.get("opacity", 18)),
+                    "hollow": True,
+                },
+                hitbox_metadata,
+                key=prefix,
+                label=label if render_label else None,
+            )
+        ]
+    raise BuildError(f"unsupported damagePattern kind: {pattern_kind!r}")
+
+
+def expand_movement_route_spec(spec_obj: dict[str, Any]) -> dict[str, Any]:
+    raw_route = spec_obj.get("movementRoute")
+    route = copy.deepcopy(raw_route) if isinstance(raw_route, dict) else copy.deepcopy(spec_obj)
+    result = copy.deepcopy(spec_obj)
+    result["kind"] = str(route.get("kind") or route.get("routeKind") or "arrow")
+    for key in ("from", "to", "waypoints", "curve", "distance", "startGap", "endGap", "allowDangerCrossing", "routeCheck"):
+        if key in route:
+            result[key] = copy.deepcopy(route[key])
+    result["arrowStyle"] = route.get("arrowStyle", spec_obj.get("arrowStyle", "movement"))
+    result["movementRoute"] = copy.deepcopy(route)
+    result["routeIntent"] = route.get("intent", route.get("routeIntent", result["arrowStyle"]))
+    for key in (
+        "fromRole",
+        "fromObject",
+        "fromMarker",
+        "toRole",
+        "toObject",
+        "toMarker",
+        "toZone",
+        "resolveIndex",
+        "startLabel",
+        "endLabel",
+        "snapToTarget",
+    ):
+        if key in route:
+            result[key] = copy.deepcopy(route[key])
+    return result
+
+
+def expand_phase_v_objects(objects_spec: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    expanded: list[dict[str, Any]] = []
+    for spec_obj in objects_spec:
+        if not isinstance(spec_obj, dict):
+            expanded.append(spec_obj)
+            continue
+        kind = spec_obj.get("kind")
+        if kind == "damagePattern":
+            expanded.extend(expand_damage_pattern_spec(spec_obj))
+            continue
+        if kind == "movementRoute":
+            expanded.append(expand_movement_route_spec(spec_obj))
+            continue
+        expanded.append(spec_obj)
+    return expanded
+
+
 def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]:
     if not isinstance(step, dict):
         raise BuildError("each step must be an object")
     objects_spec = step.get("objects", [])
     if not isinstance(objects_spec, list):
         raise BuildError("step.objects must be a list")
-    objects_spec = normalize_enemy_specs(objects_spec)
+    objects_spec = normalize_enemy_specs(expand_phase_v_objects(objects_spec))
 
     objects: list[dict[str, Any]] = []
     refs: dict[str, int] = {}
@@ -1217,14 +1784,24 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
         )
         next_id += 1
 
+    status_assignments = step.get("statusAssignments", step.get("status_assignments", []))
+    if not isinstance(status_assignments, list):
+        raise BuildError("step.statusAssignments must be a list")
+    step_index = int(step.get("_step_index", 0) or 0)
+    objects, next_id = attach_status_overlays(objects, status_assignments, next_id, step_index)
+
     if step.get("title"):
+        title_text = step.get("page_title") or step["title"]
         objects.append(
             make_text(
                 {
-                    "text": step["title"],
+                    "text": title_text,
                     "pos": step.get("titlePos", "N"),
                     "distance": step.get("titleDistance", 322),
                     "fontSize": step.get("titleFontSize", style_value("title_font_size", 18)),
+                    "labelRole": "page_title",
+                    "labelBand": "top",
+                    "labelKind": "mechanic",
                 },
                 next_id,
             )
@@ -1244,16 +1821,22 @@ def build_step(step: dict[str, Any], next_id: int) -> tuple[dict[str, Any], int]
         "teaching_question",
         "why_this_frame_exists",
         "changed_objects_only",
+        "page_title",
+        "annotation_callouts",
         "movement_required",
         "flow_kind",
+        "guide_section",
         "party_cluster",
         "stack_group",
         "partial_observation",
         "partial",
         "local_view",
+        "statusAssignments",
+        "status_assignment_contract",
     ):
         if key in step:
             built_step[key] = step[key]
+    built_step.pop("_step_index", None)
     if "guide_text" not in built_step:
         built_step["guide_text"] = step.get("purpose") or step.get("title") or "See diagram."
 
@@ -1281,6 +1864,59 @@ def normalize_scene_contract(spec: dict[str, Any]) -> tuple[dict[str, bool], boo
         if key in raw_contract:
             contract[key] = bool(raw_contract[key])
     return contract, True
+
+
+def normalize_guide_section(value: Any, default: str = "mechanic_flow") -> str:
+    if not isinstance(value, str) or not value.strip():
+        return default
+    token = value.strip().lower().replace(" ", "_")
+    if token in FLOW_EXAMPLE_TOKENS:
+        return "flow_example"
+    if token in MECHANIC_FLOW_TOKENS:
+        return "mechanic_flow"
+    return default
+
+
+def guide_section_from_spec(spec: dict[str, Any]) -> str:
+    for key in ("guide_section", "guideSection", "figure_type", "figureType", "diagram_type", "diagramType"):
+        if key in spec:
+            return normalize_guide_section(spec.get(key))
+    metadata = spec.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("guide_section", "guideSection", "figure_type", "figureType", "diagram_type", "diagramType"):
+            if key in metadata:
+                return normalize_guide_section(metadata.get(key))
+    return "mechanic_flow"
+
+
+def party_display_style_for_section(section: str) -> str:
+    return "job-icon" if section == "flow_example" else "role-number-icon"
+
+
+def explicit_party_display_style(value: Any) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    token = value.strip().lower().replace(" ", "-").replace("_", "-")
+    if token in {"job", "job-icon", "job-icons", "job-default", "career-icon", "职业图标"}:
+        return "job-icon"
+    if token in {"role", "role-icon", "role-icons", "role-number", "role-number-icon", "role-number-icons", "numbered-role-icon", "职能图标", "编号职能图标"}:
+        return "role-number-icon"
+    return None
+
+
+def apply_party_display_policy(objects: list[dict[str, Any]], section: str) -> None:
+    style = party_display_style_for_section(section)
+    for obj in objects:
+        if spec_object_kind(obj) != "party":
+            continue
+        explicit = (
+            explicit_party_display_style(obj.get("partyDisplayStyle"))
+            or explicit_party_display_style(obj.get("party_display_style"))
+            or explicit_party_display_style(obj.get("iconStyle"))
+            or explicit_party_display_style(obj.get("icon_style"))
+        )
+        obj.setdefault("guideSection", section)
+        obj.setdefault("partyDisplayStyle", explicit or style)
 
 
 def is_partial_observation_step(step: dict[str, Any]) -> bool:
@@ -1393,15 +2029,22 @@ def apply_focus_roles(step: dict[str, Any], objects: list[dict[str, Any]]) -> No
 def expand_step_specs(spec: dict[str, Any]) -> list[dict[str, Any]]:
     expanded_steps: list[dict[str, Any]] = []
     previous_objects: list[dict[str, Any]] = []
+    root_guide_section = guide_section_from_spec(spec)
     root_marker_presets = spec.get("markerPresets", [])
     if isinstance(root_marker_presets, str):
         root_marker_presets = [root_marker_presets]
     if not isinstance(root_marker_presets, list):
         raise BuildError("markerPresets must be a string or list")
     contract, contract_active = normalize_scene_contract(spec)
+    root_status_assignments = spec.get("statusAssignments", spec.get("status_assignments", []))
+    if root_status_assignments is None:
+        root_status_assignments = []
+    if not isinstance(root_status_assignments, list):
+        raise BuildError("statusAssignments must be a list")
 
-    for raw_step in spec["steps"]:
+    for step_index, raw_step in enumerate(spec["steps"], start=1):
         step = copy.deepcopy(raw_step)
+        step["_step_index"] = step_index
         objects: list[dict[str, Any]] = copy.deepcopy(previous_objects) if step.get("inherit") else []
 
         remove_keys = step.get("remove", [])
@@ -1457,8 +2100,23 @@ def expand_step_specs(spec: dict[str, Any]) -> list[dict[str, Any]]:
         objects.extend(own_objects)
         objects = apply_scene_contract(step, objects, contract, contract_active, root_marker_presets)
         apply_focus_roles(step, objects)
+        step_guide_section = root_guide_section
+        for key in ("guide_section", "guideSection", "figure_type", "figureType", "diagram_type", "diagramType"):
+            if key in step:
+                step_guide_section = normalize_guide_section(step.get(key), root_guide_section)
+                break
+        apply_party_display_policy(objects, step_guide_section)
+        step_status_assignments = step.get("statusAssignments", step.get("status_assignments", []))
+        if step_status_assignments is None:
+            step_status_assignments = []
+        if not isinstance(step_status_assignments, list):
+            raise BuildError("step.statusAssignments must be a list")
+        combined_status_assignments = copy.deepcopy(root_status_assignments) + copy.deepcopy(step_status_assignments)
+        if combined_status_assignments:
+            step["statusAssignments"] = combined_status_assignments
         step["objects"] = objects
-        for transient_key in ("inherit", "remove", "updates", "replace", "markerPresets", "focusRoles", "focus_roles"):
+        step["guide_section"] = step_guide_section
+        for transient_key in ("inherit", "remove", "updates", "replace", "markerPresets", "focusRoles", "focus_roles", "guideSection", "figureType", "diagramType"):
             step.pop(transient_key, None)
         expanded_steps.append(step)
         previous_objects = copy.deepcopy(objects)
@@ -1491,12 +2149,24 @@ def build_scene(spec: dict[str, Any]) -> dict[str, Any]:
         "arena": base_arena(spec),
         "steps": steps,
     }
+    scene["guide_section"] = guide_section_from_spec(spec)
+    scene["party_display_policy"] = party_display_style_for_section(scene["guide_section"])
     if spec.get("name"):
         scene["name"] = spec["name"]
     if spec.get("style"):
         scene["style"] = spec["style"]
     if isinstance(spec.get("scene_contract"), dict):
         scene["scene_contract"] = copy.deepcopy(spec["scene_contract"])
+    if isinstance(spec.get("annotation_contract"), dict):
+        scene["annotation_contract"] = copy.deepcopy(spec["annotation_contract"])
+    if isinstance(spec.get("mechanic_semantics_contract"), dict):
+        scene["mechanic_semantics_contract"] = copy.deepcopy(spec["mechanic_semantics_contract"])
+    if isinstance(spec.get("status_assignment_contract"), dict):
+        scene["status_assignment_contract"] = copy.deepcopy(spec["status_assignment_contract"])
+    if isinstance(spec.get("statusAssignments"), list):
+        scene["statusAssignments"] = copy.deepcopy(spec["statusAssignments"])
+    elif isinstance(spec.get("status_assignments"), list):
+        scene["statusAssignments"] = copy.deepcopy(spec["status_assignments"])
     if isinstance(spec.get("metadata"), dict):
         scene["metadata"] = copy.deepcopy(spec["metadata"])
     return scene

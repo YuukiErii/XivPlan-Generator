@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from PIL import Image, ImageDraw
+
 from assemble_guide import assemble_guide
 from build_xivplan_scene import DEFAULT_PARTY_JOBS, build_scene
 from export_xivplan_steps import export_steps
@@ -24,6 +26,12 @@ ROOT = Path(__file__).resolve().parents[2]
 SKILL_DIR = ROOT / "xivplan-ffxiv-guide"
 DEFAULT_FIXTURES = SKILL_DIR / "assets" / "visual-regression-fixtures"
 DEFAULT_OUTPUT = ROOT / "artifacts" / "phase-i-visual-regression"
+MECHANIC_SEMANTICS_CONTRACT = {
+    "require_arrow_semantics": True,
+    "require_range_semantics": True,
+    "require_resolve_geometry": True,
+    "require_danger_crossing_declaration": True,
+}
 
 FIXTURE_META = {
     "fru-p1-thunder-fire-swords-like": {
@@ -83,6 +91,17 @@ FIXTURE_META = {
         "phase": "P1",
         "version": "phase-s",
         "custom_builder": "party_stack_identity",
+    },
+    "ultimate-yokai-star-dance-phase-u": {
+        "encounter": "Ultimate Yokai Star Dance Phase U Regression",
+        "phase": "P1",
+        "version": "phase-u",
+    },
+    "status-driven-assignment": {
+        "encounter": "Phase X Status Assignment Regression",
+        "phase": "P1",
+        "version": "phase-x",
+        "custom_builder": "status_assignment",
     },
 }
 
@@ -247,6 +266,18 @@ def center_context(prefix: str) -> list[dict[str, Any]]:
 def movement_arrows(prefix: str, routes: list[tuple[list[float], list[list[float]], list[float], str]]) -> list[dict[str, Any]]:
     objects = []
     for index, (start, waypoints, end, style) in enumerate(routes):
+        route_intent = "reset" if style == "reset" else "reposition"
+        resolve_index = 3 if style == "reset" else 1
+        route = {
+            "fromObject": f"{prefix}-route-{index}-origin",
+            "toZone": f"{prefix}-route-{index}-destination",
+            "resolveIndex": resolve_index,
+            "arrowStyle": style,
+            "intent": route_intent,
+            "startLabel": "start",
+            "endLabel": "target",
+            "snapToTarget": False,
+        }
         obj: dict[str, Any] = {
             "kind": "polyline" if waypoints else "arrow",
             "key": f"{prefix}-route-{index}",
@@ -255,11 +286,33 @@ def movement_arrows(prefix: str, routes: list[tuple[list[float], list[list[float
             "arrowStyle": style,
             "endGap": 62,
             "allowDangerCrossing": True,
+            "movementRoute": route,
+            "routeIntent": route_intent,
+            "fromObject": route["fromObject"],
+            "toZone": route["toZone"],
+            "resolveIndex": resolve_index,
+            "startLabel": route["startLabel"],
+            "endLabel": route["endLabel"],
+            "snapToTarget": False,
         }
         if waypoints:
             obj["waypoints"] = waypoints
         objects.append(obj)
     return objects
+
+
+def damage_pattern(key: str, kind: str, label: str, **kwargs: Any) -> dict[str, Any]:
+    pattern = {
+        "kind": kind,
+        "source": kwargs.pop("source", "Boss"),
+        "targets": kwargs.pop("targets", []),
+        "resolveIndex": kwargs.pop("resolveIndex", 1),
+        "resolveTiming": kwargs.pop("resolveTiming", "cast_snapshot"),
+        "aoeIntent": kwargs.pop("aoeIntent", "damage"),
+        "label": label,
+        **kwargs,
+    }
+    return {"kind": "damagePattern", "key": key, "damagePattern": pattern}
 
 
 def long_flow_step(
@@ -309,7 +362,9 @@ def build_semantic_long_flow_spec() -> dict[str, Any]:
             "Show stable eight-player clocks before FRU-style reads begin.",
             "Begin from fixed clocks; keep boss, waymarks, and edge sword tells visible.",
             DEFAULT_POSITIONS,
-            clone_pair("lf1") + [text_obj("lf1-call", "Start clocks", [0, -222])],
+            clone_pair("lf1")
+            + [damage_pattern("lf1-boss-hitbox", "bossHitbox", "Boss hitbox", radius=72, resolveIndex=0, resolveTiming="preposition", aoeIntent="reference_only", renderLabel=False)]
+            + [text_obj("lf1-call", "Start clocks", [0, -222])],
         ),
         long_flow_step(
             2,
@@ -318,7 +373,11 @@ def build_semantic_long_flow_spec() -> dict[str, Any]:
             "Compare east and west clone tells before choosing the first safe half.",
             "Read both side clones first; do not move until the safe half is decided.",
             DEFAULT_POSITIONS,
-            clone_pair("lf2", "Fire side", "Thunder side") + half_field("lf2", "W") + blade_lanes("lf2", "W") + [text_obj("lf2-call", "W safe", [-174, -222])],
+            clone_pair("lf2", "Fire side", "Thunder side")
+            + half_field("lf2", "W")
+            + blade_lanes("lf2", "W")
+            + [damage_pattern("lf2-safe-sector", "safeSector", "W safe sector", targets=list(ROLES), angle=90, rotation=180, radius=250, aoeIntent="safe", renderLabel=False)]
+            + [text_obj("lf2-call", "W safe", [-174, -222])],
         ),
         long_flow_step(
             3,
@@ -382,6 +441,8 @@ def build_semantic_long_flow_spec() -> dict[str, Any]:
                 {"kind": "cone", "key": "lf6-east-cleave", "pos": "E", "distance": 90, "radius": 220, "coneAngle": 58, "rotation": 180, "color": "#d13438", "opacity": 24},
                 {"kind": "stack", "key": "lf6-fire-stack", "pos": "SW", "distance": 132, "radius": 48, "count": 4, "color": "#ff8c00", "opacity": 48},
                 {"kind": "tower", "key": "lf6-thunder-tower", "pos": "NW", "distance": 132, "radius": 42, "count": 4, "color": "#2aa7ff", "opacity": 58},
+                damage_pattern("lf6-thunder-fans", "fan120", "Thunder fan 120", targets=["D1", "D2", "D3"], resolveTiming="first_hit", radius=260, rotations=[90, 210, 330], renderLabel=False),
+                damage_pattern("lf6-fire-share", "shareFan90", "Fire share fan 90", targets=["H1", "H2", "D3", "D4"], resolveTiming="first_hit", angle=90, rotation=90, radius=250, renderLabel=False),
                 text_obj("lf6-call", "1st hit", [-172, -222]),
             ],
         ),
@@ -448,6 +509,8 @@ def build_semantic_long_flow_spec() -> dict[str, Any]:
                 {"kind": "cone", "key": "lf10-west-cleave", "pos": "W", "distance": 90, "radius": 220, "coneAngle": 58, "rotation": 0, "color": "#d13438", "opacity": 24},
                 {"kind": "stack", "key": "lf10-fire-stack", "pos": "SE", "distance": 132, "radius": 48, "count": 4, "color": "#ff8c00", "opacity": 48},
                 {"kind": "tower", "key": "lf10-thunder-tower", "pos": "NE", "distance": 132, "radius": 42, "count": 4, "color": "#2aa7ff", "opacity": 58},
+                damage_pattern("lf10-thunder-fans", "fan120", "Thunder fan 120", targets=["D1", "D2", "D3"], resolveIndex=2, resolveTiming="second_hit", radius=260, rotations=[30, 150, 270], renderLabel=False),
+                damage_pattern("lf10-fire-share", "shareFan90", "Fire share fan 90", targets=["H1", "H2", "D3", "D4"], resolveIndex=2, resolveTiming="second_hit", angle=90, rotation=270, radius=250, renderLabel=False),
                 text_obj("lf10-call", "2nd hit", [172, -222]),
             ],
         ),
@@ -507,7 +570,7 @@ def build_semantic_long_flow_spec() -> dict[str, Any]:
         long_flow_step(
             14,
             "Handoff frame",
-            "reset",
+            "observe",
             "Confirm the stable state and stop before the next mechanic's first movement.",
             "This is the handoff frame: clocks are restored, boss is centered, and the next read is isolated.",
             DEFAULT_POSITIONS,
@@ -530,6 +593,7 @@ def build_semantic_long_flow_spec() -> dict[str, Any]:
             "require_waymarks_each_step": True,
             "allow_partial_observation": False,
         },
+        "mechanic_semantics_contract": dict(MECHANIC_SEMANTICS_CONTRACT),
         "arena": {"preset": "fru-p1", "source": "fixture-semantic", "sourceReason": "Phase L semantic long-flow regression fixture."},
         "markerPresets": "cardinals",
         "metadata": {
@@ -538,6 +602,7 @@ def build_semantic_long_flow_spec() -> dict[str, Any]:
             "storyboard_policy": "semantic-fru-p1-thunder-fire-sequence",
             "phase_o_teaching_questions": True,
             "density_policy": "semantic sword tells, debuff halos, safe-half fields, clone reads, and movement routes",
+            "mechanic_semantics_generator": "phase-v-routes-and-ranges-v1",
         },
         "steps": steps,
     }
@@ -916,6 +981,58 @@ def write_job_identity_report(scene: dict[str, Any], output_dir: Path) -> dict[s
     return payload
 
 
+def write_status_assignment_report(scene: dict[str, Any], output_dir: Path) -> dict[str, Any]:
+    steps: list[dict[str, Any]] = []
+    ok = True
+    for step_index, step in enumerate(scene.get("steps", []), start=1):
+        assignments = step.get("statusAssignments", [])
+        expected_roles = [str(item.get("role", "")).upper() for item in assignments if isinstance(item, dict)]
+        overlays = [
+            obj
+            for obj in step.get("objects", [])
+            if isinstance(obj, dict) and obj.get("statusOverlay") is True
+        ]
+        overlay_roles = [str(obj.get("statusRole") or obj.get("anchorRole") or "").upper() for obj in overlays]
+        missing = sorted(role for role in expected_roles if role and role not in overlay_roles)
+        ok = ok and not missing and len([role for role in overlay_roles if role]) >= len([role for role in expected_roles if role])
+        steps.append(
+            {
+                "step": step_index,
+                "title": step.get("title"),
+                "expected_roles": expected_roles,
+                "overlay_roles": overlay_roles,
+                "missing_roles": missing,
+                "fallback_count": sum(1 for obj in overlays if obj.get("assetStatus") == "fallback"),
+            }
+        )
+    payload = {
+        "ok": ok,
+        "contract": scene.get("status_assignment_contract", {}),
+        "steps": steps,
+    }
+    write_json(output_dir / "status-assignment-report.json", payload)
+    lines = [
+        "# Status Assignment Report",
+        "",
+        f"- status: {'PASS' if ok else 'FAIL'}",
+        "",
+        "| Step | Expected Roles | Overlay Roles | Missing | Fallbacks |",
+        "|---:|---|---|---|---:|",
+    ]
+    for step in steps:
+        lines.append(
+            "| {step} | {expected} | {overlays} | {missing} | {fallbacks} |".format(
+                step=step["step"],
+                expected=", ".join(step["expected_roles"]) or "none",
+                overlays=", ".join(step["overlay_roles"]) or "none",
+                missing=", ".join(step["missing_roles"]) or "none",
+                fallbacks=step["fallback_count"],
+            )
+        )
+    (output_dir / "status-assignment-report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return payload
+
+
 def write_custom_case(case_dir: Path, spec: dict[str, Any], guide: dict[str, Any], mode: str) -> dict[str, Any]:
     scene = build_scene(spec)
     errors, _, object_count = validate_scene(scene)
@@ -934,6 +1051,8 @@ def write_custom_case(case_dir: Path, spec: dict[str, Any], guide: dict[str, Any
     write_json(case_dir / "generated-xivplan" / "manifest.json", manifest)
     copytree_clean(case_dir / "images", case_dir / "generated-xivplan" / "images")
     write_job_identity_report(scene, case_dir)
+    if scene.get("status_assignment_contract"):
+        write_status_assignment_report(scene, case_dir)
 
     full_guide = {
         "title": guide["title"],
@@ -977,7 +1096,7 @@ def build_known_enemy_asset_spec() -> dict[str, Any]:
             "require_waymarks_each_step": True,
             "allow_partial_observation": False,
         },
-        "arena": {"preset": "fru-p1", "source": "fixture-phase-s", "sourceReason": "Known encounter Boss asset and fallback add icon regression."},
+        "arena": {"preset": "fru-p1", "source": "fixture-phase-w", "sourceReason": "Known encounter Boss asset and fallback add icon regression with Huiji/source manifest fields."},
         "markerPresets": "cardinals",
         "metadata": {"source": "run_visual_regression.py", "storyboard_generator": "phase-o-v3", "phase_s_fixture": "known-encounter-boss-asset"},
         "steps": [
@@ -991,19 +1110,40 @@ def build_known_enemy_asset_spec() -> dict[str, Any]:
     }
 
 
+def create_fatebreaker_guide_icon(path: Path) -> None:
+    """Create deterministic original guide art for the Phase W dedicated Boss icon fixture."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image, "RGBA")
+    # Original simplified silhouette: target shield, split sword, and blue lightning cues.
+    draw.ellipse([42, 38, 214, 218], fill=(30, 42, 58, 236), outline=(225, 236, 255, 245), width=8)
+    draw.polygon([(128, 18), (150, 76), (140, 176), (128, 232), (116, 176), (106, 76)], fill=(210, 222, 232, 245), outline=(42, 58, 74, 255))
+    draw.polygon([(72, 92), (112, 80), (104, 116), (150, 102), (122, 146), (164, 136), (104, 190), (118, 148)], fill=(72, 190, 255, 230))
+    draw.polygon([(182, 88), (148, 78), (158, 113), (112, 101), (142, 144), (102, 132), (158, 190), (146, 148)], fill=(255, 178, 70, 220))
+    draw.ellipse([88, 72, 116, 100], fill=(245, 248, 255, 245))
+    draw.ellipse([140, 72, 168, 100], fill=(245, 248, 255, 245))
+    draw.arc([54, 52, 202, 210], start=205, end=335, fill=(116, 214, 255, 220), width=8)
+    image.save(path)
+
+
 def write_known_enemy_asset_case(case_dir: Path) -> dict[str, Any]:
     asset_dir = case_dir / "assets"
     asset_dir.mkdir(parents=True, exist_ok=True)
-    sample = SKILL_DIR / "assets" / "image-assets" / "samples" / "m6s-animal-icon-256.png"
     copied_asset = asset_dir / "fatebreaker-guide-icon.png"
-    shutil.copy2(sample, copied_asset)
+    create_fatebreaker_guide_icon(copied_asset)
     manifest = {
         "enemy_assets": [
             {
                 "enemy_id": "main-boss",
                 "name": "Fatebreaker",
                 "kind": "boss",
-                "source": "fixture-copied-sample-png",
+                "source": "ff14-huijiwiki-reference-brief",
+                "source_url": "https://ff14.huijiwiki.com/wiki/%E5%B8%8C%E6%9C%9B%E4%B9%8B%E5%9B%AD%E5%86%8D%E7%94%9F%E7%AF%87",
+                "source_page_title": "希望之园再生篇",
+                "visual_traits": ["split elemental sword silhouette", "blue lightning accent", "warm fire accent", "round target-ring readable head"],
+                "icon_brief": "original transparent-background Fatebreaker guide icon, split sword silhouette, blue lightning and fire accents, no text, readable at 72 px",
+                "generated_icon_path": "assets/fatebreaker-guide-icon.png",
+                "license_note": "Original simplified regression icon generated from documented traits; do not copy wiki/game art into final guide icons.",
                 "asset_id": "fatebreaker-guide-icon",
                 "path": "assets/fatebreaker-guide-icon.png",
                 "fallback": "generic-boss-icon",
@@ -1014,6 +1154,12 @@ def write_known_enemy_asset_case(case_dir: Path) -> dict[str, Any]:
                 "name": "Asset Add",
                 "kind": "add",
                 "source": "fallback",
+                "source_url": "",
+                "source_page_title": "",
+                "visual_traits": ["unknown add appearance"],
+                "icon_brief": "fallback add marker because appearance is intentionally unknown in this regression fixture",
+                "generated_icon_path": "",
+                "license_note": "Fallback icon is acceptable only because this add is a synthetic regression fixture.",
                 "asset_id": "asset-add-fallback",
                 "fallback": "generic-add-icon",
                 "display": {"width": 56, "height": 56, "anchor": "center"},
@@ -1057,6 +1203,7 @@ def build_job_specific_positioning_spec() -> dict[str, Any]:
     return {
         "name": "Phase S job-specific positioning fixture",
         "style": "king-x-fru",
+        "guide_section": "flow_example",
         "scene_contract": {
             "require_full_party_each_step": True,
             "require_enemy_each_step": True,
@@ -1065,7 +1212,7 @@ def build_job_specific_positioning_spec() -> dict[str, Any]:
         },
         "arena": {"preset": "default-circle", "source": "fixture-phase-s", "sourceReason": "Default job identity and movement preservation regression."},
         "markerPresets": "cardinals",
-        "metadata": {"source": "run_visual_regression.py", "storyboard_generator": "phase-o-v3", "phase_s_fixture": "job-specific-positioning"},
+        "metadata": {"source": "run_visual_regression.py", "storyboard_generator": "phase-o-v3", "phase_s_fixture": "job-specific-positioning", "guide_section": "flow_example"},
         "steps": [
             phase_s_step(1, "Default job clocks", "observe_signal", "Which default job belongs to each role?", "Default official XivPlan job icons are visible: MT DRK, ST PLD, H1 AST, H2 SCH, D1 SAM, D2 DRG, D3 BRD, D4 PCT.", [boss] + party_objects(DEFAULT_POSITIONS) + [{"kind": "circle", "key": "clock-ring", "pos": "center", "radius": 136, "color": "#8fd14f", "opacity": 14}]),
             phase_s_step(2, "Caster anchor assign", "assign_roles", "Which jobs get shorter movement lanes?", "D4 PCT and healers anchor inside while melee keep uptime lanes.", [boss] + party_objects(CASTER_ANCHOR_POSITIONS) + [{"kind": "tower", "key": "caster-anchor", "pos": "SE", "distance": 94, "radius": 40, "count": 3, "color": "#2aa7ff", "opacity": 48, "label": "caster side"}]),
@@ -1113,6 +1260,7 @@ def build_party_stack_label_omission_spec() -> dict[str, Any]:
     return {
         "name": "Phase S party stack role-label omission fixture",
         "style": "king-x-fru",
+        "guide_section": "flow_example",
         "scene_contract": {
             "require_full_party_each_step": True,
             "require_enemy_each_step": True,
@@ -1121,7 +1269,7 @@ def build_party_stack_label_omission_spec() -> dict[str, Any]:
         },
         "arena": {"preset": "default-circle", "source": "fixture-phase-s", "sourceReason": "Cluster/stack party identity crop-sheet regression."},
         "markerPresets": "cardinals",
-        "metadata": {"source": "run_visual_regression.py", "storyboard_generator": "phase-o-v3", "phase_s_fixture": "party-stack-label-omission"},
+        "metadata": {"source": "run_visual_regression.py", "storyboard_generator": "phase-o-v3", "phase_s_fixture": "party-stack-label-omission", "guide_section": "flow_example"},
         "steps": [
             phase_s_step(1, "Normal labels", "observe_signal", "Can non-cluster frames show both job and role?", "Open on normal clocks where every job icon has a nearby role label.", [boss] + party_objects(DEFAULT_POSITIONS) + [{"kind": "circle", "key": "open-ring", "pos": "center", "radius": 130, "color": "#8fd14f", "opacity": 14}]),
             phase_s_step(2, "Stack assignment", "assign_roles", "Which roles will compress into the stack?", "All eight prepare to compress; labels are still visible before the stack.", [boss] + party_objects(SPREAD_AFTER_STACK_POSITIONS) + [{"kind": "stack", "key": "stack-preview", "pos": "center", "radius": 74, "count": 8, "color": "#8fd14f", "opacity": 34, "label": "prepare stack"}]),
@@ -1147,6 +1295,86 @@ def write_party_stack_label_omission_case(case_dir: Path) -> dict[str, Any]:
             "consistency_checks": ["cluster frame keeps job icons", "non-cluster labels return", "party_identity_score stays 100"],
         },
         "party-stack-identity",
+    )
+
+
+def status_assignments() -> list[dict[str, Any]]:
+    data = [
+        ("MT", "短红", "short", "短", "red-short"),
+        ("ST", "长红", "red", "长", "red-long"),
+        ("H1", "短蓝", "blue", "短", "blue-short"),
+        ("H2", "长蓝", "long", "长", "blue-long"),
+        ("D1", "一组红", "fire", "1", "group-red-1"),
+        ("D2", "一组蓝", "ice", "1", "group-blue-1"),
+        ("D3", "二组红", "orange", "2", "group-red-2"),
+        ("D4", "二组蓝", "purple", "2", "group-blue-2"),
+    ]
+    return [
+        {
+            "role": role,
+            "statusName": name,
+            "kind": "debuff",
+            "iconToken": token,
+            "fallbackLabel": label,
+            "decisionGroup": group,
+            "visibleSteps": "all",
+            "source": "phase-x-regression-fallback",
+            "confidence": "fixture",
+            "assetStatus": "fallback",
+            "assetFallback": "status-icon-fallback",
+            "fallbackReason": "Phase X regression uses deterministic fallback badges because no real status icon asset is required for this contract test.",
+        }
+        for role, name, token, label, group in data
+    ]
+
+
+def build_status_assignment_spec() -> dict[str, Any]:
+    boss = {"kind": "boss", "key": "boss", "name": "Status Boss", "pos": "center", "radius": 42, "facing": 180}
+    return {
+        "name": "Phase X status-driven assignment fixture",
+        "style": "king-x-fru",
+        "guide_section": "mechanic_flow",
+        "scene_contract": {
+            "require_full_party_each_step": True,
+            "require_enemy_each_step": True,
+            "require_waymarks_each_step": True,
+            "allow_partial_observation": False,
+        },
+        "status_assignment_contract": {
+            "require_status_overlays": True,
+            "require_all_assigned_roles_visible": True,
+            "require_status_icon_readability": True,
+            "require_fallback_reason": True,
+        },
+        "statusAssignments": status_assignments(),
+        "arena": {"preset": "default-circle", "source": "fixture-phase-x", "sourceReason": "Status assignment overlay regression fixture."},
+        "markerPresets": "cardinals",
+        "metadata": {"source": "run_visual_regression.py", "storyboard_generator": "phase-o-v3", "phase_x_fixture": "status-driven-assignment", "status_assignment_policy": "role-bound-upper-left-overlay-hard-gate"},
+        "steps": [
+            phase_s_step(1, "Status open", "observe_signal", "Which status belongs to each role?", "Each player has a status badge on the upper-left of their numbered role icon.", [boss] + party_objects(DEFAULT_POSITIONS) + [{"kind": "circle", "key": "status-read-ring", "pos": "center", "radius": 142, "color": "#8fd14f", "opacity": 14}]),
+            phase_s_step(2, "Group by status", "assign_roles", "Which status groups move together?", "Short/long and red/blue badges determine grouping; status remains attached to each player.", [boss] + party_objects(CASTER_ANCHOR_POSITIONS) + [{"kind": "stack", "key": "status-stack-a", "pos": "W", "distance": 96, "radius": 52, "count": 4, "color": "#8fd14f", "opacity": 36}, {"kind": "stack", "key": "status-stack-b", "pos": "E", "distance": 96, "radius": 52, "count": 4, "color": "#2aa7ff", "opacity": 32}]),
+            phase_s_step(3, "Status movement", "first_move", "Do status badges stay attached while players move?", "Players move by assigned status group; badges stay readable and anchored to the correct role.", [boss] + party_objects(JOB_RESOLVE_POSITIONS) + phase_s_arrows("st3", [([0, 112], [[-44, 92]], [-82, 72], "movement"), ([0, -112], [[44, -92]], [82, -72], "movement"), ([96, 96], [[126, 66]], [156, 42], "movement")]), movement_required=True, flow_kind="movement"),
+            phase_s_step(4, "Status resolve", "first_resolve", "Which status resolves each safe lane?", "Badges and lane colors agree: short resolves west, long resolves east.", [boss] + party_objects(JOB_RESOLVE_POSITIONS) + [{"kind": "rect", "key": "short-lane", "pos": "W", "distance": 120, "width": 180, "height": 520, "color": "#8fd14f", "opacity": 18}, {"kind": "rect", "key": "long-lane", "pos": "E", "distance": 120, "width": 180, "height": 520, "color": "#2aa7ff", "opacity": 16}]),
+            phase_s_step(5, "Status reset", "reset", "Can the party reset without losing status ownership?", "After resolving, everyone resets while their status badge still belongs to the same player.", [boss] + party_objects(RESET_POSITIONS) + phase_s_arrows("st5", [([-82, 72], [[-42, 42]], [-18, 26], "reset"), ([82, -72], [[42, -42]], [18, -26], "reset")]), movement_required=True, flow_kind="reset"),
+            phase_s_step(6, "Next status read", "next_read_setup", "What state starts the next status decision?", "All eight badges remain visible for the next read, proving status assignment is not only prose.", [boss] + party_objects(DEFAULT_POSITIONS) + [{"kind": "donut", "key": "next-status-ring", "pos": "center", "radius": 226, "innerRadius": 170, "color": "#ffb900", "opacity": 14}]),
+        ],
+    }
+
+
+def write_status_assignment_case(case_dir: Path) -> dict[str, Any]:
+    return write_custom_case(
+        case_dir,
+        build_status_assignment_spec(),
+        {
+            "title": "Phase X status assignment regression",
+            "summary": "Every assigned buff/debuff state is rendered as a readable player-bound overlay.",
+            "recommended_solution": "Read status, group by badge, move, resolve, reset, and keep status ownership visible through every frame.",
+            "common_mistakes": ["Only writing status groups in guide text", "Letting badges detach from moving players", "Using tiny or untraceable fallback status icons"],
+            "short_callout": ["read badges", "group", "move", "resolve", "reset", "next read"],
+            "mnemonic": "Status lives on the player icon, not in paragraph text.",
+            "consistency_checks": ["status_assignment_score stays 100", "all eight roles have overlays", "fallback badges record reasons"],
+        },
+        "status-assignment",
     )
 
 
@@ -1188,6 +1416,19 @@ def render_phase_i_report(
         f"- long-flow fixture: {acceptance['long_flow_slug']}",
         f"- long-flow steps: {acceptance['long_flow_steps']}",
         f"- long-flow objects: {acceptance['long_flow_objects']}",
+        f"- Phase U annotation fixture: {'PASS' if acceptance.get('phase_u_ok') else 'FAIL'}",
+        f"- Phase U steps: {acceptance.get('phase_u_steps')}",
+        f"- Phase U in-scene text: {acceptance.get('phase_u_text_objects')} objects / {acceptance.get('phase_u_text_chars')} chars",
+        f"- Phase V route/range semantics: {'PASS' if acceptance.get('phase_v_ok') else 'FAIL'}",
+        f"- Phase V FRU semantics: range={acceptance.get('phase_v_fru_range_score')} arrow={acceptance.get('phase_v_fru_arrow_score')} patterns={', '.join(acceptance.get('phase_v_fru_patterns', []))}",
+        f"- Phase V O8S semantics: range={acceptance.get('phase_v_o8s_range_score')} arrow={acceptance.get('phase_v_o8s_arrow_score')} patterns={', '.join(acceptance.get('phase_v_o8s_patterns', []))}",
+        f"- Phase W arena/background gate: {'PASS' if acceptance.get('phase_w_arena_ok') else 'FAIL'}",
+        f"- Phase W FRU arena: {acceptance.get('phase_w_fru_arena')}",
+        f"- Phase W O8S fallback arena: {acceptance.get('phase_w_o8s_arena')}",
+        f"- Phase W dedicated Boss icon: {'PASS' if acceptance.get('phase_w_boss_icon_ok') else 'FAIL'}",
+        f"- Phase W seven-item product gate: {'PASS' if acceptance.get('phase_w_product_gate_ok') else 'FAIL'}",
+        f"- Phase X status assignment gate: {'PASS' if acceptance.get('phase_x_status_ok') else 'FAIL'}",
+        f"- Phase X status assignment score: {acceptance.get('phase_x_status_score')} ({acceptance.get('phase_x_status_visible')} visible / {acceptance.get('phase_x_status_expected')} expected)",
         "",
         "## Fixture Outputs",
         "",
@@ -1206,6 +1447,15 @@ def render_phase_i_report(
             evidence.append("enemy manifest")
         if (case_dir / "enemy-asset-validation.json").exists():
             evidence.append("asset validation")
+        if (case_dir / "status-assignment-report.json").exists():
+            evidence.append("status report")
+        if visual_quality.get("components", {}).get("mechanic_semantics", {}).get("applicable"):
+            evidence.append(
+                "Phase V range={range_score} arrow={arrow_score}".format(
+                    range_score=visual_quality.get("range_semantics_score"),
+                    arrow_score=visual_quality.get("arrow_semantics_score"),
+                )
+            )
         lines.append(
             "| {slug} | {status} | {steps} | {objects} | {vq} {score} | {evidence} | `{path}` |".format(
                 slug=item["slug"],
@@ -1220,6 +1470,107 @@ def render_phase_i_report(
         )
     lines.extend(["", "## Quality Gate Detail", "", render_markdown(quality_summary, quality_results).strip()])
     return "\n".join(lines) + "\n"
+
+
+def phase_w_boss_icon_status(case_dir: Path) -> dict[str, Any]:
+    manifest_path = case_dir / "enemy-assets.json"
+    validation_path = case_dir / "enemy-asset-validation.json"
+    if not manifest_path.exists() or not validation_path.exists():
+        return {"ok": False, "reason": "missing enemy-assets.json or enemy-asset-validation.json"}
+    try:
+        manifest = read_json(manifest_path)
+        validation = read_json(validation_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"ok": False, "reason": str(exc)}
+    assets = manifest.get("enemy_assets", [])
+    if not isinstance(assets, list):
+        return {"ok": False, "reason": "enemy_assets is not a list"}
+    boss = next((asset for asset in assets if isinstance(asset, dict) and asset.get("enemy_id") == "main-boss"), None)
+    if not isinstance(boss, dict):
+        return {"ok": False, "reason": "main-boss asset missing"}
+    required_fields = ["source_url", "source_page_title", "visual_traits", "icon_brief", "generated_icon_path", "license_note", "path"]
+    missing = [field for field in required_fields if not boss.get(field)]
+    asset_path = case_dir / str(boss.get("path", ""))
+    validation_assets = validation.get("assets", []) if isinstance(validation, dict) else []
+    dedicated_validated = any(isinstance(item, dict) and str(asset_path.resolve()) == str(Path(str(item.get("path", ""))).resolve()) for item in validation_assets)
+    ok = not missing and asset_path.exists() and dedicated_validated
+    return {
+        "ok": ok,
+        "reason": "dedicated Boss icon manifest fields and PNG validation present" if ok else f"missing={missing}, asset_exists={asset_path.exists()}, validated={dedicated_validated}",
+        "asset_path": str(asset_path),
+        "source_url": boss.get("source_url"),
+        "icon_brief": boss.get("icon_brief"),
+    }
+
+
+def phase_x_status_report_status(case_dir: Path) -> dict[str, Any]:
+    report_path = case_dir / "status-assignment-report.json"
+    if not report_path.exists():
+        return {"ok": False, "reason": "missing status-assignment-report.json"}
+    try:
+        report = read_json(report_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"ok": False, "reason": str(exc)}
+    steps = report.get("steps", []) if isinstance(report, dict) else []
+    all_roles = set(ROLES)
+    covered = {
+        role
+        for step in steps
+        if isinstance(step, dict)
+        for role in step.get("overlay_roles", [])
+        if role in all_roles
+    }
+    ok = bool(report.get("ok") and covered == all_roles)
+    return {
+        "ok": ok,
+        "reason": "all eight roles covered by status overlays" if ok else f"covered={sorted(covered)}",
+        "covered_roles": sorted(covered),
+    }
+
+
+def arena_context(result: dict[str, Any] | None) -> dict[str, Any]:
+    if not result:
+        return {}
+    visual_quality = result.get("visual_quality", {})
+    if not isinstance(visual_quality, dict):
+        return {}
+    return visual_quality.get("components", {}).get("arena_context", {})
+
+
+def status_assignment_context(result: dict[str, Any] | None) -> dict[str, Any]:
+    if not result:
+        return {}
+    visual_quality = result.get("visual_quality", {})
+    if not isinstance(visual_quality, dict):
+        return {}
+    return visual_quality.get("components", {}).get("status_assignment", {})
+
+
+def phase_w_product_gate_status(
+    quality_summary: dict[str, Any],
+    phase_v_ok: bool,
+    phase_u_ok: bool,
+    phase_w_arena_ok: bool,
+    phase_w_boss_icon_ok: bool,
+    long_result: dict[str, Any] | None,
+    phase_u_result: dict[str, Any] | None,
+) -> dict[str, Any]:
+    long_vq = long_result.get("visual_quality", {}) if long_result else {}
+    phase_u_vq = phase_u_result.get("visual_quality", {}) if phase_u_result else {}
+    checks = {
+        "text": phase_u_ok,
+        "boss_identity": phase_w_boss_icon_ok,
+        "arrows": phase_v_ok,
+        "ranges": phase_v_ok,
+        "background": phase_w_arena_ok,
+        "waymarks": quality_summary.get("ok", False),
+        "flow_completeness": bool(long_result and phase_u_result and int(long_result["scene"]["steps"]) >= 10 and int(phase_u_result["scene"]["steps"]) >= 10),
+        "severe_zero": bool((long_vq.get("severe_items", 0) == 0) and (phase_u_vq.get("severe_items", 0) == 0)),
+    }
+    return {
+        "ok": all(checks.values()),
+        "checks": checks,
+    }
 
 
 def main() -> int:
@@ -1255,6 +1606,8 @@ def main() -> int:
             long_flow = write_job_specific_positioning_case(case_dir)
         elif custom_builder == "party_stack_identity":
             long_flow = write_party_stack_label_omission_case(case_dir)
+        elif custom_builder == "status_assignment":
+            long_flow = write_status_assignment_case(case_dir)
         else:
             run_pipeline(input_path, case_dir, meta, args.force)
             sync_case_surface(case_dir)
@@ -1275,6 +1628,90 @@ def main() -> int:
     long_result = next((result for result in quality_results if result["slug"] == "fru-p1-thunder-fire-swords-like"), None)
     long_steps = int(long_result["scene"]["steps"]) if long_result else 0
     long_objects = int(long_result["scene"]["objects"]) if long_result else 0
+    phase_u_result = next((result for result in quality_results if result["slug"] == "ultimate-yokai-star-dance-phase-u"), None)
+    phase_u_steps = int(phase_u_result["scene"]["steps"]) if phase_u_result else 0
+    phase_u_annotation = (
+        phase_u_result.get("visual_quality", {})
+        .get("components", {})
+        .get("annotation_contract", {})
+        if phase_u_result
+        else {}
+    )
+    phase_u_text_objects = int(phase_u_annotation.get("text_objects", 0) or 0)
+    phase_u_text_chars = int(phase_u_annotation.get("text_chars", 0) or 0)
+    phase_u_ok = bool(
+        phase_u_result
+        and phase_u_result.get("ok")
+        and 10 <= phase_u_steps <= 14
+        and phase_u_annotation.get("ok")
+        and (phase_u_text_objects >= 140 or phase_u_text_chars >= 900)
+    )
+    phase_v_fru = (
+        long_result.get("visual_quality", {}).get("components", {}).get("mechanic_semantics", {})
+        if long_result
+        else {}
+    )
+    phase_v_o8s = (
+        phase_u_result.get("visual_quality", {}).get("components", {}).get("mechanic_semantics", {})
+        if phase_u_result
+        else {}
+    )
+    phase_v_fru_patterns = set(phase_v_fru.get("pattern_kinds", {}))
+    phase_v_o8s_patterns = set(phase_v_o8s.get("pattern_kinds", {}))
+    phase_v_fru_ok = bool(
+        long_result
+        and long_result.get("ok")
+        and phase_v_fru.get("ok")
+        and phase_v_fru.get("range_semantics_score") == 100.0
+        and phase_v_fru.get("arrow_semantics_score") == 100.0
+        and {"bossHitbox", "fan120", "safeSector", "shareFan90"} <= phase_v_fru_patterns
+    )
+    phase_v_o8s_ok = bool(
+        phase_u_result
+        and phase_u_result.get("ok")
+        and phase_v_o8s.get("ok")
+        and phase_v_o8s.get("range_semantics_score") == 100.0
+        and phase_v_o8s.get("arrow_semantics_score") == 100.0
+        and {"baitTrail", "bossHitbox", "chargeLine", "fan120", "safeSector", "shareFan90", "towerResolve"} <= phase_v_o8s_patterns
+    )
+    phase_v_ok = phase_v_fru_ok and phase_v_o8s_ok
+    known_asset_case = args.output_dir / "known-encounter-boss-asset"
+    phase_w_boss_icon = phase_w_boss_icon_status(known_asset_case)
+    phase_w_fru_arena_context = arena_context(long_result)
+    phase_w_o8s_arena_context = arena_context(phase_u_result)
+    phase_w_fru_arena_ok = bool(phase_w_fru_arena_context.get("backgroundImage") == "/arena/e11.svg")
+    phase_w_o8s_overlay_kinds = set(phase_w_o8s_arena_context.get("overlay_kinds", []))
+    phase_w_o8s_arena_ok = bool(
+        phase_w_o8s_arena_context.get("preset") == "omega-o8s"
+        and not phase_w_o8s_arena_context.get("backgroundImage")
+        and phase_w_o8s_arena_context.get("backgroundStatus") == "fallback"
+        and {"axis", "radial_ticks"} <= phase_w_o8s_overlay_kinds
+        and "no built-in O8S arena asset found" in str(phase_w_o8s_arena_context.get("sourceReason", ""))
+    )
+    phase_w_arena_ok = phase_w_fru_arena_ok and phase_w_o8s_arena_ok
+    phase_w_product_gate = phase_w_product_gate_status(
+        quality_summary,
+        phase_v_ok,
+        phase_u_ok,
+        phase_w_arena_ok,
+        bool(phase_w_boss_icon.get("ok")),
+        long_result,
+        phase_u_result,
+    )
+    phase_x_result = next((result for result in quality_results if result["slug"] == "status-driven-assignment"), None)
+    phase_x_profile = status_assignment_context(phase_x_result)
+    phase_x_report = phase_x_status_report_status(args.output_dir / "status-driven-assignment")
+    phase_x_status_ok = bool(
+        phase_x_result
+        and phase_x_result.get("ok")
+        and phase_x_profile.get("applicable")
+        and phase_x_profile.get("ok")
+        and phase_x_profile.get("status_assignment_score") == 100.0
+        and phase_x_profile.get("visible_expected") == 48
+        and phase_x_profile.get("visible_overlays") == 48
+        and set(phase_x_profile.get("covered_roles", [])) == set(ROLES)
+        and phase_x_report.get("ok")
+    )
     phase_s_required = {
         "multi-boss-add-identity",
         "known-encounter-boss-asset",
@@ -1285,13 +1722,51 @@ def main() -> int:
     present_slugs = {item["slug"] for item in fixture_outputs}
     missing_phase_s = sorted(phase_s_required - present_slugs)
     acceptance = {
-        "ok": quality_summary["ok"] and not missing_phase_s and len(fixture_outputs) >= 10 and long_steps >= 10 and long_objects >= 500,
+        "ok": quality_summary["ok"] and not missing_phase_s and len(fixture_outputs) >= 12 and long_steps >= 10 and long_objects >= 500 and phase_u_ok and phase_v_ok and phase_w_arena_ok and bool(phase_w_boss_icon.get("ok")) and phase_w_product_gate["ok"] and phase_x_status_ok,
         "fixture_count": len(fixture_outputs),
         "phase_s_required_fixtures": sorted(phase_s_required),
         "missing_phase_s_fixtures": missing_phase_s,
         "long_flow_slug": long_result["slug"] if long_result else "missing",
         "long_flow_steps": long_steps,
         "long_flow_objects": long_objects,
+        "phase_u_slug": phase_u_result["slug"] if phase_u_result else "missing",
+        "phase_u_ok": phase_u_ok,
+        "phase_u_steps": phase_u_steps,
+        "phase_u_text_objects": phase_u_text_objects,
+        "phase_u_text_chars": phase_u_text_chars,
+        "phase_u_annotation_ok": bool(phase_u_annotation.get("ok")),
+        "phase_v_ok": phase_v_ok,
+        "phase_v_fru_ok": phase_v_fru_ok,
+        "phase_v_fru_range_score": phase_v_fru.get("range_semantics_score"),
+        "phase_v_fru_arrow_score": phase_v_fru.get("arrow_semantics_score"),
+        "phase_v_fru_patterns": sorted(phase_v_fru_patterns),
+        "phase_v_o8s_ok": phase_v_o8s_ok,
+        "phase_v_o8s_range_score": phase_v_o8s.get("range_semantics_score"),
+        "phase_v_o8s_arrow_score": phase_v_o8s.get("arrow_semantics_score"),
+        "phase_v_o8s_patterns": sorted(phase_v_o8s_patterns),
+        "phase_w_arena_ok": phase_w_arena_ok,
+        "phase_w_fru_arena_ok": phase_w_fru_arena_ok,
+        "phase_w_fru_arena": "{preset} {background}".format(
+            preset=phase_w_fru_arena_context.get("preset"),
+            background=phase_w_fru_arena_context.get("backgroundImage"),
+        ),
+        "phase_w_o8s_arena_ok": phase_w_o8s_arena_ok,
+        "phase_w_o8s_arena": "{preset} {status} overlays={overlays} reason={reason}".format(
+            preset=phase_w_o8s_arena_context.get("preset"),
+            status=phase_w_o8s_arena_context.get("backgroundStatus"),
+            overlays=",".join(phase_w_o8s_arena_context.get("overlay_kinds", [])),
+            reason=phase_w_o8s_arena_context.get("sourceReason"),
+        ),
+        "phase_w_boss_icon_ok": bool(phase_w_boss_icon.get("ok")),
+        "phase_w_boss_icon": phase_w_boss_icon,
+        "phase_w_product_gate_ok": phase_w_product_gate["ok"],
+        "phase_w_product_gate": phase_w_product_gate,
+        "phase_x_status_ok": phase_x_status_ok,
+        "phase_x_status_score": phase_x_profile.get("status_assignment_score"),
+        "phase_x_status_expected": phase_x_profile.get("visible_expected"),
+        "phase_x_status_visible": phase_x_profile.get("visible_overlays"),
+        "phase_x_status_roles": phase_x_profile.get("covered_roles", []),
+        "phase_x_status_report": phase_x_report,
     }
 
     payload = {

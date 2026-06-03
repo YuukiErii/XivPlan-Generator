@@ -22,6 +22,29 @@ Use this reference when drawing movement, knockback, bait, reset, and forbidden 
 - Only the final segment of a multi-segment route should have an arrowhead unless every segment is a separate action.
 - If routes still cross after bending, split the diagram into another step.
 
+## Phase V Route Semantics
+
+Generated complex scenes should declare `mechanic_semantics_contract.require_arrow_semantics: true`. Required movement and reset routes use `movementRoute`:
+
+```json
+{
+  "kind": "movementRoute",
+  "key": "d3-north-tower",
+  "movementRoute": {
+    "fromRole": "D3",
+    "toZone": "north-tower",
+    "resolveIndex": 2,
+    "arrowStyle": "movement",
+    "intent": "reposition",
+    "startLabel": "诱导后",
+    "endLabel": "进北塔",
+    "snapToTarget": true
+  }
+}
+```
+
+Use `snapToTarget: true` only when the arrowhead is intentionally allowed to touch a declared `toRole`, `toMarker`, `toObject`, or `toZone`. Keep `snapToTarget: false` when the route stops short of the target. Declare `allowDangerCrossing: true` only when the mechanic really requires passing through the currently active danger region.
+
 ## Spec Examples
 
 Single styled movement:
@@ -61,4 +84,6 @@ Forbidden route:
 - `scripts/audit_flow_lines.py` should report zero severe issues for new generated scenes.
 - Arrow crossings default to zero. If a crossing is intentional and not simultaneous, set `routeCheck: false` and explain it in `guide_text`.
 - Arrowheads should not cover player icons, Boss anchors, markers, or text.
-- Movement arrows that pass through red/orange/purple danger zones are review items unless `allowDangerCrossing: true` is set for a mechanic-required route.
+- Movement arrows that pass through red/orange/purple current-danger zones are severe under the Phase V contract unless `allowDangerCrossing: true` is set for a mechanic-required route.
+- `aoeIntent: "bait_history" | "safe" | "future_resolve" | "reference_only"` zones are not current-danger crossing failures.
+- Phase V generated routes should report `arrow_semantics_score=100.0`; missing start, endpoint, intent, resolve round, or boolean endpoint-snap declaration blocks release.

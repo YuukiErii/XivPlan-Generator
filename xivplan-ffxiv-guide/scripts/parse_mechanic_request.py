@@ -61,6 +61,18 @@ ARENA_PRESET_RULES = [
         "reason": "Tile or platform mechanics need a square grid background.",
     },
     {
+        "preset": "omega-o8s",
+        "source": "user-specified",
+        "terms": ["o8s", "omega", "sigmascape", "kefka", "凯夫卡", "妖星乱舞"],
+        "reason": "no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays",
+    },
+    {
+        "preset": "ultimate-yokai-star-dance",
+        "source": "user-specified",
+        "terms": ["ultimate yokai star dance", "yokai star dance", "udm", "绝妖"],
+        "reason": "Ultimate Yokai Star Dance context uses the local UDM arena asset when available.",
+    },
+    {
         "preset": "default-circle",
         "source": "user-specified",
         "terms": ["default circle", "default-circle", "圆形场地", "普通圆形"],
@@ -217,6 +229,18 @@ def choose_arena_preset(
             "preset": "fru-p1",
             "source": "mechanic-inferred",
             "reason": "Encounter and phase indicate FRU P1.",
+        }
+    if any(term in encounter_phase for term in ("o8s", "omega", "kefka", "sigmascape")):
+        return {
+            "preset": "omega-o8s",
+            "source": "mechanic-inferred",
+            "reason": "no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays",
+        }
+    if any(term in encounter_phase for term in ("ultimate yokai", "yokai star", "udm")):
+        return {
+            "preset": "ultimate-yokai-star-dance",
+            "source": "mechanic-inferred",
+            "reason": "Encounter context indicates Ultimate Yokai Star Dance / UDM and can use the local UDM arena asset.",
         }
 
     categories = {item["category"] for item in candidate_categories}

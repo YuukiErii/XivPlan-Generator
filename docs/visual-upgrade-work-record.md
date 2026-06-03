@@ -15,7 +15,7 @@ The authoritative continuation plan is `docs/xivplan-skill-visual-upgrade-plan.m
 
 ## Executive Summary
 
-The first, second, and Phase O-S third-round visual upgrade work are complete. The skill now has:
+The first, second, Phase O-S third-round, and Phase T-X fourth-round visual upgrade work are complete. The skill now has:
 
 - full-scene context for normal generated steps;
 - category-aware storyboard generation for complex mechanics;
@@ -26,28 +26,33 @@ The first, second, and Phase O-S third-round visual upgrade work are complete. T
 - release-grade review burndown and PNG contact-sheet evidence;
 - teaching-question storyboard metadata for every generated step;
 - enemy identity contracts for Boss/add/clone/source names, target rings, radius, and duplicate-name disambiguation.
-- official XivPlan `/actor/<JOB>.png` party job icons plus nearby role labels for the default comp.
+- party display routing: default `mechanic_flow` uses official numbered role icons, while `flow_example` keeps official XivPlan `/actor/<JOB>.png` job icons plus nearby role labels.
+- Phase U in-scene teaching annotations: generated complex scenes carry page titles plus axis, priority, mechanic, and footer callouts directly in the figure.
+- Phase V route/range semantics: generated arrows preserve movement endpoints and resolve timing, while damage geometry preserves intent, source, targets, labels, and resolve timing.
+- Phase X status assignment overlays: buff/debuff-driven scenes render each player's assigned status as a readable upper-left icon overlay on that player's party icon.
 
 Current status:
 
 - Phase A-I first-round acceptance is re-audited and complete.
 - Phase J-N second-round polish and release-gate work is complete.
-- Phase O-S third-round teaching storyboard, enemy identity, enemy icon assets, official party job icons, and release-gate work are complete.
-- Visual regression suite passes 10/10.
-- The semantic long-flow fixture reaches 14 steps / 845 objects.
+- Phase O-S third-round teaching storyboard, enemy identity, enemy icon assets, party identity, and release-gate work are complete; 2026-06-02 routing now separates `mechanic_flow` numbered-role icons from `flow_example` job-icon examples.
+- Phase T-X fourth-round gold-comparison, strict-vs-gold audit separation, icon routing, in-scene annotation, route/range semantics, arena/product gate, and status assignment work are complete.
+- Visual regression suite passes 12/12.
+- The semantic long-flow fixture reaches 14 steps / 743 objects after the 2026-06-02 Phase V route/range upgrade.
 - Severe visual issues are 0 in the regression suite.
-- Current visual quality severe issues are 0 for all ten fixtures; review items are non-blocking polish notes after the stricter identity scoring.
+- Current visual quality severe issues are 0 for all twelve fixtures; review items are non-blocking polish notes after the stricter identity, annotation, semantics, arena, and status scoring.
 
 Current non-blocking note:
 
 - `light-rampant-like` still records one parsed content unknown about real fight eligibility/grouping confirmation. This is input uncertainty, not a visual release blocker.
-- The Phase S review burndown still lists 150 review-class polish items, mostly leader-line distance and dense-label notes. Severe items remain 0, so they do not block the third-round acceptance stop line.
+- The Phase V review burndown lists 337 review-class polish items after semantic geometry was added, mostly dense-label, cone-overlap, and leader-line notes. Severe items remain 0, so they do not block the Phase V acceptance stop line.
+- Phase W resolves O8S/Omega-specific background fallback, arena overlays, dedicated Boss appearance workflow completion, and the final fourth-round contact-sheet gate. Phase X resolves buff/debuff-driven mechanics: each player's assigned status icon is rendered at the upper-left of that player's party icon and audited by `status_assignment_score`.
 
 ## Current Entry Points
 
 Use these files first in future threads:
 
-- Roadmap and completed checklist: `docs/xivplan-skill-visual-upgrade-plan.md`, sections `8` and `9`.
+- Roadmap and completed checklist: `docs/xivplan-skill-visual-upgrade-plan.md`, sections `8`, `9`, and `10`.
 - Consolidated work record: this file.
 - First-round acceptance audit: `docs/first-round-acceptance-audit-2026-06-01.md`.
 - Regression command:
@@ -60,7 +65,7 @@ Use these files first in future threads:
 
 | File | Role | Current Status |
 |---|---|---|
-| `docs/visual-upgrade-work-record.md` | Consolidated A-S history and evidence index. | Authoritative summary. |
+| `docs/visual-upgrade-work-record.md` | Consolidated A-V history and evidence index. | Authoritative summary. |
 | `docs/xivplan-skill-visual-upgrade-plan.md` | Original plan plus completed checklists. | Keep as checklist/source-of-truth for phase status. |
 | `docs/first-round-acceptance-audit-2026-06-01.md` | Fresh audit of Phase A-I acceptance. | Current acceptance snapshot. |
 | `artifacts/phase-f-progress.md` | Early Phase F progress note. | Historical; superseded by this consolidated record. |
@@ -644,7 +649,7 @@ Verification:
 - compileall: PASS.
 - `test_storyboard_templates.py`: PASS.
 - `test_visual_quality_audit.py`: PASS.
-- `run_visual_regression.py --force`: PASS 10/10.
+- `run_visual_regression.py --force`: PASS 10/10 at the Phase S checkpoint; superseded by the Phase U 11/11 suite.
 - long-flow fixture: 14 steps / 845 objects.
 - severe visual items: 0.
 - review burndown: 150 review-class items, 0 severe.
@@ -656,3 +661,268 @@ Missing-task audit:
 - Phase S checklist items S1-S6 are complete.
 - Third-round stop line is closed.
 - Remaining work, if any, is fourth-round polish: reduce leader-line distance review noise and dense-label review notes without changing the accepted Phase S release gate.
+
+## Phase T Update - 2026-06-02
+
+Phase T is complete.
+
+Context:
+
+- The fourth-round comparison sample path is `C:\Users\Mahiru\Desktop\FFXIV\KING X\UDM\test\o8s_yokai_star_dance.xivplan`; the earlier plan text used `DMU`, but the current local directory is `UDM`.
+- The gold reference remains `C:\Users\Mahiru\Desktop\FFXIV\KING X\0523-0524 FRU\Strats_limited\P1\P1_thunder_fire_swords.xivplan`.
+
+Changes:
+
+- Added `scripts/compare_xivplan_to_gold.py`.
+- `audit_visual_quality.py` now accepts `--reference-mode gold`, parses legacy role prefixes such as `H1 AST`, downgrades gold-reference dense attached labels and arrow endpoint snaps to profile review items, and outputs `gold_style_score`.
+- `audit_label_layout.py` now classifies labels as `attachedLabel`, `roleBadge`, `mechanicCallout`, or `floatingText`; gold mode uses smaller boxes and review semantics for readable dense annotations.
+- `test_visual_quality_audit.py` now covers the strict-vs-gold split with a legacy gold-reference smoke scene.
+- `SKILL.md` now documents the Phase T rule: generated diagrams use strict mode; human gold references use gold mode plus comparison reports only.
+- `docs/xivplan-skill-visual-upgrade-plan.md` now records Phase T implementation evidence and marks the first two fourth-round stop-line items complete.
+
+Evidence:
+
+- `artifacts/phase-t-gold-comparison/compare-o8s-p1.md`
+- `artifacts/phase-t-gold-comparison/compare-o8s-p1.json`
+- `artifacts/phase-t-gold-comparison/p1-gold-visual-quality.md`
+- `artifacts/phase-t-gold-comparison/p1-gold-visual-quality.json`
+- `artifacts/phase-t-gold-comparison/p1-gold-label-layout.md`
+- `artifacts/phase-t-gold-comparison/o8s-strict-visual-quality.md`
+
+Verification:
+
+- `compare_xivplan_to_gold.py`: PASS, reproduced `6 vs 14 steps`, `212 vs 625 objects`, `64 vs 284 text objects`, `185 vs 2179 in-scene text chars`, `22 vs 144 mechanic/range zones`, and `default-circle vs /arena/e11.svg`.
+- `audit_visual_quality.py --reference-mode gold` on the P1 gold reference: `GOLD_PROFILE`, `gold_style_score=95.24`, severe 0.
+- `audit_label_layout.py --reference-mode gold` on the P1 gold reference: PASS, severe 0, review 810.
+- `audit_visual_quality.py` strict mode on O8S: REVIEW, score 95.33, severe 0, review 6.
+- `audit_visual_quality.py` strict mode on P1 gold reference: FAIL as expected, preserving generator-contract separation.
+- `test_visual_quality_audit.py`: PASS.
+- `run_visual_regression.py --force`: PASS 10/10 at the Phase T checkpoint; long-flow fixture is 14 steps / 733 objects after mechanism-flow role-label text is removed. Phase U later expands this suite to 11/11.
+
+Missing-task audit:
+
+- Phase T checklist items are complete.
+- Remaining fourth-round implementation starts at Phase U: in-scene annotation and page-title/callout upgrade. Phase V and Phase W are still open.
+
+## Guide Section Icon Routing Update - 2026-06-02
+
+Context:
+
+- The requested figure taxonomy is now explicit: main mechanism diagrams are `mechanic_flow`; illustrative flow/timeline examples are `flow_example`.
+- `mechanic_flow` should follow the user's screenshot style: official numbered role icons (`tank1/tank2/healer1/healer2/dps1-dps4`) carry the identity, so extra `MT/ST/H1...` text labels are omitted by default.
+- `flow_example` keeps the Phase S default-job style: `/actor/DRK.png`, `/actor/PLD.png`, `/actor/AST.png`, `/actor/SCH.png`, `/actor/SAM.png`, `/actor/DRG.png`, `/actor/BRD.png`, `/actor/PCT.png` plus nearby role labels.
+
+Changes:
+
+- `build_xivplan_scene.py` preserves `guide_section` on built steps and applies section-specific `partyDisplayStyle` before party objects are rendered.
+- `validate_xivplan_scene.py` and `audit_visual_quality.py` check numbered role icons for `mechanic_flow`, and job icons plus role labels for `flow_example`.
+- `build_spec_from_solution.py` sets generated solution specs to `guide_section: "mechanic_flow"` by default.
+- The Phase S `job-specific-positioning` and `party-stack-label-omission` regression specs are explicitly marked `flow_example` so they continue proving the old job-icon example surface.
+- `SKILL.md`, `references/party-job-defaults.md`, `references/xivplan-scene-format.md`, `references/xivplan-style-guide.md`, the visual checklist, README, and agent defaults now document the two display contracts.
+
+Verification:
+
+- `py_compile`: PASS for edited builder, validator, audit, comparison, regression, and test scripts.
+- `test_visual_quality_audit.py`: PASS, including strict/gold split and guide-section icon-policy smoke checks.
+- `test_storyboard_templates.py`: PASS.
+- `run_visual_regression.py --force`: PASS 11/11 after the Phase U fixture was added.
+- Main mechanism spot-check: `fru-p1-thunder-fire-swords-like` is `mechanic_flow` / `role-number-icon`, with MT=/actor/tank1.png, ST=/actor/tank2.png, H1=/actor/healer1.png, H2=/actor/healer2.png, D1-D4=/actor/dps1.png through `/actor/dps4.png`, and no extra role-label text.
+- Flow-example spot-check: `job-specific-positioning` is `flow_example` / `job-icon`, with MT=/actor/DRK.png through D4=/actor/PCT.png and visible role labels.
+- Current visual regression report: PASS 11/11, long-flow 14 steps / 733 objects, severe visual issues 0.
+
+## Phase U Update - 2026-06-02
+
+Phase U is complete.
+
+Context:
+
+- Phase T showed that the old O8S / 妖星乱舞 sample was contract-complete but still too summary-like: 6 steps, 64 text objects, and 185 in-scene text characters.
+- Phase U's target is to move critical guide information from `guide_text` into the figure itself through page titles and compact callouts.
+
+Changes:
+
+- `build_spec_from_solution.py` now writes `annotation_contract` with `require_in_scene_teaching`, `min_callouts_per_step`, `max_callout_chars`, `prefer_axis_and_priority_labels`, and `convert_guide_text_to_footer`.
+- The generated step list now derives `page_title` from each `teaching_question`.
+- Every generated normal step receives eight short callouts in top/bottom/left/right outside-arena bands, using `labelRole: axis`, `priority`, `mechanic`, or `footer`.
+- Sequence / case-based mechanics now include two extra branch pages, so Yokai/O8S-like combined mechanics can reach 14 teaching steps instead of staying at the old summary-step count.
+- `build_xivplan_scene.py` now preserves `annotation_contract`, `page_title`, `annotation_callouts`, `labelRole`, and `labelBand`, and places banded text at stable outside-arena positions.
+- `audit_visual_quality.py` now checks the Phase U annotation contract and reports annotation metrics under `components.annotation_contract`.
+- Added `references/in-scene-annotation-style.md`.
+- Added `assets/visual-regression-fixtures/ultimate-yokai-star-dance-phase-u.input.md` and made the regression acceptance require the Phase U fixture.
+
+Evidence:
+
+- `artifacts/phase-i-visual-regression/visual-regression-report.md`
+- `artifacts/phase-i-visual-regression/visual-regression-results.json`
+- `artifacts/phase-i-visual-regression/ultimate-yokai-star-dance-phase-u/scene.xivplan`
+- `artifacts/phase-i-visual-regression/ultimate-yokai-star-dance-phase-u/quality-report/quality-report.md`
+- `artifacts/phase-u-in-scene-annotations/compare-phase-u-yokai-p1.md`
+- `artifacts/phase-u-in-scene-annotations/compare-phase-u-yokai-p1.json`
+- `artifacts/phase-u-in-scene-annotations/review-burndown.md`
+- `artifacts/phase-u-in-scene-annotations/review-burndown.json`
+
+Verification:
+
+- `py_compile`: PASS for edited generator, builder, validator, audit, regression, and test scripts.
+- `test_visual_quality_audit.py`: PASS, including Phase U annotation contract smoke.
+- `test_storyboard_templates.py`: PASS.
+- `run_visual_regression.py --force`: PASS 11/11.
+- `summarize_visual_reviews.py`: severe 0, review 213.
+- Phase U fixture: PASS, 14 steps, 436 objects, visual quality `REVIEW 88.89`, severe 0.
+- Phase U annotation profile: `ok=True`, 14 steps, 176 text objects, 1322 in-scene text characters, 114 callouts, average text length 7.51, severe 0.
+- Generated-vs-gold comparison after Phase U: 14 vs 14 steps, 436 vs 625 objects, 176 vs 284 text objects, 1322 vs 2179 in-scene text characters, 64 vs 144 mechanic/range zones, 14 vs 17 arrows.
+
+Missing-task audit:
+
+- Phase U checklist items are complete.
+- Remaining fourth-round implementation starts at Phase V: arrow, movement-route, and damage-range semantics. Phase W arena/background fallback and final contact-sheet human review are still open.
+
+## Phase V Update - 2026-06-02
+
+Phase V is complete.
+
+Context:
+
+- Phase U made the O8S / 妖星乱舞-like fixture teachable inside the figure, but arrows and AoEs still lacked machine-checkable judgment semantics.
+- Phase V requires routes and ranges to carry enough metadata for audits to distinguish current danger, safe regions, bait history, future resolves, and legal endpoint snaps.
+
+Changes:
+
+- `build_xivplan_scene.py` expands spec-level `damagePattern` objects into real `cone`, `circle`, `tower`, and `rect` geometry while preserving `source`, `targets`, `resolveIndex`, `resolveTiming`, and `aoeIntent`.
+- Supported Phase V damage kinds are `fan120`, `shareFan90`, `baitTrail`, `towerResolve`, `chargeLine`, `safeSector`, and `bossHitbox`.
+- `build_xivplan_scene.py` expands `movementRoute` into arrow/path/polyline objects while preserving `fromRole` / `fromObject`, `toRole` / `toObject` / `toZone`, route intent, labels, resolve round, and `snapToTarget`.
+- `build_spec_from_solution.py` now emits `mechanic_semantics_contract` and injects route/range semantics into generated solution specs. Existing tower objects receive `towerResolve` metadata instead of duplicate tower geometry.
+- `audit_flow_lines.py` accepts declared legal endpoint snaps, requires semantic route endpoints on movement/reset frames, reports `arrow_semantics_score`, and excludes `aoeIntent: bait_history | safe | future_resolve | reference_only` from current-danger crossing failures.
+- `audit_visual_quality.py` adds `components.mechanic_semantics`, `range_semantics_score`, `arrow_semantics_score`, pattern-kind evidence, resolve-geometry hard gates, and Phase V score columns in Markdown reports.
+- `validate_xivplan_scene.py` validates the Phase V contract before a scene reaches export.
+- `run_visual_regression.py` now requires both FRU and O8S Phase V profiles to pass at `range=100.0` and `arrow=100.0`.
+- `test_visual_quality_audit.py` includes a negative test that removes one route endpoint and proves validator plus visual-quality rejection.
+
+Evidence:
+
+- `artifacts/phase-i-visual-regression/visual-regression-report.md`
+- `artifacts/phase-i-visual-regression/visual-regression-results.json`
+- `artifacts/phase-i-visual-regression/review-burndown.md`
+- `artifacts/phase-i-visual-regression/contact-sheets/fru-p1-thunder-fire-swords-like.png`
+- `artifacts/phase-i-visual-regression/contact-sheets/ultimate-yokai-star-dance-phase-u.png`
+- `artifacts/phase-i-visual-regression/fru-p1-thunder-fire-swords-like/gold-comparison.md`
+- `artifacts/phase-i-visual-regression/gold-reference-visual-quality.md`
+- `artifacts/phase-i-visual-regression/phase-v-human-review.md`
+
+Verification:
+
+- `py_compile`: PASS for edited generator, builder, validator, audits, regression runner, and tests.
+- Script test suite: PASS 6/6.
+- `run_visual_regression.py --force`: PASS 11/11.
+- `summarize_visual_reviews.py`: severe 0, review 337.
+- FRU Phase V profile: PASS, 14 steps / 743 objects, `/arena/e11.svg`, `range_semantics_score=100.0`, `arrow_semantics_score=100.0`, with `bossHitbox`, `fan120`, `safeSector`, and `shareFan90`.
+- O8S / 妖星乱舞 Phase V profile: PASS, 14 steps, `range_semantics_score=100.0`, `arrow_semantics_score=100.0`, with `baitTrail`, `bossHitbox`, `chargeLine`, `fan120`, `safeSector`, `shareFan90`, and `towerResolve`.
+- Gold comparison: generated vs gold is `14 vs 14 steps`, `743 vs 625 objects`, `481 vs 144 mechanic/range zones`, `24 vs 17 arrows`, and `/arena/e11.svg vs /arena/e11.svg`.
+- Human contact-sheet review: PASS for Phase V semantics. FRU visibly carries thunder/fire fans, target ring, half-field overlays, and swap routes; O8S visibly carries bait history, towers, stack/spread, charge line, and reset arrows.
+
+Known non-blocking review items:
+
+- Generated FRU still has much less in-scene prose than the gold reference: `49 vs 284` text objects and `487 vs 2179` in-scene text characters.
+- The current review burndown is intentionally strict: 337 review items remain, mostly `label_far_from_anchor`, `text_vs_cone`, and `text_overlap`. Severe items remain 0.
+- Phase W still needs arena/background asset scanning, O8S fallback explanation, arena overlays, and the final seven-item human-review gate.
+
+Missing-task audit:
+
+- Phase V route/range semantics are complete.
+- Remaining fourth-round implementation starts at Phase W.
+- Superseded by the Phase X update below: per-player buff/debuff status-icon overlays, validation, regression fixtures, and release-gate coverage are now implemented.
+
+Plan update - 2026-06-02:
+
+- Added Phase X to `docs/xivplan-skill-visual-upgrade-plan.md` for buff/debuff assignment visibility.
+- Requirement: if a mechanic is strongly tied to buff icons or status point assignments, every relevant player must show the assigned status icon on the upper-left of their party icon.
+- Superseded by the Phase X update below: `statusAssignments`, builder overlays, icon-resource fallback reporting, `status_assignment_score`, and a status-driven regression fixture are now implemented.
+
+## Phase W Update - 2026-06-02
+
+Phase W is complete.
+
+Context:
+
+- Phase V closed arrow/range semantics, but Phase W still needed Boss appearance sourcing, arena/background asset scanning, O8S fallback explanation, exported arena overlays, and a final product-style human review.
+- Local XivPlan public assets currently include 74 arena assets. FRU/Fatebreaker has `/arena/e11.svg`; O8S/Omega/Kefka has no dedicated arena; UDM/Yokai has `/arena/udm-p1.png` and related `udm-*` PNGs.
+
+Changes:
+
+- Added `scripts/search_boss_appearance.py`, which searches FF14 Huiji wiki with an empty proxy handler, records access attempts, candidates, source URLs, image references, visual traits, icon briefs, and `wiki-search-blocked-fallback` when no-proxy wiki/API access is blocked.
+- Added `scripts/scan_xivplan_assets.py`, which scans `..\XivPlan\public\arena`, `actor`, and `marker`, then reports arena availability for FRU, Eden-light, O8S/Omega, UDM/Yokai, tile, and default-circle cases.
+- Added `omega-o8s` and `ultimate-yokai-star-dance` arena presets and aliases across `build_xivplan_scene.py`, `parse_mechanic_request.py`, `arena-presets.md`, `xivplan-scene-format.md`, `SKILL.md`, and the visual checklist.
+- `omega-o8s` now records `backgroundStatus: fallback`, the required O8S fallback `sourceReason`, and `arenaOverlays` for radial ticks, AC/BD axis lines, a half-field mask, and a fallback note.
+- `export_xivplan_steps.py` now attempts to draw local arena backgrounds in PNG exports and contact sheets. PNG backgrounds are rasterized directly; SVG backgrounds get a visible SVG-arena fallback with rings/guides when Pillow cannot render the SVG itself.
+- `audit_visual_quality.py` now reports `components.arena_context` and renders an Arena Context table in Markdown. Missing O8S fallback axis/radial overlays are severe in strict generated mode.
+- `run_visual_regression.py` now includes Phase W arena/background acceptance, dedicated Boss icon acceptance, and a seven-item product gate.
+- The `known-encounter-boss-asset` fixture now creates an original transparent Fatebreaker guide icon instead of copying a sample PNG. Its manifest includes `source_url`, `source_page_title`, `visual_traits`, `icon_brief`, `generated_icon_path`, and `license_note`.
+
+Evidence:
+
+- `artifacts/phase-i-visual-regression/visual-regression-report.md`
+- `artifacts/phase-i-visual-regression/visual-regression-results.json`
+- `artifacts/phase-w-product-gate/arena-assets-o8s.md`
+- `artifacts/phase-w-product-gate/arena-assets-udm.md`
+- `artifacts/phase-w-product-gate/boss-appearance-kefka.md`
+- `artifacts/phase-w-product-gate/o8s-fallback-visual-quality.md`
+- `artifacts/phase-w-product-gate/compare-fru-p1-phase-w.md`
+- `artifacts/phase-w-product-gate/review-burndown.md`
+- `artifacts/phase-w-product-gate/contact-sheets/`
+- `artifacts/phase-w-product-gate/identity-crop-sheets/`
+- `artifacts/phase-w-product-gate/phase-w-human-review.md`
+
+Verification:
+
+- `py_compile`: PASS for Phase W scripts and edited builder/exporter/audit/parser/regression scripts.
+- `test_visual_quality_audit.py`: PASS.
+- `test_storyboard_templates.py`: PASS.
+- `test_mechanic_parser.py`: PASS.
+- `test_arena_selection.py`: PASS.
+- `scan_xivplan_assets.py --encounter "O8S 妖星乱舞"`: O8S fallback recorded; no dedicated O8S arena found.
+- `scan_xivplan_assets.py --encounter "Ultimate Yokai Star Dance UDM"`: UDM arena available at `/arena/udm-p1.png`.
+- `search_boss_appearance.py` for `凯夫卡 / Kefka / O8S / 妖星乱舞`: no-proxy Huiji API returned 403 and was recorded as `wiki-search-blocked-fallback`.
+- `run_visual_regression.py --force`: PASS 11/11, Phase W arena/background gate PASS, dedicated Boss icon PASS, seven-item product gate PASS.
+- `summarize_visual_reviews.py`: severe 0, review 337.
+- FRU Phase W comparison: generated vs gold is `14 vs 14 steps`, `743 vs 625 objects`, `49 vs 284 text objects`, `487 vs 2179 in-scene text chars`, `481 vs 144 mechanic/range zones`, `24 vs 17 arrows`, `/arena/e11.svg vs /arena/e11.svg`.
+- O8S fallback visual quality: `REVIEW 89.64`, severe 0, `omega-o8s`, background `none`, status `fallback`, overlays `axis, half_mask, radial_ticks, ring_label_band`.
+
+Manual review:
+
+- FRU contact sheet shows E11 arena language, Boss target ring, thunder/fire fans, safe-sector overlays, waymarks, and swap/reset routes.
+- O8S fallback contact sheet visibly shows AC/BD axes, radial ticks, a half-field overlay, waymarks, Boss target ring, and the fallback note.
+- Enemy crop sheet confirms the dedicated Fatebreaker icon is visible inside the Boss target ring; the synthetic add remains an explicit fallback.
+
+Known non-blocking review items:
+
+- FRU generated output still has less in-scene prose than the KING X gold reference: `49` vs `284` text objects and `487` vs `2179` in-scene text chars.
+- Review items remain intentionally strict and polish-class only: mainly `label_far_from_anchor`, `text_vs_cone`, and `text_overlap`; severe remains 0.
+- Phase X is complete: buff/debuff status icon assignment overlays are implemented and gated.
+
+## Phase X Update - 2026-06-02
+
+Phase X is complete.
+
+Context:
+
+- Phase W closed Boss/background/product gates, but status-driven mechanics such as Hello World, Relativity, and High Concept still needed visible per-player buff/debuff ownership.
+- The new hard rule is that status assignments belong on the player icon, not only in guide prose.
+
+Changes:
+
+- `build_xivplan_scene.py` now accepts root/step `statusAssignments`, writes `status_assignment_contract`, and renders up to three `statusOverlay` icons on the upper-left of each assigned party icon.
+- Status overlays preserve `statusRole`, `statusName`, `decisionGroup`, `anchorRole`, `anchorPartyId`, `assetStatus`, `assetFallback`, `fallbackReason`, `visibleSteps`, and optional duration/stack/priority/source/confidence metadata.
+- `build_spec_from_solution.py` turns explicit buff/debuff/status categories and keywords into a Phase X contract plus default role-bound fallback badges.
+- `validate_xivplan_scene.py` rejects status-driven scenes with missing roles, missing visible overlays, wrong party anchors, too-small badges, or fallback badges without a reason.
+- `audit_visual_quality.py` adds `status_assignment_score`, `components.status_assignment`, and a Markdown Status Assignment evidence table.
+- `run_visual_regression.py` adds the `status-driven-assignment` fixture, writes `status-assignment-report.json/md`, and requires the Phase X status gate in release acceptance.
+
+Evidence:
+
+- `test_visual_quality_audit.py`: PASS, including Phase X positive and missing-overlay negative checks.
+- `run_visual_regression.py --force`: PASS 12/12.
+- Phase X fixture: `status_assignment_score=100.0`, `48 visible / 48 expected`, covered roles `D1, D2, D3, D4, H1, H2, MT, ST`.
+
+Known non-blocking review items:
+
+- Phase X currently uses deterministic fallback badges when real buff/debuff icons are not provided. This is allowed only when the fallback reason is recorded; exact official status icon sourcing remains a future asset-specific improvement.

@@ -1,11 +1,12 @@
 # Ultimate Yokai Star Dance Change Log
 
-Generated version entries are appended by `run_ultimate_yokai_star_dance_pipeline.py`.
+This tracked snapshot records the initial progression versions. New runtime
+entries are appended locally under `artifacts/ultimate-yokai-star-dance/change-log.md`.
 
 ## `v0.1-draft`
 
 - generated_at: 2026-05-31T20:38:52
-- source_notes: `artifacts\ultimate-yokai-star-dance\raw-notes\p1-draft-notes.md`
+- source_notes: `xivplan-ffxiv-guide\assets\progression-notes\ultimate-yokai-star-dance\raw-notes\p1-draft-notes.md`
 - previous_version: `none`
 - quality: PASS
 - 新增确认：
@@ -27,7 +28,7 @@ Generated version entries are appended by `run_ultimate_yokai_star_dance_pipelin
 ## `v0.2-observed`
 
 - generated_at: 2026-05-31T20:38:59
-- source_notes: `artifacts\ultimate-yokai-star-dance\raw-notes\p1-observed-notes.md`
+- source_notes: `xivplan-ffxiv-guide\assets\progression-notes\ultimate-yokai-star-dance\raw-notes\p1-observed-notes.md`
 - previous_version: `v0.1-draft`
 - quality: PASS
 - 新增确认：

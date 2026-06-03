@@ -620,6 +620,8 @@
 
 口径修正（2026-06-01）：本计划里的“职业图标”严格指 XivPlan 自带的 `public/actor/<JOB>.png` 官方职业图标资源，例如 `/actor/DRK.png`、`/actor/SAM.png`、`/actor/PCT.png`。`job:*` 抽象 token、泛用职能图标、或把 `SAM/PCT` 等缩写画进色块徽章，都不能算作第三轮验收中的职业图标。
 
+口径更新（2026-06-02）：攻略图现在分为 `mechanic_flow` 与 `flow_example` 两类。第三轮 Phase R/S 的官方职业图标 + 职责短标要求保留给 `flow_example`；默认主机制图 `mechanic_flow` 改用官方编号职能图标（`tank1/tank2/healer1/healer2/dps1-dps4`），不再额外生成 `MT/ST/H1...` 文字标签。
+
 第三轮完成后，默认生成图应满足：
 
 - 复杂机制宁可多拆 step，也不把观察、判断、预站、移动、判定、复位压进同一帧。
@@ -634,7 +636,7 @@
 - [x] 分镜数量仍偏“机制类型模板化”：虽然已有 6-14 step，但对需要逐动作教学的新机制，仍可能少画“读什么、怎么判、谁先动、谁后动、判定后去哪”的中间帧。
 - [x] Boss / 小怪仍主要是 `enemy` 圆点或目标环，名字、目标环大小、朝向、身位、分身差异不够显眼。
 - [x] 敌人图像资产没有成为默认合同：Phase Q 已把 dedicated/fallback enemy icon 注入纳入默认合同。
-- [x] 玩家仍偏职责点表达：Phase R/S 已改为 XivPlan 官方 `/actor/<JOB>.png` 职业图标 + 职责短标，纠正了“文字缩写徽章”误读。
+- [x] 玩家仍偏职责点表达：Phase R/S 已先改为 XivPlan 官方 `/actor/<JOB>.png` 职业图标 + 职责短标，纠正了“文字缩写徽章”误读；2026-06-02 起该样式作为 `flow_example` 合同保留，默认 `mechanic_flow` 合同改为编号职能图标。
 - [x] 质量门目前检查“有无 party / enemy”，但没有严查“敌人是否命名、是否有目标环半径、是否有 icon、玩家是否有职业级身份”。Phase P/Q/R/S 已补齐 enemy identity、enemy icon、party official job icon 校验。
 
 ### 9.2 第三轮总体目标
@@ -644,7 +646,7 @@
 - [x] 每个 normal step 至少保留一个 `enemy_identity` 合同：`name`、`kind`、`radius`、`ring`、`label`、`icon`、`facing` 按需填写。
 - [x] 所有 Boss / add 目标环必须可读：目标环大小和名字不能被 AoE、玩家、箭头或标签遮挡。
 - [x] 对每个 Boss / add 生成或选择图像资产：优先 image2 生成专属小图标；如果素材暂缺，使用统一 boss/add 占位图标，并在 unknowns / guide_text 中标注待替换。
-- [x] 玩家对象升级为“官方职业图标 + 职责短标”双标识：`role` 保留 `MT/ST/H1/H2/D1/D2/D3/D4`，`job` 保留默认职业或用户职业，图面优先显示 XivPlan `/actor/<JOB>.png` icon，旁边短标签只显示职责；集合/重叠帧允许隐藏职责短标，并允许按比例缩小职业图标。
+- [x] 玩家对象升级为可按图面分类切换的双合同：`role` 保留 `MT/ST/H1/H2/D1/D2/D3/D4`，`job` 保留默认职业或用户职业；`flow_example` 图面显示 XivPlan `/actor/<JOB>.png` icon + 职责短标，`mechanic_flow` 图面显示编号职能 icon；集合/重叠帧允许隐藏职责短标，并允许按比例缩小图标。
 - [x] 第三轮回归集新增至少 3 个 fixture：多 Boss / 多小怪机制、已有副本 Boss 图标机制、职业分工敏感机制。
 
 ### 9.3 Phase O：教学分镜粒度 v3
@@ -861,7 +863,7 @@
   - 检查 8 人站位是否和 `guide_text` 中的职责位置一致。
   - 对集合/重叠帧使用独立规则：不因职责短标隐藏或职业 icon 适度缩小扣 severe，但职业 icon 必须可辨认。
 - [x] R7 更新 `assets/templates/visual-quality-checklist.md`：
-  - 增加“非集合帧 8 人是否都有职业图标 + 职责短标”。
+  - 增加“`flow_example` 非集合帧 8 人是否都有职业图标 + 职责短标”，并在 2026-06-02 后补充“`mechanic_flow` 非集合帧是否都有编号职能图标”。
   - 增加“集合/重叠帧是否保留可辨认职业图标，且省略职责短标或缩小图标不会影响判断”。
   - 增加“默认职业配置是否正确或已被用户配置覆盖”。
   - 增加“XivPlan 官方职业图标在导出 PNG 中是否可辨认，且不是文字缩写徽章”。
@@ -880,7 +882,7 @@
 - `build_spec_from_solution.py`、`build_xivplan_scene.py`、`plan_solution_candidates.py` 现在写入并保留 `job`、`jobName`、`icon`、`image`、`roleLabel`、`roleLabelVisible` 与 `iconScale`。
 - `validate_xivplan_scene.py` 已检查 8 人唯一职责、默认职业、官方职业 icon 路径和非集合帧职责短标；`audit_visual_quality.py` 新增 `party_identity_score`，并把 `job:*` 抽象 token 视为严重问题。
 - `audit_label_layout.py`、`audit_flow_lines.py`、`audit_visual_quality.py` 已把 party role label 作为 party identity 附属标识处理，避免被普通标签碰撞门误判。
-- 证据：`artifacts/phase-i-visual-regression/visual-regression-report.md` 当前 10/10 PASS，所有 case severe=0，职业身份报告明确记录官方 `/actor/<JOB>.png` 图标路径。
+- 证据：`artifacts/phase-i-visual-regression/visual-regression-report.md` 当时 10/10 PASS，所有 case severe=0，职业身份报告明确记录官方 `/actor/<JOB>.png` 图标路径；Phase U 后完整套件扩展为 11/11。
 
 ### 9.7 Phase S：第三轮回归、人工审查与交接
 
@@ -918,10 +920,10 @@
 
 验收：
 
-- [x] 原 Phase I / N 五个 fixtures 继续 5/5 PASS；完整回归为 10/10 PASS。
+- [x] 原 Phase I / N 五个 fixtures 继续 5/5 PASS；Phase S 当时完整回归为 10/10 PASS，Phase U 后完整回归为 11/11 PASS。
 - [x] 第三轮新增 fixtures 全部通过 scene validation、asset validation、guide package validation、visual quality gate。
 - [x] 所有 normal step 的 Boss / add 都有名字、目标环、icon 或 fallback icon。
-- [x] 所有 normal step 的 8 人都有职责 + 官方职业身份；集合/重叠帧允许隐藏职责短标和缩小职业 icon，但不能隐藏职业 icon。
+- [x] 所有 normal step 的 8 人都有职责身份；`mechanic_flow` 通过编号职能 icon 表达，`flow_example` 通过官方职业 icon + 职责短标表达；集合/重叠帧允许隐藏职责短标和缩小图标，但不能隐藏图标。
 - [x] 至少一个复杂机制 fixture 达到 `14+` step，并且每 step 都有不同教学目的。
 - [x] contact sheet 和人工审查报告能证明第三轮目标不是只在 JSON 里通过，而是在 PNG 导出中也清楚。
 
@@ -930,7 +932,7 @@
 - `build_spec_from_solution.py`、`build_xivplan_scene.py`、`plan_solution_candidates.py` 已把默认职业图标从 `job:*` 抽象 token 改为 XivPlan 官方 `/actor/<JOB>.png` 资源路径：DRK、PLD、AST、SCH、SAM、DRG、BRD、PCT。
 - `export_xivplan_steps.py` 已能从本机 `..\XivPlan\public` 解析 `/actor/<JOB>.png`，因此 Phase S PNG/contact sheet 里能实际看到官方职业图标，而不是文字缩写徽章。
 - `validate_xivplan_scene.py` 和 `audit_visual_quality.py` 已把默认职业 icon 路径纳入验收；`job:*` token 会被视为严重问题。
-- 回归证据：`artifacts/phase-i-visual-regression/visual-regression-report.md`，10/10 PASS，long-flow 14 steps / 845 objects，severe=0。
+- 回归证据：`artifacts/phase-i-visual-regression/visual-regression-report.md`，Phase S 当时 10/10 PASS；2026-06-02 双图面路由后 long-flow 为 14 steps / 733 objects，severe=0；Phase U 后完整回归为 11/11 PASS。
 - 职业身份证据：`artifacts/phase-i-visual-regression/job-specific-positioning/job-identity-report.md`、`artifacts/phase-i-visual-regression/party-stack-label-omission/job-identity-report.md`，均记录 expected official XivPlan icons。
 - PNG 证据：`artifacts/phase-s-release-gate/contact-sheets/` 与 `artifacts/phase-s-release-gate/identity-crop-sheets/party/` 已重新生成；人工审查记录为 `artifacts/phase-s-release-gate/human-review.md`。
 
@@ -943,3 +945,403 @@
 - [x] 玩家身份合同落地：8 人职责唯一、默认职业配置正确、非集合帧官方职业 icon / 职责短标可读，集合帧缩小后的官方职业 icon 可读。
 - [x] 分镜教学粒度明显提升：复杂机制默认能生成 10+ step，长流程能生成 14+ step。
 - [x] 新增第三轮 artifacts 目录保存 spec、scene、PNG、asset manifest、quality report、contact sheet、人工审查与交接记录。
+
+## 10. 第四轮优化计划：真实金标准对照与成品感差距修复
+
+本轮来自 2026-06-02 对 `C:\Users\Mahiru\Desktop\FFXIV\KING X\UDM\test\o8s_yokai_star_dance.xivplan` 与金标准 `C:\Users\Mahiru\Desktop\FFXIV\KING X\0523-0524 FRU\Strats_limited\P1\P1_thunder_fire_swords.xivplan` 的直接对比。对比证据保存到 `artifacts/compare-o8s-p1/`：
+
+- `density-audit.md/json`
+- `visual-quality-audit.md/json`
+- `label-layout-audit.md/json`
+- `flow-audit.md/json`
+- `contact-sheets/o8s-images.png`
+- `contact-sheets/p1-images.png`
+
+这次对比说明：第三轮后的 skill 已经能生成“合同完整、审计通过”的图，但还没有稳定达到 KING X 人工成品那种“机制语义直接写在图里、每一帧都是攻略页面”的密度与表达力。
+
+### 10.1 对比结论
+
+结构密度：
+
+| 项目 | skill 产物：`o8s_yokai_star_dance` | 金标准：`P1_thunder_fire_swords` | 暴露问题 |
+|---|---:|---:|---|
+| step 数 | 6 | 14 | skill 仍偏摘要式流程，复杂机制没有拆到足够多的判断/换位/判定/复盘镜头。 |
+| 对象数 | 212 | 625 | skill 单步合同完整，但总机制信息量只有金标准约 1/3。 |
+| 平均对象数 | 35.33/step | 44.64/step | skill 单帧看起来干净，但缺少金标准的图内解释、优先级、判定范围和状态切换。 |
+| 图内 text 对象 | 64 | 284 | skill 的文字大多只是角色短标和 step 标题。 |
+| 图内文字总量 | 185 字 | 2179 字 | skill 把 563 字解释放在 `guide_text`，但图面本身不够自解释。 |
+| 伤害/机制范围对象 | 22 | 144 | skill 画出了塔、圈、分摊、矩形区域，但缺少大量扇形、目标环、轴线、暗区/安全区层次。 |
+| 箭头对象 | 20 | 17 | skill 箭头数量不低，但箭头更多是“移动方向”，少了金标准那种与优先级、旧位/新位、判定轮次绑定的路线说明。 |
+| 背景 | `preset: default-circle` | `backgroundImage: /arena/e11.svg` + radial ticks | skill 对 encounter/fight 背景选择仍保守，实际成品感弱。 |
+
+文字描述缺陷：
+
+- `o8s` 的 64 个 text 对象里，48 个是 `MT/ST/H1/H2/D1/D2/D3/D4` 职责短标；图内平均文字长度只有 2.9 字，最长 8 字。
+- 金标准有 284 个 text 对象，平均 7.7 字，最长 38 字，直接写入 `AC 雷轴`、`BD 火轴`、`双排优先级`、`左排自上往下`、`右排看倒数`、`雷：三人分散引导三个120度扇形`、`火是三人分摊90度扇形` 等攻略语义。
+- 当前 skill 的长说明集中在 `guide_text`，例如 step 1/2/3 各有接近 100 字说明；这对导出攻略文档有用，但单看 `.xivplan` 画面时，队员无法像读金标准那样直接从图上读出判断逻辑、优先级和例外条件。
+- 当前 step 标题是 `1 分工`、`2 DPS诱导`、`3 残影`、`4 塔序`、`5 分摊`、`6 复位`，粒度偏阶段名；金标准虽然没有 step title 字段，但每页图内都有“AD组：雷雷”“雷火火：第1-2次”“火雷火：第3-4次”等页面标题和局部说明。
+
+箭头展示缺陷：
+
+- 当前 skill 的 flow audit 对 `o8s` 给出 PASS：20 箭头、0 交叉、0 severe；但视觉上很多箭头只是方向提示，没有明确绑定“从哪个旧站位到哪个新站位”“第几次判定前移动”“移动后接什么范围”。
+- 金标准只有 17 个 arrow，却和密集文本、扇形范围、Boss 目标环、优先级短标共同表达换位；当前审计器反而把金标准判为 flow FAIL，主要是因为箭头头部贴近 marker/enemy/text/party 被当作 severe。这说明现有 flow gate 更适合检查生成器是否整洁，不适合衡量人工金标准的“箭头指向目标对象”的合法语法。
+- 当前 builder 的箭头已有 `arrowStyle`，但缺少 `fromRole`、`toRole`、`resolveIndex`、`startLabel`、`endLabel`、`snapToTarget` 等语义字段；审计器也没有区分“箭头头部故意指向目标角色/目标点”和“箭头误遮挡”。
+
+攻略流程详细程度缺陷：
+
+- `o8s` 6 step 覆盖“分工 -> DPS诱导 -> 残影 -> 塔序 -> 分摊 -> 复位”，可以说明机制大意，但缺少金标准式的条件分支页面：不同读条/点名组合、第一轮和第三轮的关系、困难顺序示例、每组优先级如何换算。
+- 金标准用 14 step 拆出基础站位、雷雷、火火、雷火火、火雷火、困难顺序示例等多个页面；部分页面专门教一个分支，而不是把所有变化压进一个通用流程。
+- 当前 skill 的 `teaching_question` 字段存在，但在 `o8s` 产物里没有转化为足够多的“只回答一个问题”的画面。下一轮应把 `teaching_question` 与图内标题、图内 callout、范围对象和箭头对象强绑定。
+
+伤害范围展示缺陷：
+
+- `o8s` 使用了 7 个 `circle`、6 个 `tower`、2 个 `stack`、3 个 `rect`、4 个 `line`，适合表达“有塔/有分摊/有诱导圈/有分区”。
+- 金标准使用 82 个 `circle`、34 个 `cone`、28 个 `rect`，大量展示 Boss 目标环、120 度雷扇形、90 度火分摊扇形、危险半场/安全半场、贴目标环处理等真实判定语义。
+- 当前 skill 对“伤害范围”的表达仍偏泛化图标：有危险圈和塔，但缺少“这个伤害为什么是这个角度/半径/朝向、谁引导、谁分摊、判定后留下什么”的几何语义。
+
+标点、背景与构图缺陷：
+
+- `o8s` 每步都有 A/B/C/D/1/2/3/4 标点，合同完整；但场地是 `default-circle`，没有战斗专属背景、地板纹理、radial ticks 或轴线语义。
+- 金标准使用 `/arena/e11.svg`，并叠加 `AC 雷轴`、`BD 火轴`、Boss 目标环和深色象限区域，让背景、标点和机制判断成为一套统一语言。
+- 本机 `..\XivPlan\public\arena` 目前没有发现 `o8s` / `omega` 专用 arena 资源；因此 O8S 类图不能简单写死背景路径，必须先做资源扫描、alias 记录和 fallback 说明。如果用户提供背景或后续补入资源，skill 应自动写入 `backgroundImage`，否则质量报告必须说明“无 O8S 专用背景，使用 default-circle fallback”。
+
+审计器缺陷：
+
+- `audit_visual_quality.py` 给 `o8s` 打出 `REVIEW score=95.33 severe=0 review=6`，但给金标准打出 `FAIL score=19.78 severe=634 review=439`。
+- 这不是金标准质量差，而是审计器把第三轮生成器合同当成唯一标准：它不识别金标准里 `party.name = "H1 AST"` 这类 legacy role 写法，也不理解“文字贴着角色/范围/箭头”有时是有意的图内标注。
+- 第四轮必须新增“金标准兼容模式”和“生成器严格模式”两套口径：生成器仍要避免严重遮挡，但参考样例分析不能把人工成品的密集标注误判为失败。
+
+Boss 形象缺陷：
+
+- 第三轮已经要求 enemy 有 `icon` / fallback，但当前能力更像“有图标字段”，还不是“知道这是哪个 Boss 就主动查证外观并做专属攻略 icon”。
+- 已知 Boss 时，skill 应优先搜索 FF14 中文维基 `https://ff14.huijiwiki.com/wiki/首页`，用 Boss 中文名、英文名、副本名和别名查找 Boss / 副本 / NPC 页面，记录页面 URL、图像来源和外观特征。
+- 访问灰机 wiki 时必须直连，不走本机 `127.0.0.1:7890` 代理。本机当前可能存在 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` 指向 7890 的环境变量；`search_boss_appearance.py` 应在请求 `ff14.huijiwiki.com` 时设置 `NO_PROXY=ff14.huijiwiki.com,.huijiwiki.com`，并清除或绕过代理环境变量。只有无代理重试仍失败，才允许记录 `wiki-search-blocked-fallback`。
+- 不能直接把 wiki/官方截图原样贴进最终攻略图；默认应根据查到的形象特征生成或绘制原创、透明底、无文字、64-96 px 仍可读的小图标，再通过 enemy asset manifest 注入 `.xivplan`。
+- 2026-06-02 本地 XivPlan 源码确认：外部 PNG 导入主路已存在，`src/file/image.ts` 会读取 PNG 为 `data:image/png;base64,...`，`src/panel/properties/ImageControl.tsx` 有 `Choose local PNG`，`src/render/SceneRenderer.tsx` 支持拖放 PNG 生成 `ObjectType.Image`。本轮还补了 `src/prefabs/Enemies.tsx` 的 enemy icon 渲染，使 `.xivplan` 里的 `enemy.icon` data URL 能在 Boss 目标环内显示；`tsc -b` 已通过。
+
+### 10.2 Phase T：金标准差异分析器与双口径质量门
+
+目标：让 skill 能稳定回答“为什么当前生成图不像金标准”，而不是只报告自己 PASS。
+
+任务：
+
+- 新增 `scripts/compare_xivplan_to_gold.py`，输入 generated `.xivplan` 与 gold `.xivplan`，输出结构化差异：
+  - step/object/type/density 对比；
+  - 图内文字数量、总字数、平均字长、长说明迁移比例；
+  - arrow 数量、样式、端点对象、是否带 from/to/resolve 语义；
+  - circle/cone/rect/tower/stack 等伤害范围覆盖；
+  - arena/background/ticks/axis/waymark 对比；
+  - role/party legacy 写法兼容结果；
+  - 逐维度缺陷清单和下一步建议。
+- 扩展 `audit_visual_quality.py` 增加 `--reference-mode gold`：
+  - 识别 `party.name` 中的 `H1 AST`、`D4 PCT` 等 role 前缀；
+  - 将“短角色标贴近玩家图标”“箭头指向目标点/目标角色”“机制标签贴近 AoE”识别为可接受的 attached label，而不是默认 severe；
+  - 单独输出 `gold_style_score`，不与生成器合同分数混用。
+- 扩展 `audit_label_layout.py`：
+  - 增加 `attachedLabel` / `roleBadge` / `mechanicCallout` 分类；
+  - 对 `MT/ST/H1/H2/D1/D2/D3/D4/1-8/高后/低右/1雷/3火` 等短标签采用更小包围盒和不同碰撞阈值；
+  - 把“可读但密集”和“不可读遮挡”分开。
+- 把本次对比样例加入固定回归：
+  - generated: `C:\Users\Mahiru\Desktop\FFXIV\KING X\UDM\test\o8s_yokai_star_dance.xivplan`
+  - gold: `C:\Users\Mahiru\Desktop\FFXIV\KING X\0523-0524 FRU\Strats_limited\P1\P1_thunder_fire_swords.xivplan`
+
+验收：
+
+- `compare_xivplan_to_gold.py` 能复现本次关键结论：`6 vs 14 steps`、`212 vs 625 objects`、`64 vs 284 text objects`、`185 vs 2179 in-scene text chars`、`22 vs 144 mechanic/range zones`、`default-circle vs /arena/e11.svg`。
+- `audit_visual_quality.py --reference-mode gold` 不再把金标准作为生成器合同 FAIL 处理，而是输出“参考样式密集、可读性需人工确认”的 gold profile。
+- 生成器严格模式仍然保留第三轮 severe gate，不因为参考模式放宽而让新图胡乱遮挡。
+
+Phase T implementation status (2026-06-02):
+
+- [x] 新增 `xivplan-ffxiv-guide/scripts/compare_xivplan_to_gold.py`，并输出 `artifacts/phase-t-gold-comparison/compare-o8s-p1.{json,md}`。
+- [x] `compare_xivplan_to_gold.py` 已复现关键结论：`6 vs 14 steps`、`212 vs 625 objects`、`64 vs 284 text objects`、`185 vs 2179 in-scene text chars`、`22 vs 144 mechanic/range zones`、`default-circle vs /arena/e11.svg`。
+- [x] `audit_visual_quality.py --reference-mode gold` 已输出 `GOLD_PROFILE gold_style_score=95.24 severe=0`，不再把人工 P1 金标准作为生成器合同失败处理；严格模式下该样例仍保留 FAIL 语义。
+- [x] `audit_label_layout.py --reference-mode gold` 已输出 PASS，`attachedLabel` / `roleBadge` / `mechanicCallout` 进入分类统计，密集贴标作为 review profile 而不是 severe。
+- [x] `test_visual_quality_audit.py` 新增 gold reference mode 回归，确认严格模式和参考模式分离。
+- [x] `run_visual_regression.py --force` 在 Phase T checkpoint 保持 PASS 10/10，说明 reference mode 未放宽生成器严格质量门；Phase U 后扩展为 PASS 11/11。
+- [x] 新增并落地 `guide_section` / `figure_type` 图面分类：默认 `mechanic_flow` 使用官方编号职能图标，`flow_example` 保留默认职业图标 + 职责短标。
+- [x] `build_spec_from_solution.py` 默认写入 `guide_section: "mechanic_flow"`；Phase S 的 `job-specific-positioning` 与 `party-stack-label-omission` fixture 显式标为 `flow_example`，用于继续验证示例图职业图标口径。
+- [x] `validate_xivplan_scene.py`、`audit_visual_quality.py` 和 `test_visual_quality_audit.py` 已同步双合同：主机制检查 `/actor/tank1.png`、`/actor/healer2.png`、`/actor/dps4.png` 等编号图标；示例图检查 `/actor/<JOB>.png` 与 `roleLabel`。
+
+### 10.3 Phase U：图内攻略文字与标点语法升级
+
+目标：把“攻略在 `guide_text` 里”升级为“攻略关键信息直接在图里可读”。
+
+任务：
+
+- 在 scene spec 中新增 `annotation_contract`：
+
+```json
+{
+  "annotation_contract": {
+    "require_in_scene_teaching": true,
+    "min_callouts_per_step": 3,
+    "max_callout_chars": 38,
+    "prefer_axis_and_priority_labels": true,
+    "convert_guide_text_to_footer": true
+  }
+}
+```
+
+- 扩展 `build_spec_from_solution.py`：
+  - 将每个 step 的 `teaching_question` 转成图内 page title，例如“AD组：雷雷”“第1轮：DPS诱导”“塔序：北塔集合”；
+  - 从 `guide_text` 自动抽取 2-4 条图内短 callout，剩余长文保留在导出攻略；
+  - 为复杂机制生成“轴线标签”“优先级标签”“判定轮次标签”“例外提醒标签”；
+  - 对组合机制生成分支页，不再把所有条件压成一张通用图。
+- 新增 `references/in-scene-annotation-style.md`：
+  - 页面标题：8-16 字，写机制分支或判定轮次；
+  - 局部标签：2-8 字，贴近角色/范围/箭头；
+  - 说明行：18-38 字，放在场地上方/下方/左右说明带；
+  - 标点风格：中文机制词 + 必要半角 role/waymark，例如 `AC 雷轴`、`D3/D4 最远诱导`、`第2塔后回中`；
+  - 禁止把所有解释只塞进 `guide_text`。
+- 扩展 `auto_place_labels.py` 或 label placement 逻辑：
+  - 增加 top/bottom/left/right 四个说明带；
+  - 支持 `labelRole: "page_title" | "axis" | "priority" | "mechanic" | "footer" | "role_badge"`；
+  - 说明带文本可以重叠场地外空白，但不得压住玩家图标、Boss 目标环和关键 AoE 边界。
+
+验收：
+
+- 新生成的 O8S/妖星乱舞类复杂机制至少 `10-14` step，不再只有 6 个大阶段。
+- 图内 text 对象数达到金标准的 50% 以上，复杂机制目标为 `140+` text objects 或 `900+` 图内文字字符；平均图内标签长度控制在 `4-14` 字之间。
+- 每个 normal step 至少有：页面标题、1 个机制判断标签、1 个职责/优先级标签、1 个移动或判定说明。
+- `guide_text` 可以保留，但不能是唯一解释来源；对复杂机制，至少 60% 的关键 callout 必须进入图内对象。
+
+Phase U implementation status (2026-06-02):
+
+- [x] `build_spec_from_solution.py` now emits `annotation_contract` with `require_in_scene_teaching`, `min_callouts_per_step`, `max_callout_chars`, `prefer_axis_and_priority_labels`, and `convert_guide_text_to_footer`.
+- [x] Generated steps derive `page_title` from `teaching_question` and add eight compact in-scene callouts per normal step.
+- [x] Generated callouts use `labelRole: "axis" | "priority" | "mechanic" | "footer"` and stable `labelBand` slots in top/bottom/left/right outside-arena bands.
+- [x] Sequence / case-based templates now add explicit branch pages instead of compressing all conditions into one generic flow.
+- [x] `build_xivplan_scene.py` preserves `annotation_contract`, `page_title`, `annotation_callouts`, `labelRole`, and `labelBand`, and renders the derived page title as the step title object.
+- [x] `audit_visual_quality.py` now reports `components.annotation_contract` and fails generated complex scenes that miss page titles, axis/priority/mechanic/footer callouts, or the Phase U text-richness threshold.
+- [x] Added `references/in-scene-annotation-style.md` and documented Phase U in `SKILL.md`, `README.md`, `agents/openai.yaml`, `references/xivplan-scene-format.md`, `references/xivplan-style-guide.md`, and the visual checklist.
+- [x] Added `ultimate-yokai-star-dance-phase-u.input.md` to visual regression, and `run_visual_regression.py --force` now requires the Phase U fixture.
+
+Evidence (2026-06-02):
+
+- `test_visual_quality_audit.py`: PASS, including Phase U annotation contract smoke.
+- `test_storyboard_templates.py`: PASS.
+- `run_visual_regression.py --force`: PASS 11/11.
+- Phase U fixture: 14 steps, 436 objects, visual quality `REVIEW 88.89`, severe 0.
+- Annotation profile: 176 text objects, 1322 in-scene text characters, 114 callouts, average text length 7.51, severe 0.
+- Gold comparison after Phase U: `14 vs 14 steps`, `436 vs 625 objects`, `176 vs 284 text objects`, `1322 vs 2179 in-scene text chars`, `64 vs 144 mechanic/range zones`, `14 vs 17 arrows`.
+
+### 10.4 Phase V：箭头、换位与伤害范围语义升级
+
+目标：让箭头和 AoE 不只是“看起来有”，而是能表达判定几何和换位逻辑。
+
+本阶段是第四轮的硬门槛，不是审美加分项。箭头和 AoE 如果没有语义，图即使文字和角色齐全也不能视为接近金标准。
+
+任务：
+
+- 在 spec 中新增 `damagePattern` 与 `movementRoute` 语义层：
+
+```json
+{
+  "damagePattern": {
+    "kind": "fan120 | shareFan90 | baitTrail | towerResolve | chargeLine | safeSector | bossHitbox",
+    "source": "Boss | add id | role",
+    "targets": ["MT", "H1"],
+    "resolveIndex": 1,
+    "angle": 120,
+    "radius": 260,
+    "label": "雷：三人分散120度"
+  },
+  "movementRoute": {
+    "fromRole": "D3",
+    "to": "north_tower",
+    "resolveIndex": 2,
+    "arrowStyle": "movement",
+    "startLabel": "诱导后",
+    "endLabel": "进北塔",
+    "snapToTarget": true
+  }
+}
+```
+
+- 扩展 `build_xivplan_scene.py`：
+  - 将 `fan120` 渲染为三枚或多枚 `cone`，并自动标注引导者；
+  - 将 `shareFan90` 渲染为 90 度 `cone` + 分摊角色短标；
+  - 将 `baitTrail` 渲染为按时间编号的连续危险圈；
+  - 将 `safeSector` 渲染为半透明暗区/安全区遮罩；
+  - 将 `bossHitbox` 渲染为目标环 + 半径说明。
+  - 对每个 AoE 写入 `aoeIntent`：`damage` / `safe` / `bait_history` / `future_resolve` / `reference_only`，避免安全区、历史残留和当前伤害混成一种颜色。
+  - 对每个关键 AoE 写入 `resolveTiming`：`preposition` / `cast_snapshot` / `first_hit` / `second_hit` / `after_resolve`，让图能表达“现在看什么、之后炸什么”。
+- 扩展 `audit_flow_lines.py`：
+  - 箭头头部贴近 `toRole` / `toMarker` / `toZone` 时视为合法 endpoint snap；
+  - 未声明 endpoint 却压住对象才算 severe；
+  - 检查 movement step 是否每条路线都有 `fromRole` 或 `fromObject`、`toRole` 或 `toObject`。
+- 扩展 `audit_visual_quality.py`：
+  - 新增 `range_semantics_score`，统计 circle/cone/rect/tower/stack 是否有 label、source、target、resolveIndex；
+  - 对复杂机制要求至少一种真实判定几何，不接受只有泛用危险圈和箭头。
+  - 新增 `arrow_semantics_score`，统计每条箭头是否有起点、终点、意图、阶段和 endpoint snap。
+  - 对复杂机制设置硬失败项：movement/reset step 没有语义箭头、resolve step 没有 AoE 几何、AoE 没有 label/source/timing、箭头穿过当前危险区却未标注为允许穿越。
+
+验收：
+
+- O8S/妖星乱舞类样例至少包含诱导轨迹、塔判定、残影冲锋/线、分摊、复位五类语义对象。
+- FRU 雷火剑类样例能自动生成 120 度雷扇形、90 度火分摊扇形、Boss 目标环和半场/轴线遮罩。
+- flow audit 不再只看 crossing=0，还能确认每个箭头的起点、终点、判定轮次和意图。
+- `range_semantics_score` 和 `arrow_semantics_score` 必须进入第四轮 release gate；这两项任何 severe 都阻止交付。
+
+实施状态（2026-06-02）：
+
+- [x] `build_xivplan_scene.py` 已支持 `damagePattern`：`fan120`、`shareFan90`、`baitTrail`、`towerResolve`、`chargeLine`、`safeSector`、`bossHitbox`。
+- [x] `build_xivplan_scene.py` 已支持 `movementRoute`，并保留起点、终点、意图、判定轮次、短标和 `snapToTarget`。
+- [x] `build_spec_from_solution.py` 已为生成图注入 `mechanic_semantics_contract`，现有塔对象直接附着 `towerResolve` 元数据，避免重复画塔。
+- [x] `audit_flow_lines.py` 已区分合法 endpoint snap 与误遮挡；movement/reset 页面缺少语义路线时 hard fail。
+- [x] `audit_flow_lines.py` 已按 `aoeIntent` 区分当前危险区与 `bait_history` / `safe` / `future_resolve` / `reference_only`，避免把历史残留误判为当前危险穿越。
+- [x] `audit_visual_quality.py` 已输出 `range_semantics_score`、`arrow_semantics_score` 和 `components.mechanic_semantics`；resolve 页面无真实判定几何时 hard fail。
+- [x] `validate_xivplan_scene.py` 已校验 Phase V 合同，`test_visual_quality_audit.py` 已包含删除路线终点的负例。
+- [x] `run_visual_regression.py --force` 已将 FRU 与 O8S Phase V profile 纳入 acceptance：`PASS 11/11`，两者 range / arrow semantics 均为 `100.0`。
+- [x] FRU 样例已达到 `14 steps / 743 objects`，使用 `/arena/e11.svg`，并显示 Boss 目标环、120 度雷扇形、90 度火分摊扇形、半场遮罩和换边路线。
+- [x] O8S / 妖星乱舞样例已包含诱导轨迹、塔判定、残影冲锋线、分摊、散开与复位语义对象。
+- [x] 已生成 `review-burndown.md`、FRU/O8S contact sheets、identity crop sheets、gold comparison 和 Phase V 人工审查记录；severe visual issues 为 `0`。
+- [ ] Phase W 仍需补 arena/background asset 扫描、O8S fallback 说明、arena overlay 和最终七项成品门。
+
+### 10.5 Phase W：Boss 形象、背景资源与金标准成品门
+
+目标：让 Boss 形象、背景和标点不再只是合同项，而是参与机制阅读。
+
+任务：
+
+- 新增 `scripts/search_boss_appearance.py` 或等价 workflow：
+  - 输入 Boss 中文名、英文名、encounter、phase、alias；
+  - 优先搜索 FF14 中文维基 `https://ff14.huijiwiki.com/wiki/首页`；
+  - 对 `ff14.huijiwiki.com` 强制无代理访问：脚本内不要继承 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY=127.0.0.1:7890`；若使用 Python HTTP client，设置不信任环境代理或显式传空代理；若使用 shell 包装命令，先设置 `NO_PROXY=ff14.huijiwiki.com,.huijiwiki.com`；
+  - 记录候选页面、图片 URL、页面标题、检索词、访问状态和引用时间；
+  - 如果无代理 wiki 直连、API 或页面抓取仍受阻，记录 `wiki-search-blocked-fallback`，再使用浏览器搜索、用户截图或公共攻略截图作为回退。
+- 扩展 `references/enemy-image-asset-workflow.md`：
+  - 增加灰机 wiki 查证步骤；
+  - 增加 `source_url`、`source_page_title`、`visual_traits`、`icon_brief`、`generated_icon_path`、`license_note` 等 manifest 字段；
+  - 明确最终 icon 是原创简化攻略图标，不直接复制 wiki / 官方原图。
+- 新增或扩展 Boss icon 生成步骤：
+  - 从查证到的形象提炼轮廓、主色、武器/翅膀/头部特征；
+  - 生成透明底 PNG，建议 `256x256` 源图，注入显示尺寸 `64-96`；
+  - 运行 `validate_image_assets.py` 检查 alpha、边缘留白、主体占比和 64px 可读性；
+  - 用 `inject_enemy_assets.py` 写入 `enemy.icon` data URL 和 `iconWidth/iconHeight`。
+- 本地 XivPlan app 兼容：
+  - 已确认 `ObjectType.Image` 支持外部 PNG 作为 data URL 嵌入 `.xivplan`；
+  - 已补齐 `enemy.icon` 在 `EnemyRenderer` 中显示，因此 dedicated Boss icon 不再只存在于 JSON 或导出器里；
+  - 后续回归应打开或导出包含 enemy icon 的 `.xivplan`，证明 app 画布和 skill PNG exporter 都能显示。
+- 新增 `scripts/scan_xivplan_assets.py`：
+  - 扫描 `..\XivPlan\public\arena`、`..\XivPlan\public\actor`、`..\XivPlan\public\marker`；
+  - 输出可用 arena manifest；
+  - 标记用户请求的 encounter 是否有可用背景。
+- 扩展 `references/arena-presets.md`：
+  - 增加 `omega-o8s` / `kefka` / `妖星乱舞` alias；
+  - 若本机仍无 O8S/Omega 背景，则明确 background 为 `none`，sourceReason 写“no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays”；
+  - 对 FRU/Fatebreaker 继续要求 `/arena/e11.svg`。
+- 扩展 `build_xivplan_scene.py`：
+  - 对 `arena.backgroundImage` 导出 PNG 预览时也尝试绘制背景，不再只画默认圆；
+  - 支持 radial ticks、AC/BD 轴线、半场遮罩、目标环说明带作为 arena overlay；
+  - arena source 必须写入质量报告。
+- 新增金标准成品门：
+  - 生成 PNG contact sheet；
+  - 运行 generated 严格质量门；
+  - 运行 gold comparison；
+  - 写人工审查清单，至少评估文字、Boss 形象、箭头、范围、背景、标点、流程完整度七项。
+
+验收：
+
+- 已知 Boss 的新样例必须产生 dedicated enemy icon；只有在 wiki / 截图 / 用户描述都无法确认时才允许 fallback，并且报告中必须写清原因。
+- `.xivplan` 内的 dedicated Boss icon 必须是 data URL 或可解析资源路径；在 XivPlan app 画布、skill PNG exporter、contact sheet 中均可见。
+- 对 `P1_thunder_fire_swords` 对齐任务，生成图必须使用 `/arena/e11.svg` 或明确说明用户要求不同背景。
+- 对 O8S/妖星乱舞任务，若无专用 arena，质量报告必须说明 fallback，并用轴线、半场、标点、目标环弥补背景缺失。
+- `export_xivplan_steps.py` 的 contact sheet 能显示实际背景或明确的 arena overlay；不能只靠 JSON 里有 `backgroundImage`。
+- 第四轮回归报告必须同时给出“第三轮合同 PASS”和“金标准差距缩小”的证据。
+
+Phase W implementation status (2026-06-02):
+
+- [x] 新增 `xivplan-ffxiv-guide/scripts/search_boss_appearance.py`：使用空 `ProxyHandler` 对灰机 wiki API 做无代理访问，记录检索词、访问状态、候选页面、图片引用、`icon_brief` 和 fallback 策略。本机对 `凯夫卡 / Kefka / O8S / 妖星乱舞` 查询返回 403，已记录为 `wiki-search-blocked-fallback`。
+- [x] 新增 `xivplan-ffxiv-guide/scripts/scan_xivplan_assets.py`：扫描 `..\XivPlan\public\arena|actor|marker` 并生成 arena availability manifest。当前本机有 74 个 arena assets；O8S/Omega 无专用背景，UDM/Yokai 有 `/arena/udm-p1.png`。
+- [x] `arena-presets.md`、`parse_mechanic_request.py` 和 `build_xivplan_scene.py` 已支持 `omega-o8s`、`ultimate-yokai-star-dance`、`kefka`、`妖星乱舞`、`udm` 等 alias。O8S/Omega fallback 固定写入标准 `sourceReason`：`no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays`。
+- [x] `export_xivplan_steps.py` 已按 `arena.backgroundImage` 尝试绘制本地 PNG/SVG 背景，并支持 Phase W `arenaOverlays`：`radial_ticks`、`axis`、`half_mask`、`ring_label_band`。SVG 无法由 Pillow 原生 rasterize 时，导出器会绘制明确的 SVG arena fallback 与 overlay，而不是回到匿名默认圆。
+- [x] `audit_visual_quality.py` 已输出 `components.arena_context`，Markdown 报告包含 preset、background、backgroundStatus、source、overlay kinds 和 sourceReason；O8S fallback 缺 axis/radial tick overlay 会变成 severe。
+- [x] `run_visual_regression.py --force` 已把 Phase W arena/background gate、dedicated Boss icon gate 和七项成品门纳入 acceptance。当前 `PASS 11/11`，Phase W arena/background gate PASS，dedicated Boss icon PASS，seven-item product gate PASS。
+- [x] `known-encounter-boss-asset` fixture 改为生成原创透明底 Fatebreaker guide icon，manifest 包含 `source_url`、`source_page_title`、`visual_traits`、`icon_brief`、`generated_icon_path`、`license_note`；`validate_image_assets.py` 通过，subject ratio `0.3212`，enemy crop sheet 中 dedicated Boss icon 可见。
+- [x] 已生成 Phase W 证据包：`artifacts/phase-w-product-gate/arena-assets-o8s.md`、`arena-assets-udm.md`、`boss-appearance-kefka.md`、`o8s-fallback-visual-quality.md`、`compare-fru-p1-phase-w.md`、`review-burndown.md`、`contact-sheets/`、`identity-crop-sheets/`、`phase-w-human-review.md`。
+
+Verification (2026-06-02):
+
+- `py_compile`: PASS for Phase W scripts and edited builder/exporter/audit/parser/regression scripts.
+- `test_visual_quality_audit.py`: PASS.
+- `test_storyboard_templates.py`: PASS.
+- `test_mechanic_parser.py`: PASS.
+- `test_arena_selection.py`: PASS.
+- `run_visual_regression.py --force`: PASS 11/11; severe visual issues `0`; review items `337`.
+- FRU Phase W comparison: generated vs gold is `14 vs 14 steps`, `743 vs 625 objects`, `49 vs 284 text objects`, `487 vs 2179 in-scene text chars`, `481 vs 144 mechanic/range zones`, `24 vs 17 arrows`, `/arena/e11.svg vs /arena/e11.svg`.
+- O8S fallback audit: `omega-o8s`, background `none`, status `fallback`, overlays `axis, half_mask, radial_ticks, ring_label_band`, sourceReason matches the required fallback wording.
+
+Known non-blocking review items:
+
+- Generated FRU still has less in-scene prose than the KING X gold reference (`49` vs `284` text objects). This remains a future polish candidate rather than a Phase W/X blocker because Phase U/V/W/X gates now prove step count, semantics, background, icon, status overlays, and contact-sheet readability.
+- Review burndown remains intentionally strict: `337` review items, mostly `label_far_from_anchor`, `text_vs_cone`, and `text_overlap`; severe remains `0`.
+
+### 10.5.1 Phase X：Buff / Debuff 归属图标层（新增计划项）
+
+目标：当机制解法强依赖 buff / debuff 图标、状态点名或状态组别时，图里必须直接显示“每个人被点了什么状态”，不能只写在说明文字里。状态图标应贴在每个玩家图标左上角，作为该玩家身份的一部分参与读图。
+
+触发条件：
+
+- 用户输入、机制名、攻略文本或解析结果明确出现 buff、debuff、状态、点名、颜色/图标、延时/短时、世界第一/第二、High Concept/Hello World/Relativity 类机制。
+- 解法判断依赖“谁拿到哪个状态”来决定站位、顺序、分摊、换位或优先级。
+- 同一职业/职能在不同分支中因状态不同承担不同职责。
+
+任务：
+
+- 在 spec 中新增 `statusAssignments` 或等价语义层：
+  - 每条记录至少包含 `role`、`statusName`、`statusIcon`、`kind`、`decisionGroup`、`visibleSteps`；
+  - 可选包含 `durationLabel`、`stackLabel`、`priorityLabel`、`source`、`confidence`；
+  - `role` 必须指向 `MT/ST/H1/H2/D1/D2/D3/D4`，不能只给分组文字。
+- 扩展 `build_xivplan_scene.py`：
+  - 对每个带状态的 party 对象生成一个小型 `icon` overlay，默认锚定玩家图标左上角；
+  - overlay 尺寸以玩家图标为基准，默认约为玩家图标宽度的 `35%-45%`，并保留清晰描边或底色托盘；
+  - 多状态时最多显示 2-3 个小图标，超出的低优先级状态移入 callout 或 `guide_text`，避免遮住玩家身份；
+  - 状态图标不能覆盖编号职能图标、目标圈、关键 AoE 边界或箭头头部。
+- 扩展状态图标资源流程：
+  - 优先使用可解析的 XivPlan/public status icon、已授权本地状态资源或 data URL；
+  - 无法确认真实图标时，允许使用明确的文字化 fallback badge，但质量报告必须记录 `status-icon-fallback` 和原因；
+  - 对用户提供截图中的 buff 图标，应保留来源说明和裁剪/重绘步骤，不把未确认图标伪装成官方资源。
+- 扩展 audit：
+  - 新增 `status_assignment_score`，统计状态驱动机制中有多少玩家具备可见状态 overlay；
+  - 对状态驱动 step 设置 hard fail：缺少任一关键玩家状态图标、状态只在长文本中出现、图标与玩家归属不清、图标小到 contact sheet 不可读；
+  - 对多分支机制检查状态图标、站位、箭头和 AoE 标签是否一致，例如“短延时去内侧”的图标和实际角色必须匹配。
+- 新增回归 fixture：
+  - 至少一个 Hello World / Relativity / High Concept 类状态分配样例；
+  - 每个 `MT/ST/H1/H2/D1/D2/D3/D4` 都有不同或分组状态图标；
+  - contact sheet 必须证明正常导出尺寸下左上角图标可读。
+
+验收：
+
+- buff / debuff 强相关机制中，8 名玩家的状态归属必须在玩家图标左上角可见；只写“红去左、蓝去右”不算通过。
+- `status_assignment_score` 进入 release gate；状态驱动机制出现任一关键状态缺失或错配时阻止交付。
+- 人工审查清单新增“状态图标归属”项，检查图标可读性、归属清晰度、与站位/箭头/判定的一致性。
+
+实施状态（2026-06-02）：
+
+- [x] `build_xivplan_scene.py` 已支持 `statusAssignments` 与 `status_assignment_contract`；每条状态分配可按 `role`、`statusName`、`kind`、`decisionGroup`、`visibleSteps` 绑定到 MT/ST/H1/H2/D1/D2/D3/D4，并在对应 party 图标左上角生成 `statusOverlay` icon。
+- [x] 状态 overlay 保留 `statusRole`、`statusName`、`decisionGroup`、`anchorRole`、`anchorPartyId`、`assetStatus`、`assetFallback`、`fallbackReason` 等审计字段；无真实图标资源时生成明确的文字化 fallback badge。
+- [x] `build_spec_from_solution.py` 会在检测到 `debuff`、`hello-world-like`、buff/debuff/status/状态/点名/延时/Hello World/Relativity/High Concept 等状态驱动语境时写入 Phase X 合同和默认八人状态分配。
+- [x] `validate_xivplan_scene.py` 已校验 Phase X 合同：状态 assignment 必须指向合法 role，状态驱动 step 必须有可见 overlay，overlay 必须锚定正确 party，fallback 状态图标必须记录原因。
+- [x] `audit_visual_quality.py` 已新增 `status_assignment_score`、`components.status_assignment` 与 Markdown Status Assignment 表；状态缺失、错锚、过小或无原因 fallback 都是 strict generated mode 的 severe。
+- [x] `run_visual_regression.py --force` 已新增 `status-driven-assignment` fixture，生成 `status-assignment-report.json/md`，并把 Phase X status gate 纳入 release acceptance。
+- [x] `SKILL.md`、`README.md`、`agents/openai.yaml`、`references/xivplan-scene-format.md` 和 visual quality checklist 已记录 Phase X 规则。
+
+Evidence (2026-06-02):
+
+- `test_visual_quality_audit.py`: PASS，包含 Phase X 正例与删除 MT overlay 的负例。
+- `run_visual_regression.py --force`: PASS 12/12。
+- Phase X fixture: `status_assignment_score=100.0`，`48 visible / 48 expected`，covered roles 为 `MT/ST/H1/H2/D1/D2/D3/D4`。
+
+### 10.6 第四轮停止线
+
+第四轮完成时，至少满足：
+
+- [x] `compare_xivplan_to_gold.py` 能稳定生成本次两文件的差异报告。
+- [x] 金标准参考模式不再把人工 KING X 样例误判为低质量合同失败。
+- [x] 主机制图与流程示例图的 party identity 生成、校验和回归路径已拆分：`mechanic_flow` 默认编号职能图标，`flow_example` 默认职业图标。
+- [x] O8S/妖星乱舞重新生成版本达到 `10+` step，图内文字和 Phase U page-title/callout 合同已有可审计证据；Boss icon、箭头端点、伤害范围和背景 fallback 已分别通过 Phase Q/S、V、W gate。
+- [x] FRU 雷火剑回归样例能在 `/arena/e11.svg` 背景、目标环、雷/火扇形、优先级文字和多分支页面上接近金标准；剩余差距主要是图内 prose 密度，而非机制语义或背景合同。
+- [x] contact sheet + 人工审查能证明新图不是只在 JSON 指标上变密，而是真的更像可直接给队员看的攻略图。
+- [x] 状态驱动机制不再只靠文字描述状态分组；Phase X 回归样例每个玩家的 buff/debuff 归属都在玩家图标左上角可见，并进入 release gate。

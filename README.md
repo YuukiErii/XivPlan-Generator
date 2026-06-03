@@ -9,25 +9,28 @@ Codex skill and local tooling for turning FFXIV mechanic descriptions into XivPl
 - `xivplan-ffxiv-guide/assets/specs/`: compact mechanic specs used to generate `.xivplan` examples.
 - `xivplan-ffxiv-guide/assets/image-assets/`: transparent PNG assets and placement manifests for image2/local PNG workflows.
 - `xivplan-ffxiv-guide/assets/image-prompts/`: prompt templates for generated guide assets.
+- `xivplan-ffxiv-guide/assets/examples/generated-xivplan/`: curated lightweight `.xivplan` examples for smoke testing and guide fixtures.
 - `xivplan-ffxiv-guide/assets/sample-guides/`: `guide.json` examples and lightweight image fixtures.
 - `xivplan-ffxiv-guide/assets/optimization/`: multi-candidate fixtures for strategy scoring.
+- `xivplan-ffxiv-guide/assets/progression-notes/`: source notes for versioned progression workflows.
 - `xivplan-ffxiv-guide/assets/parser-fixtures/`: natural-language mechanic notes for parser regression tests.
 - `xivplan-ffxiv-guide/assets/knowledge-fixtures/`: similar-mechanic retrieval fixtures.
-- `xivplan-ffxiv-guide/assets/visual-regression-fixtures/`: Phase I golden and Phase S identity visual regression inputs.
-- `artifacts/generated-xivplan/`: lightweight generated `.xivplan` examples for smoke testing.
+- `xivplan-ffxiv-guide/assets/visual-regression-fixtures/`: Phase I golden, Phase S identity, Phase U annotation, Phase V route/range semantic, and Phase X status-assignment visual regression inputs.
+- `artifacts/generated-xivplan/`: local generated `.xivplan` outputs.
 - `artifacts/guide-packages/`: generated Markdown / DOCX / PDF guide package smoke outputs.
 - `artifacts/solution-scores/`: lightweight JSON and Markdown strategy-score reports.
 - `artifacts/parsed-mechanics/`: generated mechanic IR, timeline IR, category, unknown, and parse-report outputs.
 - `artifacts/knowledge-search/`: generated knowledge-search JSON/Markdown and similarity reports.
 - `artifacts/full-guide-pipeline/`: one-command guide package outputs.
-- `artifacts/ultimate-yokai-star-dance/`: versioned Ultimate Yokai Star Dance progression workspace.
+- `artifacts/ultimate-yokai-star-dance/`: local generated Ultimate Yokai Star Dance progression outputs.
+- `docs/case-studies/ultimate-yokai-star-dance/`: persistent notes and historical change-log snapshots for the Ultimate Yokai Star Dance workflow.
 - `docs/roadmap.md`: full implementation roadmap.
-- `docs/xivplan-skill-visual-upgrade-plan.md`: Phase A-S visual-upgrade plan and third-round acceptance checklist.
+- `docs/xivplan-skill-visual-upgrade-plan.md`: Phase A-X visual-upgrade plan and fourth-round acceptance checklist.
 - `docs/visual-upgrade-work-record.md`: cumulative visual-upgrade work log and handoff notes.
 - `docs/project-requirements.md`: original requirements snapshot.
 
-Generated runtime outputs under `artifacts/` are ignored by default, except for
-small source notes and documentation needed to regenerate them.
+Generated runtime outputs under `artifacts/` are ignored by default. Source
+fixtures and durable notes live under `xivplan-ffxiv-guide/assets/` and `docs/`.
 
 ## Validate
 
@@ -62,7 +65,7 @@ Generate Ultimate Yokai Star Dance progression output:
 
 ```powershell
 & $py xivplan-ffxiv-guide\scripts\run_full_guide_pipeline.py `
-  artifacts\ultimate-yokai-star-dance\raw-notes\p1-draft-notes.md `
+  xivplan-ffxiv-guide\assets\progression-notes\ultimate-yokai-star-dance\raw-notes\p1-draft-notes.md `
   --ultimate-yokai-star-dance `
   --version v0.1-draft
 ```
@@ -71,7 +74,7 @@ Generate the next observed version and append the change log:
 
 ```powershell
 & $py xivplan-ffxiv-guide\scripts\run_full_guide_pipeline.py `
-  artifacts\ultimate-yokai-star-dance\raw-notes\p1-observed-notes.md `
+  xivplan-ffxiv-guide\assets\progression-notes\ultimate-yokai-star-dance\raw-notes\p1-observed-notes.md `
   --ultimate-yokai-star-dance `
   --version v0.2-observed `
   --previous-version v0.1-draft
@@ -132,7 +135,7 @@ Run the visual regression suite:
 & $py xivplan-ffxiv-guide\scripts\run_visual_regression.py --force
 ```
 
-This runs the golden visual fixtures plus Phase O/P/Q/R/S third-round checks, writes top-level case surfaces for quality gating, and produces `artifacts\phase-i-visual-regression\visual-regression-report.md`. The suite now expects 10/10 fixtures: the long FRU-style fixtures guard 14+ teaching steps and 500+ objects; enemy fixtures check target rings, readable names, duplicate add disambiguation, and fallback/dedicated enemy icons; party fixtures check the default comp through official XivPlan icons MT=/actor/DRK.png, ST=/actor/PLD.png, H1=/actor/AST.png, H2=/actor/SCH.png, D1=/actor/SAM.png, D2=/actor/DRG.png, D3=/actor/BRD.png, D4=/actor/PCT.png plus stack-frame role-label omission.
+This runs the golden visual fixtures plus Phase O/P/Q/R/S/U/V/W/X checks, writes top-level case surfaces for quality gating, and produces `artifacts\phase-i-visual-regression\visual-regression-report.md`. The suite now expects 12/12 fixtures: the long FRU-style fixtures guard 14+ teaching steps and 500+ objects; enemy fixtures check target rings, readable names, duplicate add disambiguation, and fallback/dedicated enemy icons; party fixtures check both guide-section modes, with main mechanism scenes using numbered role icons and `flow_example` fixtures preserving official XivPlan job icons plus stack-frame role-label omission; the Yokai/O8S fixture checks Phase U page-title density and Phase V judgment geometry; the status-driven fixture checks Phase X per-player buff/debuff overlays.
 
 Run the Phase S third-round release gate:
 
@@ -153,7 +156,7 @@ Run the Phase S third-round release gate:
   --output-dir artifacts\phase-s-release-gate\identity-crop-sheets
 ```
 
-The Phase S gate expects severe visual issues to remain 0, all 10 regression fixtures to pass the quality gate, every normal Boss/add to have a name/target ring/icon or fallback icon, every normal party frame to preserve unique role plus official job identity, and the crop sheets to show the default XivPlan job icons and stack-frame icon readability in exported PNGs.
+The Phase S/U/V/W/X gate expects severe visual issues to remain 0, all 12 regression fixtures to pass the quality gate, every normal Boss/add to have a name/target ring/icon or fallback icon, every normal party frame to preserve unique role identity, and the crop sheets to show numbered-role main-flow icons plus `flow_example` job-icon readability in exported PNGs. The Phase U fixture must stay in the 10-14 step range and pass the in-scene annotation text threshold. Phase V additionally requires FRU and O8S semantic profiles to report `range_semantics_score=100.0`, `arrow_semantics_score=100.0`, real resolve geometry, and no undeclared danger crossing. Phase X requires `status_assignment_score=100.0` on the status-driven fixture, with all eight role-bound status overlays visible in every status-assignment frame.
 
 Run the second-round visual release gate:
 

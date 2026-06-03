@@ -27,6 +27,66 @@ DEFAULT_PARTY_JOBS = {
     "D3": {"job": "BRD", "jobName": "Bard", "icon": "/actor/BRD.png"},
     "D4": {"job": "PCT", "jobName": "Pictomancer", "icon": "/actor/PCT.png"},
 }
+ANNOTATION_CONTRACT = {
+    "require_in_scene_teaching": True,
+    "min_callouts_per_step": 3,
+    "max_callout_chars": 38,
+    "prefer_axis_and_priority_labels": True,
+    "convert_guide_text_to_footer": True,
+}
+MECHANIC_SEMANTICS_CONTRACT = {
+    "require_arrow_semantics": True,
+    "require_range_semantics": True,
+    "require_resolve_geometry": True,
+    "require_danger_crossing_declaration": True,
+}
+STATUS_ASSIGNMENT_CONTRACT = {
+    "require_status_overlays": True,
+    "require_all_assigned_roles_visible": True,
+    "require_status_icon_readability": True,
+    "require_fallback_reason": True,
+}
+STATUS_DRIVEN_CATEGORIES = {"debuff", "hello-world-like", "relativity-like", "high-concept-like", "status-assignment"}
+CALLOUT_SLOTS = (
+    ("top", 0),
+    ("top", 2),
+    ("left", 0),
+    ("right", 0),
+    ("left", 2),
+    ("right", 2),
+    ("bottom", 0),
+    ("bottom", 2),
+)
+PHASE_CALLOUTS = {
+    "observe_signal": "只读当前信号",
+    "assign_roles": "先分组再移动",
+    "assignment": "先分组再移动",
+    "preposition": "预站后等读条",
+    "first_move": "移动前先读完",
+    "second_move": "只动当前职责",
+    "between_resolves": "两判定间不抢跑",
+    "move": "沿箭头短路线",
+    "first_resolve": "判定后看复位",
+    "second_resolve": "吃完立刻回稳",
+    "resolve": "先判定再复位",
+    "reset": "回中准备下一轮",
+    "next_read_setup": "八方重开读条",
+}
+PHASE_TITLE_HINTS = {
+    "observe_signal": "读法",
+    "assign_roles": "分工",
+    "assignment": "分工",
+    "preposition": "预站",
+    "first_move": "第一动",
+    "second_move": "主要移动",
+    "between_resolves": "中间处理",
+    "move": "移动",
+    "first_resolve": "第一判定",
+    "second_resolve": "最终判定",
+    "resolve": "判定",
+    "reset": "复位",
+    "next_read_setup": "下一读条",
+}
 
 
 def read_json(path: Path) -> Any:
@@ -36,6 +96,349 @@ def read_json(path: Path) -> Any:
 def write_json(path: Path, data: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def compact_phrase(value: Any, max_chars: int = 14) -> str:
+    text = str(value or "").strip()
+    for token in ("？", "?", "。", ".", "；", ";"):
+        text = text.replace(token, "")
+    text = " ".join(text.replace("，", " ").replace(",", " ").split())
+    if len(text) <= max_chars:
+        return text
+    for separator in ("：", ":", "、", "/", " "):
+        parts = [part.strip() for part in text.split(separator) if part.strip()]
+        for part in parts:
+            if 4 <= len(part) <= max_chars:
+                return part
+    return text[:max_chars]
+
+
+def split_short_callouts(text: str, max_chars: int = 14) -> list[str]:
+    normalized = str(text or "").replace("\n", " ")
+    for separator in ("；", ";", "。", ".", "，", ","):
+        normalized = normalized.replace(separator, "|")
+    phrases = []
+    for part in normalized.split("|"):
+        phrase = compact_phrase(part, max_chars=max_chars)
+        if 4 <= len(phrase) <= max_chars:
+            phrases.append(phrase)
+    return phrases
+
+
+def axis_label(categories: set[str]) -> str:
+    if "tower" in categories:
+        return "南北 T/H 东西 DPS"
+    if "cleave" in categories:
+        return "先看 Boss 面向"
+    if "tile" in categories or "tile-platform" in categories:
+        return "按格子轴线走"
+    return "AC/BD 轴线固定"
+
+
+def priority_label(categories: set[str], step_phase: str) -> str:
+    if "stack" in categories and "spread" in categories:
+        return "先分摊后散开"
+    if "tower" in categories:
+        return "T/H 南北优先"
+    if step_phase in {"first_move", "second_move", "move"}:
+        return "读条职业少动"
+    return "固定职责优先"
+
+
+def mechanic_label(categories: set[str], step_phase: str) -> str:
+    if "tower" in categories and step_phase in {"observe_signal", "assign_roles", "first_move"}:
+        return "塔人数先确认"
+    if "stack" in categories and step_phase in {"first_resolve", "second_resolve", "resolve"}:
+        return "分摊人数别漏"
+    if "spread" in categories:
+        return "远近间距拉开"
+    if "cleave" in categories:
+        return "安全半场先定"
+    return "机制范围先读"
+
+
+def page_title_for_step(index: int, item: dict[str, Any]) -> str:
+    question = compact_phrase(item.get("teaching_question"), max_chars=12)
+    if not question:
+        question = compact_phrase(item.get("title"), max_chars=12)
+    phase_hint = PHASE_TITLE_HINTS.get(str(item.get("storyboard_phase", "")), "")
+    if phase_hint and phase_hint not in question:
+        title = f"{phase_hint}：{question}"
+    else:
+        title = question
+    title = compact_phrase(title, max_chars=15)
+    return f"{index} {title}"
+
+
+def annotation_objects_for_step(index: int, item: dict[str, Any], categories: set[str], unknowns: list[str]) -> list[dict[str, Any]]:
+    phase = str(item.get("storyboard_phase", ""))
+    callout_texts = [
+        axis_label(categories),
+        priority_label(categories, phase),
+        mechanic_label(categories, phase),
+    ]
+    callout_texts.extend(split_short_callouts(str(item.get("guide_text", "")), max_chars=14)[:2])
+    callout_texts.append(compact_phrase(item.get("purpose"), max_chars=14))
+    callout_texts.append(compact_phrase(item.get("visual_focus"), max_chars=14))
+    callout_texts.append(PHASE_CALLOUTS.get(phase, "只回答本页问题"))
+    if unknowns:
+        callout_texts.append("未知点保守处理")
+    else:
+        callout_texts.append(compact_phrase(item.get("reset_state"), max_chars=14) or "错位先回安全区")
+
+    deduped: list[str] = []
+    for text in callout_texts:
+        text = compact_phrase(text, max_chars=14)
+        if text and text not in deduped:
+            deduped.append(text)
+    while len(deduped) < len(CALLOUT_SLOTS):
+        deduped.append(("先观察", "再移动", "后判定", "判定后复位", "下一读条")[len(deduped) % 5])
+
+    roles = ("axis", "priority", "mechanic", "mechanic", "mechanic", "mechanic", "footer", "footer")
+    objects: list[dict[str, Any]] = []
+    for callout_index, text in enumerate(deduped[: len(CALLOUT_SLOTS)]):
+        band, band_index = CALLOUT_SLOTS[callout_index]
+        objects.append(
+            {
+                "kind": "text",
+                "key": f"phase-u-{index:02d}-callout-{callout_index + 1}",
+                "text": text,
+                "labelRole": roles[callout_index],
+                "labelBand": band,
+                "labelBandIndex": band_index,
+                "fontSize": 12 if callout_index >= 3 else 13,
+                "color": "#f7f7f7",
+                "stroke": "#101820",
+            }
+        )
+    return objects
+
+
+def apply_in_scene_annotations(steps: list[dict[str, Any]], categories: set[str], unknowns: list[str]) -> list[dict[str, Any]]:
+    annotated: list[dict[str, Any]] = []
+    for index, item in enumerate(steps, start=1):
+        updated = dict(item)
+        updated["page_title"] = page_title_for_step(index, updated)
+        callouts = annotation_objects_for_step(index, updated, categories, unknowns)
+        updated["annotation_callouts"] = [obj["text"] for obj in callouts]
+        objects = list(updated.get("objects", []))
+        objects.extend(callouts)
+        updated["objects"] = objects
+        annotated.append(updated)
+    return annotated
+
+
+def resolve_index_for_phase(phase: str) -> int:
+    if phase in {"first_move", "first_resolve", "preposition"}:
+        return 1
+    if phase in {"second_move", "second_resolve", "between_resolves"}:
+        return 2
+    if phase in {"reset", "next_read_setup"}:
+        return 3
+    return 0
+
+
+def role_from_object_key(value: Any) -> str | None:
+    tokens = str(value or "").lower().replace("_", "-").split("-")
+    for role in ROLES:
+        if role.lower() in tokens:
+            return role
+    return None
+
+
+def decorate_movement_route(obj: dict[str, Any], step_index: int, phase: str) -> dict[str, Any]:
+    updated = dict(obj)
+    key = str(updated.get("key") or f"phase-v-route-{step_index}")
+    from_role = role_from_object_key(key)
+    resolve_index = resolve_index_for_phase(phase)
+    route = {
+        "fromRole": from_role,
+        "fromObject": None if from_role else f"{key}-origin",
+        "toZone": f"{key}-destination",
+        "resolveIndex": resolve_index,
+        "arrowStyle": str(updated.get("arrowStyle", "movement")),
+        "intent": "reset" if phase in {"reset", "next_read_setup"} else "reposition",
+        "startLabel": "起点",
+        "endLabel": "目标点",
+        "snapToTarget": bool(updated.get("snapToTarget", False)),
+    }
+    updated["movementRoute"] = route
+    updated["routeIntent"] = route["intent"]
+    for field in ("fromRole", "fromObject", "toZone", "resolveIndex", "startLabel", "endLabel", "snapToTarget"):
+        if route.get(field) is not None:
+            updated[field] = route[field]
+    return updated
+
+
+def damage_pattern(
+    key: str,
+    kind: str,
+    *,
+    source: str,
+    targets: list[str],
+    resolve_index: int,
+    resolve_timing: str,
+    aoe_intent: str,
+    label: str,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    pattern = {
+        "kind": kind,
+        "source": source,
+        "targets": targets,
+        "resolveIndex": resolve_index,
+        "resolveTiming": resolve_timing,
+        "aoeIntent": aoe_intent,
+        "label": label,
+        "renderLabel": kwargs.pop("renderLabel", False),
+        **kwargs,
+    }
+    return {"kind": "damagePattern", "key": key, "damagePattern": pattern}
+
+
+def phase_v_damage_patterns(step_index: int, item: dict[str, Any], categories: set[str]) -> list[dict[str, Any]]:
+    phase = str(item.get("storyboard_phase", ""))
+    prefix = f"phase-v-{step_index:02d}"
+    patterns: list[dict[str, Any]] = []
+    if step_index == 1:
+        patterns.append(
+            damage_pattern(
+                f"{prefix}-boss-hitbox",
+                "bossHitbox",
+                source="Boss",
+                targets=[],
+                resolve_index=0,
+                resolve_timing="preposition",
+                aoe_intent="reference_only",
+                label="Boss 目标圈",
+                radius=72,
+            )
+        )
+    if "cleave" in categories and phase in {"assignment", "assign_roles", "preposition"}:
+        patterns.append(
+            damage_pattern(
+                f"{prefix}-safe-sector",
+                "safeSector",
+                source="Boss",
+                targets=ALL_ROLES,
+                resolve_index=1,
+                resolve_timing="cast_snapshot",
+                aoe_intent="safe",
+                label="安全扇区",
+                angle=90,
+                rotation=180,
+                radius=250,
+            )
+        )
+    if ("sequence" in categories or "bait" in categories) and phase in {"first_move", "second_move"}:
+        patterns.append(
+            damage_pattern(
+                f"{prefix}-bait-trail",
+                "baitTrail",
+                source="D3/D4",
+                targets=["D3", "D4"],
+                resolve_index=1 if phase == "first_move" else 2,
+                resolve_timing="cast_snapshot",
+                aoe_intent="bait_history",
+                label="诱导轨迹",
+                points=[[-156, -112], [-82, -58], [0, 0], [82, 58], [156, 112]],
+                circleRadius=30,
+            )
+        )
+    if "stack" in categories and phase in {"first_resolve", "second_resolve"}:
+        patterns.append(
+            damage_pattern(
+                f"{prefix}-share-fan",
+                "shareFan90",
+                source="Boss",
+                targets=["H1", "H2", "D3", "D4"],
+                resolve_index=1 if phase == "first_resolve" else 2,
+                resolve_timing="first_hit" if phase == "first_resolve" else "second_hit",
+                aoe_intent="damage",
+                label="火：四人分摊90度",
+                angle=90,
+                rotation=90,
+                radius=250,
+            )
+        )
+    if "spread" in categories and phase == "second_resolve":
+        patterns.append(
+            damage_pattern(
+                f"{prefix}-fan-spread",
+                "fan120",
+                source="Boss",
+                targets=["D1", "D2", "D3"],
+                resolve_index=2,
+                resolve_timing="second_hit",
+                aoe_intent="damage",
+                label="雷：三人分散120度",
+                angle=120,
+                radius=260,
+                rotations=[90, 210, 330],
+            )
+        )
+    if "cleave" in categories and phase == "second_resolve":
+        patterns.append(
+            damage_pattern(
+                f"{prefix}-charge-line",
+                "chargeLine",
+                source="Boss",
+                targets=ALL_ROLES,
+                resolve_index=2,
+                resolve_timing="second_hit",
+                aoe_intent="damage",
+                label="残影冲锋线",
+                width=104,
+                height=540,
+                rotation=90,
+            )
+        )
+    if phase in {"first_resolve", "second_resolve", "resolve"} and not patterns:
+        patterns.append(
+            damage_pattern(
+                f"{prefix}-safe-sector",
+                "safeSector",
+                source="Boss",
+                targets=ALL_ROLES,
+                resolve_index=max(resolve_index_for_phase(phase), 1),
+                resolve_timing="first_hit" if phase == "first_resolve" else "second_hit",
+                aoe_intent="safe",
+                label="安全扇区",
+                angle=90,
+                radius=240,
+            )
+        )
+    return patterns
+
+
+def apply_phase_v_semantics(steps: list[dict[str, Any]], categories: set[str]) -> list[dict[str, Any]]:
+    semantic_steps: list[dict[str, Any]] = []
+    for step_index, item in enumerate(steps, start=1):
+        updated = dict(item)
+        phase = str(updated.get("storyboard_phase", ""))
+        objects: list[dict[str, Any]] = []
+        for obj in updated.get("objects", []):
+            if isinstance(obj, dict) and obj.get("kind") in {"arrow", "path", "polyline"}:
+                objects.append(decorate_movement_route(obj, step_index, phase))
+            elif isinstance(obj, dict) and obj.get("kind") == "tower" and "tower" in categories and phase in {"first_move", "first_resolve"}:
+                tower = dict(obj)
+                tower["damagePattern"] = {
+                    "kind": "towerResolve",
+                    "source": "arena",
+                    "targets": ALL_ROLES,
+                    "resolveIndex": 1,
+                    "resolveTiming": "first_hit",
+                    "aoeIntent": "damage",
+                    "label": str(tower.get("label") or "四塔判定"),
+                    "renderLabel": False,
+                }
+                objects.append(tower)
+            else:
+                objects.append(obj)
+        objects.extend(phase_v_damage_patterns(step_index, updated, categories))
+        updated["objects"] = objects
+        semantic_steps.append(updated)
+    return semantic_steps
 
 
 def party_objects(distance: int = 108, positions: dict[str, Any] | None = None) -> list[dict[str, Any]]:
@@ -178,6 +581,68 @@ def category_set(bundle: dict[str, Any]) -> set[str]:
     if "sequence" in categories:
         categories.add("case-based")
     return categories
+
+
+def is_status_driven(bundle: dict[str, Any], categories: set[str]) -> bool:
+    if categories & STATUS_DRIVEN_CATEGORIES:
+        return True
+    planning_context = bundle.get("planning_context", {})
+    text = " ".join(
+        str(value)
+        for value in (
+            bundle.get("mechanic", ""),
+            planning_context.get("summary", "") if isinstance(planning_context, dict) else "",
+            " ".join(str(item) for item in planning_context.get("unknowns", [])) if isinstance(planning_context, dict) else "",
+        )
+    ).lower()
+    triggers = (
+        "buff",
+        "debuff",
+        "status",
+        "hello world",
+        "relativity",
+        "high concept",
+        "状态",
+        "点名",
+        "颜色",
+        "倒计时",
+        "延时",
+        "短时",
+        "长时",
+        "世界第一",
+        "世界第二",
+    )
+    return any(trigger in text for trigger in triggers)
+
+
+def default_status_assignments() -> list[dict[str, Any]]:
+    templates = [
+        ("MT", "短红", "short", "短", "red-short"),
+        ("ST", "长红", "red", "长", "red-long"),
+        ("H1", "短蓝", "blue", "短", "blue-short"),
+        ("H2", "长蓝", "long", "长", "blue-long"),
+        ("D1", "一组红", "fire", "1", "group-red-1"),
+        ("D2", "一组蓝", "ice", "1", "group-blue-1"),
+        ("D3", "二组红", "orange", "2", "group-red-2"),
+        ("D4", "二组蓝", "purple", "2", "group-blue-2"),
+    ]
+    return [
+        {
+            "role": role,
+            "statusName": name,
+            "kind": "debuff",
+            "iconToken": token,
+            "fallbackLabel": label,
+            "decisionGroup": group,
+            "visibleSteps": "all",
+            "source": "generated-status-assignment-fallback",
+            "confidence": "low",
+            "assetStatus": "fallback",
+            "assetFallback": "status-icon-fallback",
+            "fallbackReason": "No confirmed real status icon asset was provided; use a readable text badge until user/screenshot/source confirms the exact buff icon.",
+        }
+        for role, name, token, label, group in templates
+    ]
 
 
 def step(
@@ -478,6 +943,40 @@ def dance_steps() -> list[dict[str, Any]]:
             changed_objects_only="case 标签和当前读法提示。",
         ),
         step(
+            "分支 A 示例",
+            "assignment",
+            "单独展示第一种读法的职责换算，不把多个 case 压进同一张图。",
+            "Case A 先按北侧安全处理，T/H 保南北锚点，DPS 按东西补位；若实战点名不同，只替换本页分支。",
+            ["分支名清楚", "职责换算不和移动箭头混读"],
+            "Case A 分支、职责换算、优先级",
+            ALL_ROLES,
+            "读完分支 A 后进入对应第一拍路线。",
+            [
+                {"kind": "rect", "key": "case-a-safe-band", "pos": "N", "distance": 110, "width": 430, "height": 92, "color": "#8fd14f", "opacity": 18, "label": "A分支安全"},
+                {"kind": "label", "key": "case-a-priority", "text": "北优先 / 南补位", "pos": [-132, 198], "fontSize": 13, "labelRole": "priority"},
+            ],
+            teaching_question="Case A 的职责优先级怎么换算？",
+            why_this_frame_exists="组合机制需要分支页，队员才能只读当前条件下的优先级。",
+            changed_objects_only="Case A 安全带、职责优先级和补位提示。",
+        ),
+        step(
+            "分支 B 示例",
+            "assignment",
+            "单独展示第二种读法，把镜像分支从通用流程里拆出来。",
+            "Case B 以东西安全为主，D3/D4 负责最远诱导，T/H 保持 Boss 目标圈附近，避免和 Case A 互相污染。",
+            ["镜像分支和 A 分支可区分", "例外提醒进入图内"],
+            "Case B 分支、诱导职责、例外提醒",
+            ALL_ROLES,
+            "读完分支 B 后进入对应第一拍路线。",
+            [
+                {"kind": "rect", "key": "case-b-safe-band", "pos": "E", "distance": 110, "width": 92, "height": 430, "color": "#2aa7ff", "opacity": 18, "label": "B分支安全"},
+                {"kind": "label", "key": "case-b-priority", "text": "D3/D4 最远诱导", "pos": [132, 198], "fontSize": 13, "labelRole": "priority"},
+            ],
+            teaching_question="Case B 哪些职责负责诱导和补位？",
+            why_this_frame_exists="把镜像或例外分支独立成页，防止同一张图同时讲两套规则。",
+            changed_objects_only="Case B 安全带、最远诱导职责和例外提醒。",
+        ),
+        step(
             "第一拍路线",
             "first_move",
             "显示舞蹈机制第一拍的路线，不和后续拍混在一起。",
@@ -714,7 +1213,9 @@ def build_steps(bundle: dict[str, Any], candidate: dict[str, Any]) -> list[dict[
     steps.append(final_resolution_step(categories, movement_targets))
     steps.append(reset_step())
     steps.append(next_read_setup_step())
-    return renumber_steps(ensure_flow_objects(cap_storyboard_steps(steps)))
+    steps = renumber_steps(ensure_flow_objects(cap_storyboard_steps(steps)))
+    steps = apply_phase_v_semantics(steps, categories)
+    return apply_in_scene_annotations(steps, categories, unknowns)
 
 
 def first_resolution_objects(categories: set[str]) -> list[dict[str, Any]]:
@@ -755,6 +1256,7 @@ def final_resolution_objects(categories: set[str]) -> list[dict[str, Any]]:
 
 def build_spec(bundle: dict[str, Any], score_report: dict[str, Any] | None, candidate_id: str | None) -> dict[str, Any]:
     candidate = find_candidate(bundle, score_report, candidate_id)
+    categories = category_set(bundle)
     arena_selection = bundle.get("planning_context", {}).get("arena_selection")
     if not isinstance(arena_selection, dict):
         arena_selection = {
@@ -767,21 +1269,28 @@ def build_spec(bundle: dict[str, Any], score_report: dict[str, Any] | None, cand
         "source": arena_selection.get("source", "default-fallback"),
         "sourceReason": arena_selection.get("reason", ""),
     }
-    return {
+    spec = {
         "name": f"Phase 12：{bundle.get('mechanic', 'generated solution')} - {candidate.get('id')}",
         "style": "king-x-fru",
+        "guide_section": "mechanic_flow",
         "scene_contract": {
             "require_full_party_each_step": True,
             "require_enemy_each_step": True,
             "require_waymarks_each_step": True,
             "allow_partial_observation": False,
         },
+        "annotation_contract": dict(ANNOTATION_CONTRACT),
+        "mechanic_semantics_contract": dict(MECHANIC_SEMANTICS_CONTRACT),
         "arena": arena,
         "markerPresets": "cardinals",
         "metadata": {
             "source": "build_spec_from_solution.py",
             "storyboard_generator": "phase-o-v3",
             "storyboard_policy": "teaching-question-template-chain",
+            "annotation_generator": "phase-u-in-scene-v1",
+            "annotation_policy": "page-title-and-eight-callout-bands",
+            "mechanic_semantics_generator": "phase-v-routes-and-ranges-v1",
+            "mechanic_semantics_policy": "movement-route-and-damage-pattern-hard-gate",
             "party_defaults": "phase-r-defaults",
             "arena_selection": arena_selection,
             "recommended_candidate": candidate.get("id"),
@@ -791,6 +1300,13 @@ def build_spec(bundle: dict[str, Any], score_report: dict[str, Any] | None, cand
         },
         "steps": build_steps(bundle, candidate),
     }
+    if is_status_driven(bundle, categories):
+        spec["status_assignment_contract"] = dict(STATUS_ASSIGNMENT_CONTRACT)
+        spec["statusAssignments"] = default_status_assignments()
+        metadata = spec.setdefault("metadata", {})
+        metadata["status_assignment_generator"] = "phase-x-status-overlays-v1"
+        metadata["status_assignment_policy"] = "role-bound-upper-left-overlay-hard-gate"
+    return spec
 
 
 def main() -> int:

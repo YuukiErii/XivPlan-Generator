@@ -22,16 +22,12 @@ exports/
 *.pdf
 *.pptx
 
-# Runtime pipeline outputs. Keep source fixtures, scripts, docs, and a few tracked
-# lightweight examples; generated PNG/DOCX/PDF/report trees stay local.
+# Runtime pipeline outputs. Keep source fixtures, scripts, docs, and curated
+# lightweight examples in xivplan-ffxiv-guide/assets or docs; generated
+# PNG/DOCX/PDF/report trees stay local.
 artifacts/**
 !artifacts/
 !artifacts/README.md
-!artifacts/ultimate-yokai-star-dance/
-!artifacts/ultimate-yokai-star-dance/README.md
-!artifacts/ultimate-yokai-star-dance/change-log.md
-!artifacts/ultimate-yokai-star-dance/raw-notes/
-!artifacts/ultimate-yokai-star-dance/raw-notes/*.md
 
 # Local secrets and machine-specific config
 .env

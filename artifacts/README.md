@@ -2,15 +2,23 @@
 
 This directory is the default runtime output root for the guide-generation scripts.
 
-Most generated contents under `artifacts/` are intentionally ignored by Git:
+Generated contents under `artifacts/` are intentionally ignored by Git except
+for this README:
 
 - exported step PNGs,
 - generated Markdown / DOCX / PDF guide packages,
 - quality-gate case copies,
 - smoke-test outputs,
-- versioned pipeline reports.
+- versioned pipeline reports,
+- local skill ZIP packages.
 
-Small source-like progression notes for Ultimate Yokai Star Dance are kept under
-`artifacts/ultimate-yokai-star-dance/raw-notes/` so another Codex thread can
-continue from the same starting point. Run the documented scripts in `README.md`
-to regenerate the derived artifacts.
+Source-like fixtures and persistent notes live outside this runtime directory:
+
+- `xivplan-ffxiv-guide/assets/examples/generated-xivplan/`: curated lightweight
+  `.xivplan` examples.
+- `xivplan-ffxiv-guide/assets/progression-notes/ultimate-yokai-star-dance/`:
+  source notes for the Ultimate Yokai Star Dance progression workflow.
+- `docs/case-studies/ultimate-yokai-star-dance/`: persistent case-study notes
+  and historical change-log snapshots.
+
+Run the documented scripts in `README.md` to regenerate local derived artifacts.

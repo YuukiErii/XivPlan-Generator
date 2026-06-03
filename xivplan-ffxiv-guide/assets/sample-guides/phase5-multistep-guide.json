@@ -2,7 +2,7 @@
   "title": "四塔分摊散开",
   "summary": "先按固定职责处理四塔，DPS 去斜角散开，最后全员回中吃八人分摊并复位。",
   "recommended_solution": "采用固定八方和塔位分配：T/H 负责南北，DPS 负责东西，散开后统一回中。这个方案牺牲少量 DPS 外圈移动，换取低记忆成本、低换位风险和稳定可交流的野队表达。",
-  "scene": "../../../artifacts/generated-xivplan/phase5-multistep-style.xivplan",
+  "scene": "../examples/generated-xivplan/phase5-multistep-style.xivplan",
   "spec": "../specs/phase5-multistep-style.spec.json",
   "figures": [
     {

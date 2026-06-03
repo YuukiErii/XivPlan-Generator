@@ -102,6 +102,16 @@ DEFAULT_PARTY_ICONS = {
     "D3": "/actor/BRD.png",
     "D4": "/actor/PCT.png",
 }
+ROLE_NUMBER_PARTY_ICONS = {
+    "MT": "/actor/tank1.png",
+    "ST": "/actor/tank2.png",
+    "H1": "/actor/healer1.png",
+    "H2": "/actor/healer2.png",
+    "D1": "/actor/dps1.png",
+    "D2": "/actor/dps2.png",
+    "D3": "/actor/dps3.png",
+    "D4": "/actor/dps4.png",
+}
 
 DEFAULT_SCENE_CONTRACT = {
     "require_full_party_each_step": False,
@@ -109,6 +119,28 @@ DEFAULT_SCENE_CONTRACT = {
     "require_waymarks_each_step": False,
     "allow_partial_observation": True,
 }
+ANNOTATION_CONTRACT_BOOL_FIELDS = {
+    "require_in_scene_teaching",
+    "prefer_axis_and_priority_labels",
+    "convert_guide_text_to_footer",
+}
+ANNOTATION_CONTRACT_INT_FIELDS = {"min_callouts_per_step", "max_callout_chars"}
+MECHANIC_SEMANTICS_CONTRACT_BOOL_FIELDS = {
+    "require_arrow_semantics",
+    "require_range_semantics",
+    "require_resolve_geometry",
+    "require_danger_crossing_declaration",
+}
+STATUS_ASSIGNMENT_CONTRACT_BOOL_FIELDS = {
+    "require_status_overlays",
+    "require_all_assigned_roles_visible",
+    "require_status_icon_readability",
+    "require_fallback_reason",
+}
+ROUTE_SOURCE_KEYS = ("fromRole", "fromObject", "fromMarker")
+ROUTE_TARGET_KEYS = ("toRole", "toObject", "toMarker", "toZone")
+RANGE_SEMANTIC_TYPES = {"circle", "cone", "rect", "tower", "stack"}
+REAL_RESOLVE_GEOMETRY_TYPES = {"cone", "rect", "tower", "stack"}
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -218,6 +250,24 @@ def role_label_visible(obj: dict[str, Any]) -> bool:
     return obj.get("roleLabelVisible", obj.get("role_label_visible", True)) is not False
 
 
+def party_display_style(obj: dict[str, Any], scene: dict[str, Any]) -> str:
+    value = obj.get("partyDisplayStyle") or obj.get("party_display_style")
+    if isinstance(value, str) and value.strip():
+        normalized = value.strip().lower().replace("_", "-")
+        if normalized in {"role-number", "role-number-icon", "role-number-icons", "numbered-role-icon"}:
+            return "role-number-icon"
+        if normalized in {"job", "job-icon", "job-icons", "job-default"}:
+            return "job-icon"
+    scene_policy = scene.get("party_display_policy")
+    if isinstance(scene_policy, str) and scene_policy.strip():
+        normalized = scene_policy.strip().lower().replace("_", "-")
+        if normalized in {"role-number", "role-number-icon", "role-number-icons", "numbered-role-icon"}:
+            return "role-number-icon"
+        if normalized in {"job", "job-icon", "job-icons", "job-default"}:
+            return "job-icon"
+    return "role-number-icon" if scene.get("guide_section") == "mechanic_flow" else "job-icon"
+
+
 def object_waymark(obj: dict[str, Any]) -> str:
     if obj.get("type") != "marker":
         return ""
@@ -272,6 +322,99 @@ def normalize_scene_contract(scene: dict[str, Any]) -> tuple[dict[str, bool], bo
     return contract, True
 
 
+def mechanic_semantics_contract(scene: dict[str, Any]) -> dict[str, bool]:
+    raw_contract = scene.get("mechanic_semantics_contract")
+    if not isinstance(raw_contract, dict):
+        return {}
+    return {key: bool(raw_contract.get(key)) for key in MECHANIC_SEMANTICS_CONTRACT_BOOL_FIELDS}
+
+
+def status_assignment_contract(scene: dict[str, Any]) -> dict[str, bool]:
+    raw_contract = scene.get("status_assignment_contract")
+    if not isinstance(raw_contract, dict):
+        return {}
+    return {key: bool(raw_contract.get(key)) for key in STATUS_ASSIGNMENT_CONTRACT_BOOL_FIELDS}
+
+
+def status_assignment_role(assignment: dict[str, Any]) -> str:
+    value = assignment.get("role")
+    if isinstance(value, str) and value.upper() in PARTY_ROLE_NAMES:
+        return value.upper()
+    return ""
+
+
+def status_visible_on_step(assignment: dict[str, Any], step_index: int) -> bool:
+    visible = assignment.get("visibleSteps", assignment.get("visible_steps"))
+    if visible is None:
+        return True
+    if isinstance(visible, str):
+        return visible.strip().lower() in {"all", "*", "normal"}
+    if not isinstance(visible, list):
+        return False
+    for item in visible:
+        if isinstance(item, int) and item == step_index:
+            return True
+        if isinstance(item, str) and item.strip().lower() in {"all", "*"}:
+            return True
+        if isinstance(item, list) and len(item) == 2 and all(isinstance(value, int) for value in item):
+            start, end = item
+            if start <= step_index <= end:
+                return True
+    return False
+
+
+def has_semantic_value(obj: dict[str, Any], keys: tuple[str, ...]) -> bool:
+    return any(obj.get(key) not in (None, "", [], {}) for key in keys)
+
+
+def step_requires_semantic_routes(step: dict[str, Any]) -> bool:
+    if step.get("movement_required") is True:
+        return True
+    return str(step.get("storyboard_phase", "")) in {"first_move", "second_move", "move", "reset", "next_read_setup"}
+
+
+def is_resolve_step(step: dict[str, Any]) -> bool:
+    return str(step.get("storyboard_phase", "")) in {"first_resolve", "second_resolve", "resolve"}
+
+
+def damage_pattern(obj: dict[str, Any]) -> dict[str, Any]:
+    value = obj.get("damagePattern")
+    return value if isinstance(value, dict) else {}
+
+
+def pattern_value(obj: dict[str, Any], key: str) -> Any:
+    pattern = damage_pattern(obj)
+    return pattern[key] if key in pattern else obj.get(key)
+
+
+def validate_arrow_semantics(errors: list[str], arrow: dict[str, Any], where: str) -> None:
+    if not has_semantic_value(arrow, ROUTE_SOURCE_KEYS):
+        fail(errors, f"{where} semantic route requires fromRole, fromObject, or fromMarker")
+    if not has_semantic_value(arrow, ROUTE_TARGET_KEYS):
+        fail(errors, f"{where} semantic route requires toRole, toObject, toMarker, or toZone")
+    if not isinstance(arrow.get("routeIntent"), str) or not arrow.get("routeIntent", "").strip():
+        fail(errors, f"{where} semantic route requires routeIntent")
+    if not isinstance(arrow.get("resolveIndex"), int):
+        fail(errors, f"{where} semantic route requires integer resolveIndex")
+    if not isinstance(arrow.get("snapToTarget"), bool):
+        fail(errors, f"{where} semantic route requires boolean snapToTarget")
+
+
+def validate_range_semantics(errors: list[str], obj: dict[str, Any], where: str) -> None:
+    pattern = damage_pattern(obj)
+    if not pattern:
+        return
+    required = ("kind", "label", "source", "targets", "resolveIndex", "resolveTiming", "aoeIntent")
+    missing = [key for key in required if pattern_value(obj, key) in (None, "")]
+    if missing:
+        fail(errors, f"{where} semantic range is missing: {', '.join(missing)}")
+    targets = pattern_value(obj, "targets")
+    if not isinstance(targets, list):
+        fail(errors, f"{where} semantic range targets must be a list")
+    if not isinstance(pattern_value(obj, "resolveIndex"), int):
+        fail(errors, f"{where} semantic range resolveIndex must be an integer")
+
+
 def partial_observation_has_reason(step: dict[str, Any]) -> bool:
     text = str(step.get("guide_text", "")).strip()
     if len(text) < 12:
@@ -291,6 +434,35 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
         fail(errors, "root.nextId must be an integer")
     if not isinstance(scene.get("arena"), dict):
         fail(errors, "root.arena must be an object")
+    annotation_contract = scene.get("annotation_contract")
+    if annotation_contract is not None:
+        if not isinstance(annotation_contract, dict):
+            fail(errors, "root.annotation_contract must be an object")
+        else:
+            for key in ANNOTATION_CONTRACT_BOOL_FIELDS:
+                if key in annotation_contract and not isinstance(annotation_contract[key], bool):
+                    fail(errors, f"root.annotation_contract.{key} must be a boolean")
+            for key in ANNOTATION_CONTRACT_INT_FIELDS:
+                if key in annotation_contract and not isinstance(annotation_contract[key], int):
+                    fail(errors, f"root.annotation_contract.{key} must be an integer")
+    semantics_contract = scene.get("mechanic_semantics_contract")
+    if semantics_contract is not None:
+        if not isinstance(semantics_contract, dict):
+            fail(errors, "root.mechanic_semantics_contract must be an object")
+        else:
+            for key in MECHANIC_SEMANTICS_CONTRACT_BOOL_FIELDS:
+                if key in semantics_contract and not isinstance(semantics_contract[key], bool):
+                    fail(errors, f"root.mechanic_semantics_contract.{key} must be a boolean")
+    semantics_policy = mechanic_semantics_contract(scene)
+    status_contract = scene.get("status_assignment_contract")
+    if status_contract is not None:
+        if not isinstance(status_contract, dict):
+            fail(errors, "root.status_assignment_contract must be an object")
+        else:
+            for key in STATUS_ASSIGNMENT_CONTRACT_BOOL_FIELDS:
+                if key in status_contract and not isinstance(status_contract[key], bool):
+                    fail(errors, f"root.status_assignment_contract.{key} must be a boolean")
+    status_policy = status_assignment_contract(scene)
     steps = scene.get("steps")
     if not isinstance(steps, list) or not steps:
         fail(errors, "root.steps must be a non-empty list")
@@ -332,6 +504,9 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
         party_full_objects: list[dict[str, Any]] = []
         enemy_objects: list[dict[str, Any]] = []
         text_labels: list[str] = []
+        arrow_objects: list[tuple[str, dict[str, Any]]] = []
+        semantic_range_objects: list[tuple[str, dict[str, Any]]] = []
+        status_overlays: list[dict[str, Any]] = []
         step_type_counts: Counter[str] = Counter()
         step_waymarks: set[str] = set()
         for object_index, obj in enumerate(objects):
@@ -401,16 +576,92 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
                 enemy_objects.append(obj)
             if obj_type == "text" and isinstance(obj.get("text"), str):
                 text_labels.append(obj["text"].strip())
+            if obj_type == "arrow":
+                arrow_objects.append((where, obj))
+            if obj_type in RANGE_SEMANTIC_TYPES and damage_pattern(obj):
+                semantic_range_objects.append((where, obj))
+            if obj.get("statusOverlay") is True:
+                status_overlays.append(obj)
+                status_role = obj.get("statusRole") or obj.get("anchorRole")
+                if not isinstance(status_role, str) or status_role.upper() not in PARTY_ROLE_NAMES:
+                    fail(errors, f"{where} status overlay must carry statusRole/anchorRole MT/ST/H1/H2/D1/D2/D3/D4")
+                if not isinstance(obj.get("statusName"), str) or not obj.get("statusName", "").strip():
+                    fail(errors, f"{where} status overlay must carry statusName")
+                if status_policy.get("require_status_icon_readability"):
+                    width = obj.get("width")
+                    height = obj.get("height")
+                    if not isinstance(width, (int, float)) or not isinstance(height, (int, float)) or min(width, height) < 13:
+                        fail(errors, f"{where} status overlay icon is below the 13 px readability floor")
+                if status_policy.get("require_fallback_reason") and obj.get("assetStatus") == "fallback" and not str(obj.get("fallbackReason", "")).strip():
+                    fail(errors, f"{where} fallback status icon must record fallbackReason")
             waymark = object_waymark(obj)
             if waymark:
                 step_waymarks.add(waymark)
 
         partial_observation = explicitly_partial_observation(step) if contract_active else looks_like_observation_step(step)
+        if semantics_policy.get("require_arrow_semantics") and step_requires_semantic_routes(step):
+            if not arrow_objects:
+                fail(errors, f"{where_step} movement/reset step requires a semantic route arrow")
+            for where_arrow, arrow in arrow_objects:
+                validate_arrow_semantics(errors, arrow, where_arrow)
+        if semantics_policy.get("require_range_semantics"):
+            for where_range, range_obj in semantic_range_objects:
+                validate_range_semantics(errors, range_obj, where_range)
+        if semantics_policy.get("require_resolve_geometry") and is_resolve_step(step):
+            resolve_ranges = [
+                obj
+                for _where_range, obj in semantic_range_objects
+                if obj.get("type") in REAL_RESOLVE_GEOMETRY_TYPES
+                and pattern_value(obj, "aoeIntent") != "reference_only"
+            ]
+            if not resolve_ranges:
+                fail(errors, f"{where_step} resolve step requires semantic AoE geometry")
         if contract_active and partial_observation:
             if not contract["allow_partial_observation"]:
                 fail(errors, f"{where_step} uses partial observation but scene_contract.allow_partial_observation is false")
             elif not partial_observation_has_reason(step):
                 fail(errors, f"{where_step} partial_observation requires guide_text explaining why the step can omit full context")
+        assignments = step.get("statusAssignments", step.get("status_assignments", []))
+        if status_policy.get("require_status_overlays"):
+            if not isinstance(assignments, list) or not assignments:
+                fail(errors, f"{where_step} status_assignment_contract requires statusAssignments")
+            else:
+                overlay_roles = {
+                    str(obj.get("statusRole") or obj.get("anchorRole") or "").upper()
+                    for obj in status_overlays
+                    if isinstance(obj.get("statusRole") or obj.get("anchorRole"), str)
+                }
+                party_ids_by_role = {role: obj_id for role, _x, _y, obj_id in party_objects if role}
+                for assignment in assignments:
+                    if not isinstance(assignment, dict):
+                        fail(errors, f"{where_step}.statusAssignments entries must be objects")
+                        continue
+                    role = status_assignment_role(assignment)
+                    if not role:
+                        fail(errors, f"{where_step}.statusAssignments entry must have role MT/ST/H1/H2/D1/D2/D3/D4")
+                        continue
+                    if not isinstance(assignment.get("statusName", assignment.get("status_name")), str):
+                        fail(errors, f"{where_step}.statusAssignments[{role}] must have statusName")
+                    if status_visible_on_step(assignment, step_index + 1):
+                        role_overlays = [
+                            obj
+                            for obj in status_overlays
+                            if str(obj.get("statusRole") or obj.get("anchorRole") or "").upper() == role
+                        ]
+                        if not role_overlays:
+                            fail(errors, f"{where_step} missing visible status overlay for {role}")
+                        for overlay in role_overlays:
+                            if overlay.get("anchorPartyId") != party_ids_by_role.get(role):
+                                fail(errors, f"{where_step} status overlay for {role} is not anchored to that party object")
+                if status_policy.get("require_all_assigned_roles_visible"):
+                    visible_roles = {
+                        status_assignment_role(item)
+                        for item in assignments
+                        if isinstance(item, dict) and status_visible_on_step(item, step_index + 1)
+                    }
+                    missing_visible = sorted(role for role in visible_roles if role and role not in overlay_roles)
+                    if missing_visible:
+                        fail(errors, f"{where_step} missing status overlays for assigned roles: {', '.join(missing_visible)}")
 
         if len(party_objects) < 8 and not partial_observation:
             fail(errors, f"{where_step} has {len(party_objects)} party objects; use 8 players or mark the step as partial/observation")
@@ -437,13 +688,18 @@ def validate_scene(scene: Any) -> tuple[list[str], Counter[str], int]:
                     fail(errors, f"{where_party} ({role}) must have a job icon or fallback image")
                 if party.get("jobDefault") is True and job.upper() not in DEFAULT_PARTY_JOBS.get(role, set()):
                     fail(errors, f"{where_party} ({role}) default job mismatch: {job}")
-                if party.get("jobDefault") is True and normalized_icon(icon) != DEFAULT_PARTY_ICONS.get(role):
+                display_style = party_display_style(party, scene)
+                if display_style == "role-number-icon":
+                    expected_icon = ROLE_NUMBER_PARTY_ICONS.get(role)
+                    if normalized_icon(icon) != expected_icon:
+                        fail(errors, f"{where_party} ({role}) must use official numbered role icon {expected_icon}, got {icon}")
+                elif party.get("jobDefault") is True and normalized_icon(icon) != DEFAULT_PARTY_ICONS.get(role):
                     fail(errors, f"{where_party} ({role}) must use official XivPlan job icon {DEFAULT_PARTY_ICONS.get(role)}, got {icon}")
                 if normalized_icon(icon).startswith("job:"):
                     fail(errors, f"{where_party} ({role}) uses abstract job token {icon}; use a XivPlan /actor/<JOB>.png icon")
-                if not cluster_step and not role_label_visible(party):
+                if display_style == "job-icon" and not cluster_step and not role_label_visible(party):
                     fail(errors, f"{where_party} ({role}) hides roleLabel outside a cluster/stack frame")
-                if not cluster_step and not party_role_label(party):
+                if display_style == "job-icon" and not cluster_step and not party_role_label(party):
                     fail(errors, f"{where_party} ({role}) must have roleLabel near the job icon")
         if contract_active and contract["require_enemy_each_step"] and not partial_observation and step_type_counts["enemy"] < 1:
             fail(errors, f"{where_step} is missing a Boss/enemy anchor")

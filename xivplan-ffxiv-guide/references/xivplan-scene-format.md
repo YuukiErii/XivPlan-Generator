@@ -58,7 +58,94 @@ Each step may also carry a stable export title:
 
 When the local XivPlan app exports all steps, the title is written to `manifest.json` and used in a stable PNG filename such as `step_01_initial_positions.png`. Older `.xivplan` files without step titles fall back to `Step 1`, `Step 2`, and so on.
 
+### In-Scene Annotations
+
+Generated Phase U scenes can declare:
+
+```json
+{
+  "annotation_contract": {
+    "require_in_scene_teaching": true,
+    "min_callouts_per_step": 3,
+    "max_callout_chars": 38,
+    "prefer_axis_and_priority_labels": true,
+    "convert_guide_text_to_footer": true
+  }
+}
+```
+
+Use `page_title` on a step to override the rendered page title derived from `title`, and use text object `labelRole` values such as `axis`, `priority`, `mechanic`, and `footer` for short guide callouts. Text objects may also set `labelBand: "top" | "bottom" | "left" | "right"` plus `labelBandIndex` to place dense annotations in stable outside-arena bands.
+
+### Phase V Mechanic Semantics
+
+Generated complex scenes declare:
+
+```json
+{
+  "mechanic_semantics_contract": {
+    "require_arrow_semantics": true,
+    "require_range_semantics": true,
+    "require_resolve_geometry": true,
+    "require_danger_crossing_declaration": true
+  }
+}
+```
+
+Use `movementRoute` for required movement and reset arrows. Preserve a source (`fromRole`, `fromObject`, or `fromMarker`), a target (`toRole`, `toObject`, `toMarker`, or `toZone`), `resolveIndex`, route intent, and boolean `snapToTarget`.
+
+Use `damagePattern` for judgment geometry. Supported kinds are `fan120`, `shareFan90`, `baitTrail`, `towerResolve`, `chargeLine`, `safeSector`, and `bossHitbox`. Every pattern keeps `label`, `source`, `targets`, `resolveIndex`, `resolveTiming`, and `aoeIntent`. Use `aoeIntent: "damage" | "safe" | "bait_history" | "future_resolve" | "reference_only"` to separate current danger from safe overlays and historical traces.
+
+### Phase X Status Assignments
+
+Buff/debuff or status-driven scenes declare:
+
+```json
+{
+  "status_assignment_contract": {
+    "require_status_overlays": true,
+    "require_all_assigned_roles_visible": true,
+    "require_status_icon_readability": true,
+    "require_fallback_reason": true
+  },
+  "statusAssignments": [
+    {
+      "role": "MT",
+      "statusName": "短红",
+      "kind": "debuff",
+      "statusIcon": "data:image/png;base64,...",
+      "decisionGroup": "red-short",
+      "visibleSteps": "all",
+      "durationLabel": "短",
+      "source": "user-screenshot",
+      "confidence": "confirmed"
+    }
+  ]
+}
+```
+
+When `statusIcon` is not available, use a traceable fallback badge instead of pretending a real buff icon was confirmed:
+
+```json
+{
+  "role": "H1",
+  "statusName": "短蓝",
+  "kind": "debuff",
+  "iconToken": "blue",
+  "fallbackLabel": "短",
+  "assetStatus": "fallback",
+  "assetFallback": "status-icon-fallback",
+  "fallbackReason": "No confirmed real status icon asset was provided."
+}
+```
+
+The builder renders each visible assignment as an `icon` object with `statusOverlay: true`, `statusRole`, `statusName`, `decisionGroup`, `anchorRole`, `anchorPartyId`, `assetStatus`, and `fallbackReason`. It is anchored to the upper-left of the assigned party object, not to a generic group label. `audit_visual_quality.py` reports `status_assignment_score`; missing, tiny, wrongly anchored, or undocumented fallback overlays are severe in strict generated mode.
+
 ### Players
+
+Specs and scenes can classify player rendering with `guide_section` / `figure_type`:
+
+- `mechanic_flow` is the default. It renders numbered role icons such as `/actor/tank1.png`, `/actor/healer2.png`, and `/actor/dps4.png`; extra role-label text is normally hidden.
+- `flow_example` preserves the older job-icon example style: `/actor/<JOB>.png` plus a nearby `roleLabel`.
 
 ```json
 {
@@ -68,11 +155,11 @@ When the local XivPlan app exports all steps, the title is written to `manifest.
   "role": "MT",
   "job": "DRK",
   "jobName": "Dark Knight",
+  "partyDisplayStyle": "role-number-icon",
   "roleLabel": "MT",
-  "roleLabelVisible": true,
-  "roleLabelPlacement": "near-icon",
-  "icon": "/actor/DRK.png",
-  "image": "/actor/DRK.png",
+  "roleLabelVisible": false,
+  "icon": "/actor/tank1.png",
+  "image": "/actor/tank1.png",
   "x": 0,
   "y": 180,
   "width": 32,
@@ -84,15 +171,10 @@ When the local XivPlan app exports all steps, the title is written to `manifest.
 
 Useful role or job images:
 
-- `/actor/tank.png`
-- `/actor/healer.png`
-- `/actor/dps.png`
-- `/actor/melee.png`
-- `/actor/ranged.png`
-- `/actor/magic_ranged.png`
+- `/actor/tank1.png`, `/actor/tank2.png`, `/actor/healer1.png`, `/actor/healer2.png`, `/actor/dps1.png`, `/actor/dps2.png`, `/actor/dps3.png`, `/actor/dps4.png`
 - `/actor/DRK.png`, `/actor/PLD.png`, `/actor/AST.png`, `/actor/SCH.png`, `/actor/SAM.png`, `/actor/DRG.png`, `/actor/BRD.png`, `/actor/PCT.png`
 
-Phase R/S generated scenes keep a concrete default comp: MT=DRK, ST=PLD, H1=AST, H2=SCH, D1=SAM, D2=DRG, D3=BRD, D4=PCT. Default job icons must be XivPlan built-in `/actor/<JOB>.png` assets, not `job:*` tokens or text-only badges. Non-cluster frames should have a visible `roleLabel`; cluster or stack frames may set `roleLabelVisible: false` only when the official job icon remains readable.
+Generated scenes keep a concrete data identity: MT=DRK, ST=PLD, H1=AST, H2=SCH, D1=SAM, D2=DRG, D3=BRD, D4=PCT unless the user overrides it. `mechanic_flow` displays official numbered role icons. `flow_example` displays XivPlan built-in `/actor/<JOB>.png` assets and visible `roleLabel` text in non-cluster frames. `job:*` tokens or text-only badges are invalid replacements.
 
 ### Custom Images
 
@@ -266,6 +348,9 @@ Useful root presets:
 - `arena.preset: "default-circle"`: 600x600 radial circle.
 - `arena.preset: "fru-p1"`: 600x600 circle with `/arena/e11.svg`.
 - `arena.preset: "fru-p2"` or `"eden-light"`: 600x600 circle with `/arena/e8.svg`.
+- `arena.preset: "omega-o8s"`: 600x600 radial fallback circle for O8S/Omega/Kefka/妖星乱舞 when no local O8S background is found; builder adds `backgroundStatus: "fallback"` plus radial tick, AC/BD axis, half-field, and fallback-note overlays.
+- `arena.preset: "ultimate-yokai-star-dance"`: 600x600 circle with `/arena/udm-p1.png` when the local XivPlan public assets contain UDM arena PNGs.
+- `arena.arenaOverlays`: optional Phase W list rendered by the PNG exporter. Supported kinds are `radial_ticks`, `axis`, `half_mask`, and `ring_label_band`.
 - `markerPresets: "cardinals"`: A/B/C/D at N/E/S/W.
 - `markerPresets: "intercards"`: 1/2/3/4 at NE/SE/SW/NW.
 - `markerPresets: "all-waymarks"`: both cardinal and intercardinal waymarks.

@@ -30,7 +30,15 @@ from validate_xivplan_scene import validate_scene
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKSPACE = ROOT / "artifacts" / "ultimate-yokai-star-dance"
-DEFAULT_NOTES = WORKSPACE / "raw-notes" / "p1-draft-notes.md"
+DEFAULT_NOTES = (
+    ROOT
+    / "xivplan-ffxiv-guide"
+    / "assets"
+    / "progression-notes"
+    / "ultimate-yokai-star-dance"
+    / "raw-notes"
+    / "p1-draft-notes.md"
+)
 
 
 def read_text(path: Path) -> str:

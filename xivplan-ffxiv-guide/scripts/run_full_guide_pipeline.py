@@ -279,7 +279,15 @@ def main() -> int:
     try:
         if args.ultimate_yokai_star_dance:
             if args.input is None:
-                input_path = ROOT / "artifacts" / "ultimate-yokai-star-dance" / "raw-notes" / "p1-draft-notes.md"
+                input_path = (
+                    ROOT
+                    / "xivplan-ffxiv-guide"
+                    / "assets"
+                    / "progression-notes"
+                    / "ultimate-yokai-star-dance"
+                    / "raw-notes"
+                    / "p1-draft-notes.md"
+                )
             else:
                 input_path = args.input
             summary = run_ultimate_pipeline(input_path, args.version, args.previous_version, args.force)

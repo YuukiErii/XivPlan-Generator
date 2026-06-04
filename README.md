@@ -23,11 +23,8 @@ Codex skill and local tooling for turning FFXIV mechanic descriptions into XivPl
 - `artifacts/knowledge-search/`: generated knowledge-search JSON/Markdown and similarity reports.
 - `artifacts/full-guide-pipeline/`: one-command guide package outputs.
 - `artifacts/ultimate-yokai-star-dance/`: local generated Ultimate Yokai Star Dance progression outputs.
+- `docs/project-status.md`: consolidated requirements, roadmap status, visual-upgrade work record, acceptance evidence, and next-step checklist.
 - `docs/case-studies/ultimate-yokai-star-dance/`: persistent notes and historical change-log snapshots for the Ultimate Yokai Star Dance workflow.
-- `docs/roadmap.md`: full implementation roadmap.
-- `docs/xivplan-skill-visual-upgrade-plan.md`: Phase A-X visual-upgrade plan and fourth-round acceptance checklist.
-- `docs/visual-upgrade-work-record.md`: cumulative visual-upgrade work log and handoff notes.
-- `docs/project-requirements.md`: original requirements snapshot.
 
 Generated runtime outputs under `artifacts/` are ignored by default. Source
 fixtures and durable notes live under `xivplan-ffxiv-guide/assets/` and `docs/`.

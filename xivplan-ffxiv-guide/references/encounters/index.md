@@ -23,6 +23,7 @@ Use this index when a user names an encounter mechanic or asks for a strategy "ç
 | DSR / DSU | [ultimates/dsr.md](ultimates/dsr.md) | Playstation chains, Sanctity, Dive from Grace, Death of the Heavens, Wroth Flames |
 | TOP | [ultimates/top.md](ultimates/top.md) | Pantokrator, Party Synergy, Hello World, Run: Dynamis |
 | FRU | [ultimates/fru.md](ultimates/fru.md) | P1-P5 representative mechanics, with local XivPlan evidence |
+| UDM / Ultimate Yokai Star Dance | [ultimates/udm.md](ultimates/udm.md) | P1-P3 gold-reference arena routing, object density, and XivPlan-only output policy |
 | Omega Savage | [savage/omega.md](savage/omega.md) | O1S-O12S floor-indexed; extra cards for Grand Cross, Forsaken, and Hello World |
 | Eden Savage | [savage/eden.md](savage/eden.md) | E1S-E12S floor-indexed; extra cards for Light Rampant and Relativity |
 | Pandaemonium Savage | [savage/pandaemonium.md](savage/pandaemonium.md) | P1S-P12S floor-indexed; extra cards for High Concept and P12S |

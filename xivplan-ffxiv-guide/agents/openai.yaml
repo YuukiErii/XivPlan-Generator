@@ -4,6 +4,7 @@ interface:
   default_prompt: "Use $xivplan-ffxiv-guide to turn this FFXIV mechanic into XivPlan drawing instructions and a Chinese raid guide."
 defaults:
   output_root: "artifacts/full-guide-pipeline"
+  default_output_mode: "xivplan-only"
   ultimate_yokai_star_dance_root: "artifacts/ultimate-yokai-star-dance"
   ultimate_yokai_star_dance_notes_root: "xivplan-ffxiv-guide/assets/progression-notes/ultimate-yokai-star-dance/raw-notes"
   quality_gate_required: true
@@ -24,7 +25,8 @@ defaults:
   preserve_version_outputs: true
   bundled_python_hint: "C:\\Users\\Mahiru\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe"
 policies:
-  - "Every generated guide package must run the quality gate before final handoff."
+  - "Default user-facing generation produces only the importable .xivplan plus parse/solution/quality evidence; step PNGs, SVGs, Markdown, DOCX, and PDF require an explicit full-package or regression/release command."
+  - "Every generated .xivplan must run the quality gate before final handoff."
   - "Every normal generated XivPlan step must preserve the full party, Boss/enemy anchor, stable waymarks, and arena context unless explicitly marked as a partial observation."
   - "Every Boss/add/clone/source must have a name, visible target ring, radius, and readable label; duplicate add names must be disambiguated."
   - "Every Boss/add/clone/source must have a dedicated or fallback icon; uncertain assets use an explicit fallback instead of removing enemy identity."

@@ -349,7 +349,11 @@ Useful root presets:
 - `arena.preset: "fru-p1"`: 600x600 circle with `/arena/e11.svg`.
 - `arena.preset: "fru-p2"` or `"eden-light"`: 600x600 circle with `/arena/e8.svg`.
 - `arena.preset: "omega-o8s"`: 600x600 radial fallback circle for O8S/Omega/Kefka/妖星乱舞 when no local O8S background is found; builder adds `backgroundStatus: "fallback"` plus radial tick, AC/BD axis, half-field, and fallback-note overlays.
-- `arena.preset: "ultimate-yokai-star-dance"`: 600x600 circle with `/arena/udm-p1.png` when the local XivPlan public assets contain UDM arena PNGs.
+- `arena.preset: "udm-p1"`: 600x600 circle with `/arena/udm-phase1.png`, radial ticks, and no grid for UDM / 绝妖 P1.
+- `arena.preset: "udm-p2"`: 600x600 circle with `/arena/udm-phase2.png`, radial ticks, and no grid for UDM / 绝妖 P2.
+- `arena.preset: "udm-p3"`: 600x600 circle with `/arena/udm-phase3.png`, radial ticks, and no grid for UDM / 绝妖 P3.
+- `arena.preset: "udm-p4"`: 600x600 circle with `/arena/udm-p4.png` for UDM mahjong / 麻将-style special examples.
+- `arena.preset: "ultimate-yokai-star-dance"`: generic UDM P1 fallback with `/arena/udm-phase1.png`; prefer phase-specific `udm-p1` / `udm-p2` / `udm-p3` when phase is known.
 - `arena.arenaOverlays`: optional Phase W list rendered by the PNG exporter. Supported kinds are `radial_ticks`, `axis`, `half_mask`, and `ring_label_band`.
 - `markerPresets: "cardinals"`: A/B/C/D at N/E/S/W.
 - `markerPresets: "intercards"`: 1/2/3/4 at NE/SE/SW/NW.

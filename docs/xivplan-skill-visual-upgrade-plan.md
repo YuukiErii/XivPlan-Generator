@@ -1345,3 +1345,24 @@ Evidence (2026-06-02):
 - [x] FRU 雷火剑回归样例能在 `/arena/e11.svg` 背景、目标环、雷/火扇形、优先级文字和多分支页面上接近金标准；剩余差距主要是图内 prose 密度，而非机制语义或背景合同。
 - [x] contact sheet + 人工审查能证明新图不是只在 JSON 指标上变密，而是真的更像可直接给队员看的攻略图。
 - [x] 状态驱动机制不再只靠文字描述状态分组；Phase X 回归样例每个玩家的 buff/debuff 归属都在玩家图标左上角可见，并进入 release gate。
+
+### 10.7 Phase Y：UDM P1-P3 金标准吸收与 `.xivplan` 单输出模式
+
+目标：把 `C:\Users\Mahiru\Desktop\FFXIV\KING X\UDM\P1|P2|P3` 中的 `.xivplan` / `.xivplancn` 作为 UDM / 绝妖生成逻辑的直接金标准，同时让 skill 的默认用户输出只生成 `.xivplan`，不再默认导出 SVG、PNG 或文档包。
+
+任务：
+
+- [x] 扫描并量化 UDM P1/P2/P3 金标准文件，生成 `artifacts/style-analysis/udm-golden-reference-profile.json` 与 `.md`。
+- [x] 新增 `references/encounters/ultimates/udm.md`，记录 phase-specific 背景、对象密度、轻量化对象语言和输出策略。
+- [x] `build_xivplan_scene.py` 新增 `udm-p1` / `udm-p2` / `udm-p3` / `udm-p4` arena presets，分别使用本地 UDM arena 资源。
+- [x] `parse_mechanic_request.py` 修正 `绝妖星乱舞` 路由优先级：UDM / 绝妖先按 phase 选择本地 UDM 背景，纯 O8S / 凯夫卡 / 妖星乱舞才进入 `omega-o8s` fallback。
+- [x] `scan_xivplan_assets.py` 与 `arena-presets.md` 同步 UDM P1-P3 资产规则。
+- [x] `run_full_guide_pipeline.py` 与 `run_ultimate_yokai_star_dance_pipeline.py` 默认改为 XivPlan-only：只生成 `.xivplan`、spec、解析/候选/质量报告；`--full-package` 才导出 step PNG 和 Markdown / DOCX / PDF。
+- [x] `run_visual_regression.py` 显式使用 `--full-package`，保留内部视觉 QA 能力但不影响 skill 默认输出。
+- [x] `SKILL.md`、`README.md`、`agents/openai.yaml` 和 `test_arena_selection.py` 同步新输出口径与 UDM arena 回归检查。
+
+验收：
+
+- UDM P2 输入如“绝妖星乱舞 P2 一运”应选择 `udm-p2`；普通“O8S / 妖星乱舞”仍选择 `omega-o8s`。
+- 默认 pipeline 不生成 step PNG / SVG / Markdown / DOCX / PDF，除非调用者显式传入 `--full-package`。
+- 生成逻辑参考 UDM 金标准的真实背景和 20-30 objects/step 常规密度，但不复制金标准中动辄数十 MB 的嵌入 PNG data URL。

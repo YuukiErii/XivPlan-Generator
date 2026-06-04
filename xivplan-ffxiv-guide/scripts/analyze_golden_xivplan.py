@@ -20,24 +20,29 @@ MECHANIC_ZONE_TYPES = {
     "donut",
     "exaflare",
     "eye",
+    "fan",
+    "indicatorMarker",
+    "indicatorStack",
     "knockback",
     "line",
     "lineKnockAway",
     "lineKnockback",
     "lineStack",
+    "mechRadialKnockback",
     "polygon",
     "proximity",
     "rect",
     "rightTriangle",
     "stack",
     "starburst",
+    "target",
     "tower",
     "triangle",
 }
 LAYER_GROUPS = {
     "party": {"party"},
-    "enemy": {"enemy"},
-    "marker": {"marker"},
+    "enemy": {"enemy", "target"},
+    "marker": {"marker", "waymark"},
     "text": {"text"},
     "arrow": {"arrow", "tether"},
     "mechanic_zone": MECHANIC_ZONE_TYPES,
@@ -241,12 +246,18 @@ def size_analysis(objects: list[dict[str, Any]]) -> dict[str, Any]:
 
 def common_arena(scene: dict[str, Any]) -> dict[str, Any]:
     arena = scene.get("arena") if isinstance(scene.get("arena"), dict) else {}
+    floor = arena.get("floor") if isinstance(arena.get("floor"), dict) else {}
+    texture = arena.get("texture") if isinstance(arena.get("texture"), dict) else {}
     return {
+        "key": arena.get("key"),
         "shape": arena.get("shape"),
+        "floorShape": floor.get("shape"),
         "width": arena.get("width"),
         "height": arena.get("height"),
         "padding": arena.get("padding"),
         "backgroundImage": arena.get("backgroundImage"),
+        "backgroundOpacity": arena.get("backgroundOpacity"),
+        "textureUrl": texture.get("url"),
         "grid": arena.get("grid"),
         "ticks": arena.get("ticks"),
     }
@@ -344,7 +355,7 @@ def combined_profile(scene_profiles: list[dict[str, Any]]) -> dict[str, Any]:
         total_counts.update(profile["type_counts"])
         all_step_counts.extend(step["object_count"] for step in profile["steps"])
         all_text_counts.extend(step["layer_counts"]["text"] for step in profile["steps"])
-        background = profile["arena"].get("backgroundImage") or "none"
+        background = profile["arena"].get("backgroundImage") or profile["arena"].get("textureUrl") or profile["arena"].get("key") or "none"
         backgrounds[str(background)] += 1
     return {
         "scene_count": len(scene_profiles),
@@ -390,7 +401,7 @@ def render_markdown(profile: dict[str, Any]) -> str:
     ]
     for scene in scenes:
         top_types = ", ".join(f"{name}:{count}" for name, count in Counter(scene["type_counts"]).most_common(8))
-        arena = scene["arena"].get("backgroundImage") or scene["arena"].get("shape") or "unknown"
+        arena = scene["arena"].get("backgroundImage") or scene["arena"].get("textureUrl") or scene["arena"].get("shape") or "unknown"
         lines.append(f"| {scene['scene_name']} | {scene['step_count']} | {scene['total_objects']} | `{arena}` | {top_types} |")
     lines.extend(["", "## Step Density", "", "| Scene | Step | Objects | Party | Enemy | Marker | Text | Arrow | Mechanic |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|"])
     for scene in scenes:

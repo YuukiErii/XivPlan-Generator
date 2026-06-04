@@ -29,16 +29,34 @@ ARENA_MATCH_RULES = [
         "fallback_reason": "Eden/Shiva-light diagrams use the built-in `/arena/e8.svg` asset.",
     },
     {
-        "preset": "omega-o8s",
-        "terms": ["o8s", "omega", "sigmascape", "kefka", "凯夫卡", "妖星乱舞"],
-        "asset_terms": ["o8", "omega", "kefka", "sigmascape"],
-        "fallback_reason": "no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays",
+        "preset": "udm-p1",
+        "terms": ["ultimate yokai", "yokai star", "udm p1", "udm-p1", "udm phase1", "udm-phase1", "绝妖 p1", "绝妖第一阶段", "绝妖一阶段"],
+        "asset_terms": ["udm-phase1", "udm-p1"],
+        "fallback_reason": "no built-in UDM P1 arena asset found; fallback to default-circle with explicit axis overlays",
+    },
+    {
+        "preset": "udm-p2",
+        "terms": ["udm p2", "udm-p2", "udm phase2", "udm-phase2", "绝妖 p2", "绝妖第二阶段", "绝妖二阶段"],
+        "asset_terms": ["udm-phase2", "udm-p2"],
+        "fallback_reason": "no built-in UDM P2 arena asset found; fallback to default-circle with explicit axis overlays",
+    },
+    {
+        "preset": "udm-p3",
+        "terms": ["udm p3", "udm-p3", "udm phase3", "udm-phase3", "绝妖 p3", "绝妖第三阶段", "绝妖三阶段"],
+        "asset_terms": ["udm-phase3", "udm-p3"],
+        "fallback_reason": "no built-in UDM P3 arena asset found; fallback to default-circle with explicit axis overlays",
     },
     {
         "preset": "ultimate-yokai-star-dance",
         "terms": ["ultimate yokai", "yokai star", "udm", "绝妖", "绝妖星乱舞"],
-        "asset_terms": ["udm-p1", "udm-phase1", "udm"],
+        "asset_terms": ["udm-phase1", "udm-p1", "udm"],
         "fallback_reason": "no built-in UDM/Yokai arena asset found; fallback to default-circle with explicit axis overlays",
+    },
+    {
+        "preset": "omega-o8s",
+        "terms": ["o8s", "omega", "sigmascape", "kefka", "凯夫卡", "妖星乱舞"],
+        "asset_terms": ["o8", "omega", "kefka", "sigmascape"],
+        "fallback_reason": "no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays",
     },
     {
         "preset": "tile-square",
@@ -114,11 +132,12 @@ def choose_asset(rule: dict[str, Any], arena_assets: list[dict[str, Any]]) -> di
     asset_terms = [slug(term) for term in rule.get("asset_terms", [])]
     if not asset_terms:
         return None
-    for asset in arena_assets:
-        name_slug = slug(str(asset.get("name", "")))
-        asset_slug = slug(str(asset.get("asset_path", "")))
-        if any(term in name_slug or term in asset_slug for term in asset_terms):
-            return asset
+    for term in asset_terms:
+        for asset in arena_assets:
+            name_slug = slug(str(asset.get("name", "")))
+            asset_slug = slug(str(asset.get("asset_path", "")))
+            if term in name_slug or term in asset_slug:
+                return asset
     return None
 
 

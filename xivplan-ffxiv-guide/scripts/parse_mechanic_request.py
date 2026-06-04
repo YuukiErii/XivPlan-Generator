@@ -61,16 +61,34 @@ ARENA_PRESET_RULES = [
         "reason": "Tile or platform mechanics need a square grid background.",
     },
     {
-        "preset": "omega-o8s",
+        "preset": "udm-p1",
         "source": "user-specified",
-        "terms": ["o8s", "omega", "sigmascape", "kefka", "凯夫卡", "妖星乱舞"],
-        "reason": "no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays",
+        "terms": ["udm p1", "udm-p1", "udm phase1", "udm-phase1", "绝妖 p1", "绝妖第一阶段", "绝妖一阶段", "/arena/udm-phase1.png"],
+        "reason": "UDM P1 gold references use `/arena/udm-phase1.png`.",
+    },
+    {
+        "preset": "udm-p2",
+        "source": "user-specified",
+        "terms": ["udm p2", "udm-p2", "udm phase2", "udm-phase2", "绝妖 p2", "绝妖第二阶段", "绝妖二阶段", "/arena/udm-phase2.png"],
+        "reason": "UDM P2 gold references use `/arena/udm-phase2.png`.",
+    },
+    {
+        "preset": "udm-p3",
+        "source": "user-specified",
+        "terms": ["udm p3", "udm-p3", "udm phase3", "udm-phase3", "绝妖 p3", "绝妖第三阶段", "绝妖三阶段", "/arena/udm-phase3.png"],
+        "reason": "UDM P3 diagrams should use the local phase-three UDM arena when available.",
     },
     {
         "preset": "ultimate-yokai-star-dance",
         "source": "user-specified",
-        "terms": ["ultimate yokai star dance", "yokai star dance", "udm", "绝妖"],
-        "reason": "Ultimate Yokai Star Dance context uses the local UDM arena asset when available.",
+        "terms": ["ultimate yokai star dance", "yokai star dance", "绝妖星乱舞", "udm", "绝妖"],
+        "reason": "Ultimate Yokai Star Dance context uses the phase-specific local UDM arena asset when available.",
+    },
+    {
+        "preset": "omega-o8s",
+        "source": "user-specified",
+        "terms": ["o8s", "omega", "sigmascape", "kefka", "凯夫卡", "妖星乱舞"],
+        "reason": "no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays",
     },
     {
         "preset": "default-circle",
@@ -208,6 +226,24 @@ def matched_categories(text: str) -> list[dict[str, Any]]:
     return sorted(dedup.values(), key=lambda item: item["confidence"], reverse=True)
 
 
+def udm_preset_for_phase(phase: str, text: str = "") -> str:
+    haystack = f"{phase} {text}".lower()
+    if any(term in haystack for term in ("p3", "phase 3", "phase3", "第三阶段", "三阶段")):
+        return "udm-p3"
+    if any(term in haystack for term in ("p2", "phase 2", "phase2", "第二阶段", "二阶段")):
+        return "udm-p2"
+    return "udm-p1"
+
+
+def udm_arena_reason(preset: str) -> str:
+    reasons = {
+        "udm-p1": "Ultimate Yokai Star Dance / UDM P1 uses `/arena/udm-phase1.png` from the local gold references.",
+        "udm-p2": "Ultimate Yokai Star Dance / UDM P2 uses `/arena/udm-phase2.png` from the local gold references.",
+        "udm-p3": "Ultimate Yokai Star Dance / UDM P3 uses the local phase-three UDM arena reference.",
+    }
+    return reasons.get(preset, reasons["udm-p1"])
+
+
 def choose_arena_preset(
     text: str,
     encounter_name: str,
@@ -217,10 +253,15 @@ def choose_arena_preset(
     haystack = text.lower()
     for rule in ARENA_PRESET_RULES:
         if any(term.lower() in haystack for term in rule["terms"]):
+            preset = rule["preset"]
+            reason = rule["reason"]
+            if preset == "ultimate-yokai-star-dance":
+                preset = udm_preset_for_phase(phase, haystack)
+                reason = udm_arena_reason(preset)
             return {
-                "preset": rule["preset"],
+                "preset": preset,
                 "source": rule["source"],
-                "reason": rule["reason"],
+                "reason": reason,
             }
 
     encounter_phase = f"{encounter_name} {phase}".lower()
@@ -230,17 +271,18 @@ def choose_arena_preset(
             "source": "mechanic-inferred",
             "reason": "Encounter and phase indicate FRU P1.",
         }
+    if any(term in encounter_phase for term in ("ultimate yokai", "yokai star", "udm", "绝妖")):
+        preset = udm_preset_for_phase(phase, encounter_phase)
+        return {
+            "preset": preset,
+            "source": "mechanic-inferred",
+            "reason": udm_arena_reason(preset),
+        }
     if any(term in encounter_phase for term in ("o8s", "omega", "kefka", "sigmascape")):
         return {
             "preset": "omega-o8s",
             "source": "mechanic-inferred",
             "reason": "no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays",
-        }
-    if any(term in encounter_phase for term in ("ultimate yokai", "yokai star", "udm")):
-        return {
-            "preset": "ultimate-yokai-star-dance",
-            "source": "mechanic-inferred",
-            "reason": "Encounter context indicates Ultimate Yokai Star Dance / UDM and can use the local UDM arena asset.",
         }
 
     categories = {item["category"] for item in candidate_categories}

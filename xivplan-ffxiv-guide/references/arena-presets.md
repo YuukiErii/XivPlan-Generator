@@ -11,7 +11,11 @@ encounter context, or mechanic category.
 | `fru-p2` | `/arena/e8.svg` | FRU P2 or Eden/Shiva-light style diagrams when the user explicitly names FRU P2. |
 | `eden-light` | `/arena/e8.svg` | Shiva, Light Rampant, light orb, mirror, hexagram, or Eden light-themed mechanics. |
 | `omega-o8s` | none | O8S, Omega, Sigmascape, Kefka, or 妖星乱舞-style mechanics when no dedicated O8S arena asset is present locally. Use default circle plus explicit AC/BD axis, radial tick, half-field, waymark, and Boss target-ring overlays. |
-| `ultimate-yokai-star-dance` | `/arena/udm-p1.png` when available | Ultimate Yokai Star Dance / UDM progression diagrams when the local XivPlan public assets contain `udm-*` arena PNGs. |
+| `udm-p1` | `/arena/udm-phase1.png` | Ultimate Yokai Star Dance / UDM / 绝妖 P1 diagrams, matching the local P1 gold references. |
+| `udm-p2` | `/arena/udm-phase2.png` | UDM / 绝妖 P2 diagrams, matching the local P2 gold references. |
+| `udm-p3` | `/arena/udm-phase3.png` | UDM / 绝妖 P3 diagrams when a phase-three UDM arena is needed. |
+| `udm-p4` | `/arena/udm-p4.png` | UDM mahjong / 麻将-style special examples. |
+| `ultimate-yokai-star-dance` | `/arena/udm-phase1.png` when available | Generic Ultimate Yokai Star Dance / UDM progression diagrams when the phase is not specified; prefer `udm-p1` / `udm-p2` / `udm-p3` when phase is known. |
 | `tile-square` | none | Square, platform, grid, floor-tile, or transition diagrams where the arena shape matters more than a raid background image. |
 | `default-circle` | none | Fallback for generic mechanics or when no explicit encounter/category evidence exists. |
 
@@ -21,7 +25,11 @@ encounter context, or mechanic category.
 - `fru-p2` -> `fru-p2`
 - `shiva`, `light-rampant`, `eden-light`, `e8` -> `eden-light`
 - `o8s`, `omega`, `sigmascape`, `kefka`, `凯夫卡`, `妖星乱舞` -> `omega-o8s`
-- `ultimate-yokai-star-dance`, `yokai-star-dance`, `udm`, `绝妖`, `绝妖星乱舞` -> `ultimate-yokai-star-dance`
+- `udm-p1`, `udm phase1`, `绝妖 p1`, `绝妖第一阶段` -> `udm-p1`
+- `udm-p2`, `udm phase2`, `绝妖 p2`, `绝妖第二阶段` -> `udm-p2`
+- `udm-p3`, `udm phase3`, `绝妖 p3`, `绝妖第三阶段` -> `udm-p3`
+- `udm-p4`, `麻将` -> `udm-p4`
+- `ultimate-yokai-star-dance`, `yokai-star-dance`, `udm`, `绝妖`, `绝妖星乱舞` -> phase-specific UDM preset when phase is known, otherwise `ultimate-yokai-star-dance`
 - `tile`, `tile-square`, `square`, `grid arena` -> `tile-square`
 - `default`, `circle`, `default-circle` -> `default-circle`
 
@@ -29,11 +37,13 @@ encounter context, or mechanic category.
 
 1. User-specified background wins. Examples: "background use FRU P1",
    "use e11", "Light Rampant background", "square arena".
-2. Encounter and phase context comes next. Example: `encounter_name=FRU`
+2. UDM / 绝妖 context is resolved before plain O8S context, because `绝妖星乱舞`
+   contains the substring `妖星乱舞` but should use local UDM backgrounds.
+3. Encounter and phase context comes next. Example: `encounter_name=FRU`
    and `phase=P1` selects `fru-p1`.
-3. Mechanic category inference comes next. `light-rampant-like` selects
+4. Mechanic category inference comes next. `light-rampant-like` selects
    `eden-light`; `tile-platform` selects `tile-square`.
-4. Fall back to `default-circle`.
+5. Fall back to `default-circle`.
 
 ## Quality Report Wording
 

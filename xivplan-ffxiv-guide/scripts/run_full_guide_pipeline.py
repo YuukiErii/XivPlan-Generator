@@ -194,6 +194,48 @@ def run_quality(case_dir: Path, quality_dir: Path) -> dict[str, Any]:
     return result
 
 
+def run_scene_quality(scene_path: Path, quality_dir: Path) -> dict[str, Any]:
+    scene = read_json(scene_path)
+    scene_errors, type_counts, object_count = validate_scene(scene)
+    density = audit_scene(scene_path)
+    visual_quality = audit_visual_quality_scene(scene_path)
+    errors = scene_errors + ([] if visual_quality["ok"] else ["visual quality audit found severe issues"])
+    result = {
+        "ok": not errors,
+        "mode": "xivplan-only",
+        "errors": errors,
+        "scene": {
+            "path": str(scene_path),
+            "steps": len(scene.get("steps", [])),
+            "objects": object_count,
+            "types": dict(sorted(type_counts.items())),
+        },
+        "density": density,
+        "visual_quality": visual_quality,
+    }
+    write_json_file(quality_dir / "quality-results.json", result)
+    write_json_file(quality_dir / "visual-quality-results.json", [visual_quality])
+    write_text(quality_dir / "visual-quality-report.md", render_visual_quality_markdown([visual_quality]))
+    lines = [
+        "# XivPlan-Only Pipeline Quality Report",
+        "",
+        f"- status: {'PASS' if result['ok'] else 'FAIL'}",
+        f"- mode: xivplan-only",
+        f"- scene: `{scene_path}`",
+        f"- steps: {result['scene']['steps']}",
+        f"- objects: {result['scene']['objects']}",
+        f"- avg objects / step: {density.get('avg_objects_per_step')}",
+        f"- visual quality: {visual_quality.get('status')} score={visual_quality.get('overall_score')}",
+        f"- severe visual issues: {visual_quality.get('severe_items')}",
+        f"- review visual issues: {visual_quality.get('review_items')}",
+    ]
+    if errors:
+        lines.extend(["", "## Errors", ""])
+        lines.extend(f"- {error}" for error in errors)
+    write_text(quality_dir / "quality-report.md", "\n".join(lines))
+    return result
+
+
 def run_generic_pipeline(
     input_path: Path,
     encounter_name: str,
@@ -201,6 +243,7 @@ def run_generic_pipeline(
     version: str,
     output_dir: Path,
     force: bool,
+    full_package: bool = False,
 ) -> dict[str, Any]:
     ensure_output_available(output_dir, force)
     paths = case_paths(output_dir)
@@ -237,29 +280,41 @@ def run_generic_pipeline(
     if errors:
         raise RuntimeError(f"generated scene invalid: {errors}")
 
-    manifest = export_steps(scene_path, paths["xivplan"], scale_factor=1)
-    guide = guide_for(encounter_name, phase, version, input_path, bundle, scores, manifest, spec, parsed["unknowns"])
-    guide_source = paths["xivplan"] / "guide.json"
-    write_json(guide_source, guide)
-    outputs = assemble_guide(guide_source, paths["guide"], strict_images=True)
+    if full_package:
+        manifest = export_steps(scene_path, paths["xivplan"], scale_factor=1)
+        guide = guide_for(encounter_name, phase, version, input_path, bundle, scores, manifest, spec, parsed["unknowns"])
+        guide_source = paths["xivplan"] / "guide.json"
+        write_json(guide_source, guide)
+        outputs = assemble_guide(guide_source, paths["guide"], strict_images=True)
 
-    quality_case = paths["quality"] / "case"
-    copy_for_quality(spec_path, scene_path, paths["xivplan"] / "manifest.json", paths["guide"], quality_case)
-    quality = run_quality(quality_case, paths["quality"])
+        quality_case = paths["quality"] / "case"
+        copy_for_quality(spec_path, scene_path, paths["xivplan"] / "manifest.json", paths["guide"], quality_case)
+        quality = run_quality(quality_case, paths["quality"])
+    else:
+        outputs = {}
+        quality = run_scene_quality(scene_path, paths["quality"])
 
     summary = {
         "input": str(input_path),
         "encounter_name": encounter_name,
         "phase": phase,
         "version": version,
+        "mode": "full-package" if full_package else "xivplan-only",
         "recommended_candidate": scores.get("recommended_candidate"),
         "unknowns": len(parsed["unknowns"]),
         "quality_ok": quality["ok"],
         "output_dir": str(output_dir),
-        "guide_markdown": str(outputs["markdown"]),
-        "guide_docx": str(outputs["docx"]),
-        "guide_pdf": str(outputs["pdf"]),
+        "spec": str(spec_path),
+        "xivplan": str(scene_path),
     }
+    if full_package:
+        summary.update(
+            {
+                "guide_markdown": str(outputs["markdown"]),
+                "guide_docx": str(outputs["docx"]),
+                "guide_pdf": str(outputs["pdf"]),
+            }
+        )
     write_json_file(output_dir / "pipeline-summary.json", summary)
     return summary
 
@@ -272,6 +327,7 @@ def main() -> int:
     parser.add_argument("--version", default="v0.1-draft", help="Version label")
     parser.add_argument("--output-dir", type=Path, help="Output directory for generic mode")
     parser.add_argument("--force", action="store_true", help="Overwrite the selected output directory/version")
+    parser.add_argument("--full-package", action="store_true", help="Also export step PNGs and assemble Markdown/DOCX/PDF guide files")
     parser.add_argument("--ultimate-yokai-star-dance", action="store_true", help="Use the versioned Ultimate Yokai Star Dance workspace")
     parser.add_argument("--previous-version", help="Previous version label for Ultimate Yokai Star Dance change-log entries")
     args = parser.parse_args()
@@ -290,13 +346,13 @@ def main() -> int:
                 )
             else:
                 input_path = args.input
-            summary = run_ultimate_pipeline(input_path, args.version, args.previous_version, args.force)
+            summary = run_ultimate_pipeline(input_path, args.version, args.previous_version, args.force, args.full_package)
         else:
             if args.input is None:
                 print("ERROR: generic mode requires an input Markdown file", file=sys.stderr)
                 return 2
             output_dir = args.output_dir or DEFAULT_OUT_ROOT / slugify(f"{args.encounter_name}-{args.phase}-{args.version}")
-            summary = run_generic_pipeline(args.input, args.encounter_name, args.phase, args.version, output_dir, args.force)
+            summary = run_generic_pipeline(args.input, args.encounter_name, args.phase, args.version, output_dir, args.force, args.full_package)
     except Exception as exc:  # noqa: BLE001 - CLI should report concise failures.
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
@@ -305,6 +361,7 @@ def main() -> int:
     print(f"recommended: {summary['recommended_candidate']}")
     print(f"unknowns: {summary['unknowns']}")
     print(f"quality: {'PASS' if summary['quality_ok'] else 'FAIL'}")
+    print(f"mode: {summary.get('mode', 'full-package')}")
     print(f"output: {summary.get('output_dir') or summary.get('outputs', {}).get('guide', '')}")
     return 0 if summary["quality_ok"] else 1
 

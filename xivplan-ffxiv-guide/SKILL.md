@@ -23,7 +23,7 @@ Use Simplified Chinese by default. Produce practical raid-guide output that a CN
    - For normal multi-step scenes, add a `scene_contract` requiring full party, enemy anchor, and waymarks on every step. Use `partial_observation` only for true local observation/asset frames and explain why in `guide_text`.
    - Every Boss/add/clone/source should have a visible target ring, readable name label, radius, and distinct identity. Use direction or index suffixes for duplicated add names.
     - If the Boss/add/clone/source identity is known, follow `references/enemy-image-asset-workflow.md`: search the FF14 Chinese wiki first, record the page/source and visual traits, create an original guide-friendly transparent PNG icon from those traits, validate it, and embed it into the `.xivplan` as an enemy `icon` data URL. Use a documented fallback only when the appearance cannot be confirmed.
-    - For Phase W background work, run or follow `scripts/scan_xivplan_assets.py` before claiming an encounter-specific arena exists. FRU P1 should use `/arena/e11.svg`; O8S/Omega/妖星乱舞 should use `omega-o8s` fallback with explicit AC/BD axis, radial tick, half-field, waymark, and Boss target-ring overlays unless a real local O8S background is found.
+    - For Phase W background work, run or follow `scripts/scan_xivplan_assets.py` before claiming an encounter-specific arena exists. FRU P1 should use `/arena/e11.svg`; UDM / 绝妖 P1-P3 should use the phase-specific `udm-p1` / `udm-p2` / `udm-p3` local arena presets; plain O8S/Omega/妖星乱舞 should use `omega-o8s` fallback with explicit AC/BD axis, radial tick, half-field, waymark, and Boss target-ring overlays unless a real local O8S background is found.
     - For buff/debuff/status-driven mechanics, declare `status_assignment_contract` and `statusAssignments`. Every assigned role must show a readable status overlay on the upper-left of that player's party icon; fallback badges are allowed only with a recorded reason.
    - For long dense mechanics, use `P1/P1_thunder_fire_swords.xivplan` as the information-density reference: many steps are acceptable when each frame remains readable and focused.
    - Treat long-flow density differently from single-step clutter: a semantic long-flow scene is acceptable only when it has 10-14 purposeful steps, observe/move/resolve/reset coverage, no severe label or arrow issues, and clear reset/next-read frames.
@@ -36,9 +36,9 @@ Use Simplified Chinese by default. Produce practical raid-guide output that a CN
    - Check direction, role, player count, stack/spread/tower responsibility, arrow direction, tether endpoints, and reset wording.
    - If a contradiction is found, report the issue and provide a corrected version.
 
-## One-Command Guide Pipeline
+## One-Command XivPlan Pipeline
 
-When the user provides a new mechanic flow Markdown and wants a complete guide package, prefer the full pipeline entrypoint:
+When the user provides a new mechanic flow Markdown and wants a concrete artifact, prefer the XivPlan-only pipeline entrypoint. It generates the parse/solution evidence, the compact spec, the importable `.xivplan`, and quality reports, but does not export step PNGs, SVGs, Markdown, DOCX, or PDF by default:
 
 ```powershell
 $py = "C:\Users\Mahiru\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
@@ -49,14 +49,14 @@ $py = "C:\Users\Mahiru\.cache\codex-runtimes\codex-primary-runtime\dependencies\
   --output-dir artifacts\full-guide-pipeline\my-case
 ```
 
-This runs natural-language parsing, similar-mechanic search, candidate planning and scoring, spec generation, `.xivplan` generation, step PNG export, Markdown / DOCX / PDF guide assembly, and the quality gate. Use `--force` only when intentionally rerunning the same output folder.
+Use `--force` only when intentionally rerunning the same output folder. Use `--full-package` only for release/regression QA that explicitly needs step PNGs and Markdown / DOCX / PDF guide files.
 
 ## New Encounter Notes Workflow
 
 For fresh-fight information:
 
 1. Write or update the source Markdown first. It should include timeline notes, screenshot descriptions, oral calls, and explicit unknowns.
-2. Run `scripts/run_full_guide_pipeline.py` with `--encounter-name`, `--phase`, `--version`, and `--output-dir`.
+2. Run `scripts/run_full_guide_pipeline.py` with `--encounter-name`, `--phase`, `--version`, and `--output-dir`; keep the default XivPlan-only output unless a full QA package is explicitly needed.
 3. Inspect `parsed-ir/unknowns.md`, `knowledge-matches/knowledge-search.md`, `solution-candidates/solution-report.md`, and `quality-report/quality-report.md`.
 4. Keep guide wording draft-scoped until observed rules are confirmed.
 
@@ -97,7 +97,7 @@ The shortcut preserves previous outputs, writes per-version folders under `artif
 
 Before handoff or release:
 
-1. Confirm the pipeline produced `.xivplan`, exported PNGs, Markdown, DOCX, PDF, candidate report, analogy report, and unknown/risk files.
+1. Confirm the default pipeline produced `.xivplan`, candidate report, analogy report, unknown/risk files, and a quality report. Confirm exported PNGs or Markdown / DOCX / PDF only when `--full-package` was explicitly requested.
 2. Confirm `quality-report.md` says `PASS`.
 3. For progression versions, confirm `change-log.md` lists new confirmations, disproved assumptions, and remaining unknowns.
 4. Never publish `v0.x` output as final public strategy unless the user explicitly says the information is verified.
@@ -114,6 +114,7 @@ Load only the reference needed for the task:
 - `references/encounters/coverage-audit.md`: floor-by-floor Savage coverage boundary and live-tier refresh notes.
 - `references/xivplan-scene-format.md`: local XivPlan JSON schema, object fields, coordinates, and file handling.
 - `references/arena-presets.md`: arena background selection rules, aliases, and source labels.
+- `references/encounters/ultimates/udm.md`: local UDM / 绝妖 P1-P3 gold-reference arena, density, and output-policy notes.
 - `references/xivplan-style-guide.md`: KING X golden-sample visual baseline, diagram sizes, colors, layering, and step decomposition.
 - `references/enemy-identity-style-guide.md`: Boss/add/clone/source target-ring, name, radius, facing, duplicate-name, and identity audit rules.
 - `references/enemy-image-asset-workflow.md`: enemy-specific image brief, manifest, fallback icon, and `inject_enemy_assets.py` workflow.
@@ -142,9 +143,10 @@ For Phase H visual planning, prefer these templates:
 Before generating a concrete spec, choose the arena preset and record why:
 
 1. If the user says "FRU P1", "Fatebreaker", "e11", or thunder/fire swords, use `arena: {"preset": "fru-p1"}`.
-2. If the user says "Shiva", "Light Rampant", "e8", mirrors, or light-orb mechanics, use `arena: {"preset": "eden-light"}` unless they explicitly said `fru-p2`.
-3. If the user says square/grid/tile/platform arena, use `arena: {"preset": "tile-square"}`.
-4. If none applies, use `arena: {"preset": "default-circle"}` and mark it as a fallback.
+2. If the user says "UDM", "绝妖", or "绝妖星乱舞", choose `udm-p1`, `udm-p2`, or `udm-p3` from the encounter phase. Do not let `绝妖星乱舞` fall through to the plain O8S / `omega-o8s` fallback.
+3. If the user says "Shiva", "Light Rampant", "e8", mirrors, or light-orb mechanics, use `arena: {"preset": "eden-light"}` unless they explicitly said `fru-p2`.
+4. If the user says square/grid/tile/platform arena, use `arena: {"preset": "tile-square"}`.
+5. If none applies, use `arena: {"preset": "default-circle"}` and mark it as a fallback.
 
 When parser or planning outputs are available, preserve `arena_selection.source` as `user-specified`, `mechanic-inferred`, or `default-fallback` so the quality report can explain the background source.
 
@@ -216,6 +218,7 @@ When generating object-level instructions:
 - For movement and route lines, use `arrowStyle` instead of hand-picked colors: `movement`, `preposition`, `micro`, `knockback`, `bait`, `forbidden`, or `reset`. Use `waypoints`, `curve`, `kind: "path"`, or `kind: "polyline"` when a route should bend around mechanics or avoid crossing another arrow. Any step marked as movement/reset must include an explicit arrow or tether layer.
 - Generated complex specs must also declare the Phase V `mechanic_semantics_contract`. Use `movementRoute` for required movement with `fromRole` or `fromObject`, `toRole` / `toObject` / `toZone`, `resolveIndex`, route intent, `startLabel`, `endLabel`, and boolean `snapToTarget`. Use `damagePattern` for judgment geometry with `kind`, `source`, `targets`, `resolveIndex`, `resolveTiming`, `aoeIntent`, and `label`.
 - Supported `damagePattern.kind` values are `fan120`, `shareFan90`, `baitTrail`, `towerResolve`, `chargeLine`, `safeSector`, and `bossHitbox`. Use `aoeIntent: "damage" | "safe" | "bait_history" | "future_resolve" | "reference_only"` so historical bait circles and safe overlays are not audited as current danger.
+- For UDM / 绝妖 generation, follow `references/encounters/ultimates/udm.md`: use phase-specific UDM arena presets, target roughly 20-30 meaningful objects per normal step, keep status/head-marker ownership visible through overlays, and keep generated `.xivplan` files lightweight instead of copying large embedded PNG payloads from gold references.
 - Use `P1/P1_thunder_fire_swords.xivplan` as the long-flow density target: 14+ teaching steps and dense labels are acceptable only when each step has a distinct teaching question, context remains stable, labels and arrows pass severe gates, and the final frames state reset or next-read setup.
 - Keep scene-wide object IDs unique across all steps.
 - Validate generated or edited `.xivplan` JSON with:
@@ -235,7 +238,7 @@ python xivplan-ffxiv-guide/scripts/validate_xivplan_scene.py artifacts/generated
 
 For new mechanics, first draft a spec JSON with `name`, `arena`, `steps`, and object entries such as `boss`, `party`, `tower`, `stack`, `circle`, `safe_circle`, `knockback`, `arrow`, `tether`, and `label`.
 
-To assemble exported images and prose into a shareable guide package, create `guide.json` and run:
+To assemble exported images and prose into a shareable guide package for explicit QA/release work, create `guide.json` and run:
 
 ```bash
 python xivplan-ffxiv-guide/scripts/assemble_guide.py xivplan-ffxiv-guide/assets/sample-guides/phase5-multistep-guide.json -o artifacts/guide-packages/phase5-multistep-guide

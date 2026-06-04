@@ -21,6 +21,7 @@ The intended maintenance rule is:
 | DSR / DSU | [ultimates/dsr.md](ultimates/dsr.md) | Playstation chains, Sanctity, Dive from Grace, Death of the Heavens, Wroth Flames |
 | TOP | [ultimates/top.md](ultimates/top.md) | Pantokrator, Party Synergy, Hello World, Run: Dynamis |
 | FRU | [ultimates/fru.md](ultimates/fru.md) | P1-P5 representative mechanics with local XivPlan evidence |
+| UDM / Ultimate Yokai Star Dance | [ultimates/udm.md](ultimates/udm.md) | P1-P3 gold-reference arena routing, object density, and XivPlan-only output policy |
 
 ## Omega Savage Coverage
 

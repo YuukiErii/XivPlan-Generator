@@ -202,6 +202,48 @@ def run_quality(case_dir: Path, quality_dir: Path) -> dict[str, Any]:
     return result
 
 
+def run_scene_quality(scene_path: Path, quality_dir: Path) -> dict[str, Any]:
+    scene = read_json(scene_path)
+    scene_errors, type_counts, object_count = validate_scene(scene)
+    density = audit_scene(scene_path)
+    visual_quality = audit_visual_quality_scene(scene_path)
+    errors = scene_errors + ([] if visual_quality["ok"] else ["visual quality audit found severe issues"])
+    result = {
+        "ok": not errors,
+        "mode": "xivplan-only",
+        "errors": errors,
+        "scene": {
+            "path": str(scene_path),
+            "steps": len(scene.get("steps", [])),
+            "objects": object_count,
+            "types": dict(sorted(type_counts.items())),
+        },
+        "density": density,
+        "visual_quality": visual_quality,
+    }
+    json_write(quality_dir / "quality-results.json", result)
+    json_write(quality_dir / "visual-quality-results.json", [visual_quality])
+    write_text(quality_dir / "visual-quality-report.md", render_visual_quality_markdown([visual_quality]))
+    lines = [
+        "# Ultimate Yokai Star Dance XivPlan-Only Quality Report",
+        "",
+        f"- status: {'PASS' if result['ok'] else 'FAIL'}",
+        f"- mode: xivplan-only",
+        f"- scene: `{scene_path}`",
+        f"- steps: {result['scene']['steps']}",
+        f"- objects: {result['scene']['objects']}",
+        f"- avg objects / step: {density.get('avg_objects_per_step')}",
+        f"- visual quality: {visual_quality.get('status')} score={visual_quality.get('overall_score')}",
+        f"- severe visual issues: {visual_quality.get('severe_items')}",
+        f"- review visual issues: {visual_quality.get('review_items')}",
+    ]
+    if errors:
+        lines.extend(["", "## Errors", ""])
+        lines.extend(f"- {error}" for error in errors)
+    write_text(quality_dir / "quality-report.md", "\n".join(lines))
+    return result
+
+
 def copy_for_quality(spec_path: Path, scene_path: Path, manifest_path: Path, guide_package: Path, case_dir: Path) -> None:
     case_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(spec_path, case_dir / "spec.json")
@@ -227,6 +269,7 @@ def append_change_log(
     unknowns: list[dict[str, Any]],
     paths: dict[str, Path],
     quality: dict[str, Any],
+    full_package: bool,
 ) -> None:
     log_path = WORKSPACE / "change-log.md"
     if not log_path.exists():
@@ -254,14 +297,15 @@ def append_change_log(
         f"  - solution_candidates: `{paths['solution']}`",
         f"  - generated_spec: `{paths['spec']}`",
         f"  - generated_xivplan: `{paths['xivplan']}`",
-        f"  - guide_package: `{paths['guide']}`",
         f"  - quality_report: `{paths['quality'] / 'quality-report.md'}`",
     ]
+    if full_package:
+        entry.insert(-1, f"  - guide_package: `{paths['guide']}`")
     with log_path.open("a", encoding="utf-8") as file:
         file.write("\n".join(entry) + "\n")
 
 
-def run_pipeline(notes_path: Path, version: str, previous_version: str | None, force: bool) -> dict[str, Any]:
+def run_pipeline(notes_path: Path, version: str, previous_version: str | None, force: bool, full_package: bool = False) -> dict[str, Any]:
     paths = version_paths(version)
     ensure_version_available(paths, force)
     notes_text = read_text(notes_path)
@@ -289,12 +333,6 @@ def run_pipeline(notes_path: Path, version: str, previous_version: str | None, f
     if errors:
         raise RuntimeError(f"generated scene invalid: {errors}")
 
-    manifest = export_steps(scene_path, paths["xivplan"], scale_factor=1)
-    guide = guide_for(version, notes_path, bundle, scores, manifest, spec, parsed["unknowns"])
-    guide_source = paths["xivplan"] / "guide.json"
-    write_json(guide_source, guide)
-    guide_outputs = assemble_guide(guide_source, paths["guide"], strict_images=True)
-
     write_text(paths["solution"] / "unknowns.md", render_unknowns(parsed["unknowns"]))
     risk_lines = ["# Risk And Unknowns", ""]
     if parsed["unknowns"]:
@@ -304,22 +342,40 @@ def run_pipeline(notes_path: Path, version: str, previous_version: str | None, f
         risk_lines.append("- 暂无阻塞未知点；仍需实战验证范围、判定和复位节奏。")
     write_text(paths["solution"] / "risks-and-assumptions.md", "\n".join(risk_lines))
 
-    quality_case = paths["quality"] / "case"
-    copy_for_quality(spec_path, scene_path, paths["xivplan"] / "manifest.json", paths["guide"], quality_case)
-    quality = run_quality(quality_case, paths["quality"])
-    append_change_log(version, previous_version, notes_path, notes_text, parsed["unknowns"], paths, quality)
+    if full_package:
+        manifest = export_steps(scene_path, paths["xivplan"], scale_factor=1)
+        guide = guide_for(version, notes_path, bundle, scores, manifest, spec, parsed["unknowns"])
+        guide_source = paths["xivplan"] / "guide.json"
+        write_json(guide_source, guide)
+        guide_outputs = assemble_guide(guide_source, paths["guide"], strict_images=True)
+
+        quality_case = paths["quality"] / "case"
+        copy_for_quality(spec_path, scene_path, paths["xivplan"] / "manifest.json", paths["guide"], quality_case)
+        quality = run_quality(quality_case, paths["quality"])
+    else:
+        guide_outputs = {}
+        quality = run_scene_quality(scene_path, paths["quality"])
+    append_change_log(version, previous_version, notes_path, notes_text, parsed["unknowns"], paths, quality, full_package)
 
     summary = {
         "version": version,
+        "mode": "full-package" if full_package else "xivplan-only",
         "notes": str(notes_path),
         "recommended_candidate": scores.get("recommended_candidate"),
         "unknowns": len(parsed["unknowns"]),
         "quality_ok": quality["ok"],
         "outputs": {key: str(value) for key, value in paths.items()},
-        "guide_markdown": str(guide_outputs["markdown"]),
-        "guide_docx": str(guide_outputs["docx"]),
-        "guide_pdf": str(guide_outputs["pdf"]),
+        "spec": str(spec_path),
+        "xivplan": str(scene_path),
     }
+    if full_package:
+        summary.update(
+            {
+                "guide_markdown": str(guide_outputs["markdown"]),
+                "guide_docx": str(guide_outputs["docx"]),
+                "guide_pdf": str(guide_outputs["pdf"]),
+            }
+        )
     json_write(paths["quality"] / "pipeline-summary.json", summary)
     return summary
 
@@ -330,9 +386,10 @@ def main() -> int:
     parser.add_argument("--version", default="v0.1-draft", help="Version label such as v0.1-draft or v0.2-observed")
     parser.add_argument("--previous-version", help="Previous version label for change-log context")
     parser.add_argument("--force", action="store_true", help="Overwrite outputs for this version")
+    parser.add_argument("--full-package", action="store_true", help="Also export step PNGs and assemble Markdown/DOCX/PDF guide files")
     args = parser.parse_args()
     try:
-        summary = run_pipeline(args.notes, args.version, args.previous_version, args.force)
+        summary = run_pipeline(args.notes, args.version, args.previous_version, args.force, args.full_package)
     except Exception as exc:  # noqa: BLE001 - CLI should report a concise failure.
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
@@ -340,7 +397,8 @@ def main() -> int:
     print(f"recommended: {summary['recommended_candidate']}")
     print(f"unknowns: {summary['unknowns']}")
     print(f"quality: {'PASS' if summary['quality_ok'] else 'FAIL'}")
-    print(f"guide: {summary['guide_markdown']}")
+    print(f"mode: {summary['mode']}")
+    print(f"xivplan: {summary['xivplan']}")
     return 0 if summary["quality_ok"] else 1
 
 

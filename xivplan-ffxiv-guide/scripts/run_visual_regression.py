@@ -1391,6 +1391,7 @@ def run_pipeline(input_path: Path, case_dir: Path, meta: dict[str, Any], force: 
         meta["version"],
         "--output-dir",
         str(case_dir),
+        "--full-package",
     ]
     if force:
         command.append("--force")
@@ -1424,7 +1425,7 @@ def render_phase_i_report(
         f"- Phase V O8S semantics: range={acceptance.get('phase_v_o8s_range_score')} arrow={acceptance.get('phase_v_o8s_arrow_score')} patterns={', '.join(acceptance.get('phase_v_o8s_patterns', []))}",
         f"- Phase W arena/background gate: {'PASS' if acceptance.get('phase_w_arena_ok') else 'FAIL'}",
         f"- Phase W FRU arena: {acceptance.get('phase_w_fru_arena')}",
-        f"- Phase W O8S fallback arena: {acceptance.get('phase_w_o8s_arena')}",
+        f"- Phase W UDM/Yokai arena: {acceptance.get('phase_w_o8s_arena')}",
         f"- Phase W dedicated Boss icon: {'PASS' if acceptance.get('phase_w_boss_icon_ok') else 'FAIL'}",
         f"- Phase W seven-item product gate: {'PASS' if acceptance.get('phase_w_product_gate_ok') else 'FAIL'}",
         f"- Phase X status assignment gate: {'PASS' if acceptance.get('phase_x_status_ok') else 'FAIL'}",
@@ -1682,11 +1683,9 @@ def main() -> int:
     phase_w_fru_arena_ok = bool(phase_w_fru_arena_context.get("backgroundImage") == "/arena/e11.svg")
     phase_w_o8s_overlay_kinds = set(phase_w_o8s_arena_context.get("overlay_kinds", []))
     phase_w_o8s_arena_ok = bool(
-        phase_w_o8s_arena_context.get("preset") == "omega-o8s"
-        and not phase_w_o8s_arena_context.get("backgroundImage")
-        and phase_w_o8s_arena_context.get("backgroundStatus") == "fallback"
-        and {"axis", "radial_ticks"} <= phase_w_o8s_overlay_kinds
-        and "no built-in O8S arena asset found" in str(phase_w_o8s_arena_context.get("sourceReason", ""))
+        phase_w_o8s_arena_context.get("preset") in {"udm-p1", "ultimate-yokai-star-dance"}
+        and phase_w_o8s_arena_context.get("backgroundImage") in {"/arena/udm-phase1.png", "/arena/udm-p1.png"}
+        and phase_w_o8s_arena_context.get("backgroundStatus") == "local-asset"
     )
     phase_w_arena_ok = phase_w_fru_arena_ok and phase_w_o8s_arena_ok
     phase_w_product_gate = phase_w_product_gate_status(
@@ -1751,9 +1750,10 @@ def main() -> int:
             background=phase_w_fru_arena_context.get("backgroundImage"),
         ),
         "phase_w_o8s_arena_ok": phase_w_o8s_arena_ok,
-        "phase_w_o8s_arena": "{preset} {status} overlays={overlays} reason={reason}".format(
+        "phase_w_o8s_arena": "{preset} {status} background={background} overlays={overlays} reason={reason}".format(
             preset=phase_w_o8s_arena_context.get("preset"),
             status=phase_w_o8s_arena_context.get("backgroundStatus"),
+            background=phase_w_o8s_arena_context.get("backgroundImage"),
             overlays=",".join(phase_w_o8s_arena_context.get("overlay_kinds", [])),
             reason=phase_w_o8s_arena_context.get("sourceReason"),
         ),

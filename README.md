@@ -46,9 +46,9 @@ $py = "C:\Users\Mahiru\.cache\codex-runtimes\codex-primary-runtime\dependencies\
 & $py xivplan-ffxiv-guide\scripts\test_solution_optimizer.py
 ```
 
-## One-Command Guide Generation
+## One-Command XivPlan Generation
 
-Generate a complete guide package from one mechanic Markdown file:
+Generate an importable `.xivplan` from one mechanic Markdown file:
 
 ```powershell
 $py = "C:\Users\Mahiru\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
@@ -59,9 +59,9 @@ $py = "C:\Users\Mahiru\.cache\codex-runtimes\codex-primary-runtime\dependencies\
   --output-dir artifacts\full-guide-pipeline\my-case
 ```
 
-The command writes parsed IR, knowledge matches, solution candidates, a scored recommendation, scene spec, `.xivplan`, step PNGs, Markdown / DOCX / PDF guide package, and a quality report. If rerunning the same output directory intentionally, add `--force`.
+By default the command writes parsed IR, knowledge matches, solution candidates, a scored recommendation, scene spec, `.xivplan`, and a quality report. It does not export step PNGs, SVGs, Markdown, DOCX, or PDF. If rerunning the same output directory intentionally, add `--force`. Use `--full-package` only when release/regression QA explicitly needs step PNGs and Markdown / DOCX / PDF guide files.
 
-Generate Ultimate Yokai Star Dance progression output:
+Generate Ultimate Yokai Star Dance progression `.xivplan` output:
 
 ```powershell
 & $py xivplan-ffxiv-guide\scripts\run_full_guide_pipeline.py `

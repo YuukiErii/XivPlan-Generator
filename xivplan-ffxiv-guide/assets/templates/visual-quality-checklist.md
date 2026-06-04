@@ -81,10 +81,16 @@ Run this before final handoff, alongside `scripts/audit_visual_quality.py`.
 
 - [ ] `scripts/scan_xivplan_assets.py` was run when encounter-specific backgrounds matter.
 - [ ] FRU/Fatebreaker P1 diagrams use `/arena/e11.svg` unless the user explicitly requests another background.
+- [ ] UDM / 绝妖 diagrams use phase-specific `udm-p1` / `udm-p2` / `udm-p3` local backgrounds when phase context is known.
 - [ ] O8S/Omega/妖星乱舞 fallback scenes record `sourceReason: "no built-in O8S arena asset found; fallback to default-circle with explicit axis overlays"`.
 - [ ] Fallback arena scenes include visible `arenaOverlays` for radial ticks and AC/BD axes, plus waymarks and Boss target rings.
 - [ ] `export_xivplan_steps.py` contact-sheet PNGs show the actual raster background when available, or an explicit arena overlay/fallback note when it is not.
 - [ ] Final human review covers text, Boss identity/icon, arrows, ranges, background, waymarks, and flow completeness.
+
+## Output Mode
+
+- [ ] Default user-facing generation produced only `.xivplan` plus parse/solution/quality evidence.
+- [ ] Step PNGs, SVGs, Markdown, DOCX, or PDF were generated only because a full-package or release/regression QA command explicitly requested them.
 
 ## Phase X Status Assignments
 

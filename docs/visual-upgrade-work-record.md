@@ -926,3 +926,40 @@ Evidence:
 Known non-blocking review items:
 
 - Phase X currently uses deterministic fallback badges when real buff/debuff icons are not provided. This is allowed only when the fallback reason is recorded; exact official status icon sourcing remains a future asset-specific improvement.
+
+## Phase Y Update - 2026-06-04
+
+Phase Y is complete.
+
+Context:
+
+- The user added UDM P1/P2/P3 gold-reference folders under `C:\Users\Mahiru\Desktop\FFXIV\KING X\UDM` and asked the skill to learn from all `.xivplan` / `.xivplancn` files there.
+- The user-facing skill output should now be only `.xivplan`; SVG/PNG/contact sheets and guide-package documents are QA/release-only artifacts.
+
+Changes:
+
+- Ran the golden analyzer across the UDM P1/P2/P3 folders and wrote `artifacts/style-analysis/udm-golden-reference-profile.json` plus `artifacts/style-analysis/udm-golden-reference-profile.md`.
+- Added `references/encounters/ultimates/udm.md` with phase-specific arena routing, density baselines, object-language normalization, and the XivPlan-only output policy.
+- Added builder presets `udm-p1`, `udm-p2`, `udm-p3`, and `udm-p4`; P1/P2 use `/arena/udm-phase1.png` and `/arena/udm-phase2.png` as observed in the gold references.
+- Reordered parser arena selection so `绝妖星乱舞` / UDM resolves before generic `妖星乱舞` / O8S fallback; pure O8S / Kefka still resolves to `omega-o8s`.
+- Updated `scan_xivplan_assets.py`, `arena-presets.md`, `SKILL.md`, `README.md`, and `agents/openai.yaml` with the new UDM and output-mode rules.
+- Changed `run_full_guide_pipeline.py` and `run_ultimate_yokai_star_dance_pipeline.py` to default to XivPlan-only generation. `--full-package` now explicitly enables step PNG export and Markdown / DOCX / PDF assembly.
+- Updated `run_visual_regression.py` to pass `--full-package` so internal visual QA keeps its evidence surface without changing the user-facing default.
+
+Evidence:
+
+- UDM gold profile: 10 scenes, 84 steps, 1972 objects, median 23 objects per step.
+- Common UDM gold backgrounds: `/arena/udm-phase2.png`, `/arena/udm-phase1.png`, `https://cos.xivstrat.cn/floor/07/kfk/1.webp`, `https://cos.xivstrat.cn/floor/07/kfk/2.webp`, and `/arena/udm-p4.png`.
+- UDM P2 structured `.xivplancn` reference: 9 steps / 205 objects / 64 text objects, showing dense short Chinese labels plus party, indicator, fan, target, and stack layers.
+
+Verification:
+
+- `python -m compileall -q xivplan-ffxiv-guide\scripts`: PASS.
+- `test_arena_selection.py`: PASS, including `绝妖星乱舞 P2` -> `udm-p2` and plain O8S / 妖星乱舞 -> `omega-o8s`.
+- `test_mechanic_parser.py`: PASS.
+- `test_visual_quality_audit.py`: PASS.
+- `test_storyboard_templates.py`: PASS.
+- Default `run_full_guide_pipeline.py` smoke: PASS, `mode=xivplan-only`, generated `scene.xivplan` with `arena.preset=udm-p2`, `/arena/udm-phase2.png`, 14 steps / 574 objects, and no `images`, `.png`, `.svg`, `.docx`, or `.pdf` outputs.
+- Explicit `--full-package` smoke: PASS, preserving the old QA/release package path when requested.
+- `scan_xivplan_assets.py --encounter "绝妖星乱舞 UDM P2"`: available `/arena/udm-phase2.png`, with plain O8S fallback still recorded separately.
+- `git diff --check`: PASS.
